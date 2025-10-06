@@ -1,5 +1,5 @@
 FROM amazoncorretto:17-alpine
 WORKDIR /app
-COPY target/springboot-example.jar springboot-example.jar
+COPY build/libs/QuizSparkServer-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
-CMD ["java","-jar","springboot-example.jar"]
+CMD ["java", "-jar", "app.jar"]
