@@ -1,0 +1,54 @@
+name: Java CI/CD with EC2
+
+on:
+  push:
+    branches: [ "ec2-deployment" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+    - name: Build with Gradle
+      run: |
+        ./gradlew clean build
+        mkdir artifacts && cp build/libs/*.jar artifacts
+        cd artifacts && ls
+    - name: Save artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: quizspark-server-artifact
+        path: artifacts
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/quizspark-server:latest
+  deploy:
+    needs: build
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - name: Pull Image from docker hub
+        run: sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/quizspark-server:latest
+      - name: Delete old container
+        run: |
+          if [ $(sudo docker ps -aq -f name=quizspark-server-container) ]; then
+          sudo docker rm -f quizspark-server-container
+          fi
+      - name: Run Docker Image
+        run: sudo docker run -d -p 8080:8080 --name quizspark-server-container ${{ secrets.DOCKERHUB_USERNAME }}/quizspark-server:latest
