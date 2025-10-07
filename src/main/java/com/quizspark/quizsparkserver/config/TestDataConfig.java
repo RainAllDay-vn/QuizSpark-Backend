@@ -5,11 +5,13 @@ import com.quizspark.quizsparkserver.repositories.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 import java.util.List;
 import java.util.UUID;
 
 @Configuration
+@Profile("test")
 public class TestDataConfig {
 
     @Bean

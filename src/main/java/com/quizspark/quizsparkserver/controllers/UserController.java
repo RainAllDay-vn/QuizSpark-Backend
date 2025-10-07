@@ -1,5 +1,6 @@
 package com.quizspark.quizsparkserver.controllers;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +30,11 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody String username, @RequestBody String password) {
-        return userService.getUser(username, password)
+    public ResponseEntity<String> login(@RequestBody JsonNode node) {
+        if (!node.has("username") && !node.has("password")) {
+            return new ResponseEntity<>("Missing username or password",HttpStatus.BAD_REQUEST);
+        }
+        return userService.getUser(node.get("username").asText(), node.get("password").asText())
                 .map(value -> new ResponseEntity<>(value.getId().toString(), HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>("There is no such user", HttpStatus.UNAUTHORIZED));
     }

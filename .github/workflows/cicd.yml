@@ -44,6 +44,8 @@ jobs:
   deploy:
     needs: build
     runs-on: [self-hosted, linux, x64]
+    env:
+      DB_SUPABASE_PASSWORD: ${{ secrets.DB_SUPABASE_PASSWORD }}
     steps:
       - name: Pull Image from docker hub
         run: sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/quizspark-server:latest
