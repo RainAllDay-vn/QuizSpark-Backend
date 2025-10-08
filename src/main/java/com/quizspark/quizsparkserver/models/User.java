@@ -1,7 +1,7 @@
 package com.quizspark.quizsparkserver.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,6 +22,7 @@ public class User {
     private String password;
     // Relationship: one user can own many collections
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Collection> collections = new ArrayList<>();
 
     public User(String username, String password) {

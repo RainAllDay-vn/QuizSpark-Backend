@@ -1,7 +1,7 @@
 package com.quizspark.quizsparkserver.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,6 +18,7 @@ public class Quiz {
     private UUID id;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "collection_id", nullable = false)
+    @JsonBackReference
     private Collection collection;
     @Column(nullable = false)
     private String question;

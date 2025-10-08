@@ -1,7 +1,8 @@
 package com.quizspark.quizsparkserver.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -20,6 +21,7 @@ public class Collection {
     private UUID id;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonBackReference
     private User user;
     @Column(nullable = false)
     private String name;
@@ -28,5 +30,6 @@ public class Collection {
     private boolean isPublic = false;
     // Relationship: One Collection can have many Quizzes
     @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Quiz> quizzes = new ArrayList<>();
 }
