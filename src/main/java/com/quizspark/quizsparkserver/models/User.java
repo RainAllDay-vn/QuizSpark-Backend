@@ -25,12 +25,13 @@ public class User implements UserDetails {
     private UUID id;
     private String username;
     private String password;
+    private String role;
+
     // Relationship: one user can own many collections
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     @JsonIgnore
     private List<Collection> collections = new ArrayList<>();
-    private String role;
 
     public User(String username, String password, PasswordEncoder encoder) {
         this.username = username;

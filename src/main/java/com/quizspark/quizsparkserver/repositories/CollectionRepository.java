@@ -4,7 +4,9 @@ import com.quizspark.quizsparkserver.models.Collection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface CollectionRepository extends JpaRepository<Collection, UUID>, JpaSpecificationExecutor<Collection> {
+    List<Collection> findAllByAccess(Collection.Access access);
 }

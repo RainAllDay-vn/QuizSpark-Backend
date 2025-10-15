@@ -16,18 +16,25 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 public class Collection {
+    public enum Access {PUBLIC, PRIVATE}
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonBackReference
     private User user;
+
+    @Enumerated(EnumType.STRING)
+    private Access access;
+
     @Column(nullable = false)
     private String name;
+
     private String description;
-    @Column(name = "is_public", nullable = false)
-    private boolean isPublic = false;
+
     // Relationship: One Collection can have many Quizzes
     @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore

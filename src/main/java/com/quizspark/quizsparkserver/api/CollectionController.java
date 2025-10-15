@@ -23,6 +23,12 @@ public class CollectionController {
         this.quizService = quizService;
     }
 
+    @GetMapping("/public")
+    public ResponseEntity<Object> getPublicCollections() {
+        List<Collection> publicCollections = quizService.getPublicCollections();
+        return new ResponseEntity<>(publicCollections, HttpStatus.OK);
+    }
+
     @GetMapping()
     public ResponseEntity<Object> getCollections(@AuthenticationPrincipal User user) {
         List<Collection> collections = quizService.getCollectionByUser(user.getId().toString());

@@ -23,7 +23,9 @@ public class WebSecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable) // Disable CSRF for APIs
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/h2-console/**", "api/v1/users/register").permitAll()
+                        .requestMatchers("/", "/h2-console/**").permitAll()
+                        .requestMatchers("api/v1/users/register").permitAll()
+                        .requestMatchers("api/v1/collections/public").permitAll()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(Customizer.withDefaults()); // Basic Authentication

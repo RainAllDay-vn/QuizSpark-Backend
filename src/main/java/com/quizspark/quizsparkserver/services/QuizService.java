@@ -3,7 +3,6 @@ package com.quizspark.quizsparkserver.services;
 import com.quizspark.quizsparkserver.models.Collection;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.repositories.CollectionRepository;
-import com.quizspark.quizsparkserver.repositories.QuizRepository;
 import com.quizspark.quizsparkserver.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,6 +22,10 @@ public class QuizService {
         this.userRepository = userRepository;
     }
 
+    public List<Collection> getPublicCollections() {
+        return collectionRepository.findAllByAccess(Collection.Access.PUBLIC);
+    }
+
     public List<Collection> getCollectionByUser(String userId) {
         Optional<User> user = userRepository.findById(UUID.fromString(userId));
         return user.map(User::getCollections).orElse(null);
@@ -30,11 +33,5 @@ public class QuizService {
 
     public Optional<Collection> getCollectionById(String collectionId) {
         return collectionRepository.findById(UUID.fromString(collectionId));
-    }
-
-    public boolean isUserOwnedCollection(String collectionId, User user) {
-        Optional<Collection> collectionOptional = collectionRepository.findById(UUID.fromString(collectionId));
-        return collectionOptional.map(collection -> collection.getUser().equals(user))
-                .orElse(false);
     }
 }

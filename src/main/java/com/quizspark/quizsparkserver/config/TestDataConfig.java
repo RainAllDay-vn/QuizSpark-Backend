@@ -53,7 +53,7 @@ public class TestDataConfig {
                     Collection collection = new Collection();
                     collection.setName(user.getUsername() + "'s Collection " + i);
                     collection.setDescription("A quiz collection created by " + user.getUsername());
-                    collection.setPublic(i % 2 == 0); // Alternate between public/private
+                    collection.setAccess(i%2==0 ? Collection.Access.PUBLIC : Collection.Access.PRIVATE); // Alternate between public/private
                     collection.setUser(user);
 
                     allCollections.add(collection);
