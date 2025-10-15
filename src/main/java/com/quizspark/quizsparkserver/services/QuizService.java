@@ -31,8 +31,13 @@ public class QuizService {
         return user.map(User::getCollections).orElse(null);
     }
 
-    public List<Quiz> getQuizByCollection(String collectionId) {
-        Optional<Collection> collection = collectionRepository.findById(UUID.fromString(collectionId));
-        return collection.map(Collection::getQuizzes).orElse(null);
+    public Optional<Collection> getCollectionById(String collectionId) {
+        return collectionRepository.findById(UUID.fromString(collectionId));
+    }
+
+    public boolean isUserOwnedCollection(String collectionId, User user) {
+        Optional<Collection> collectionOptional = collectionRepository.findById(UUID.fromString(collectionId));
+        return collectionOptional.map(collection -> collection.getUser().equals(user))
+                .orElse(false);
     }
 }

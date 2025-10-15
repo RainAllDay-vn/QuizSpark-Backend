@@ -10,6 +10,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +24,8 @@ public class TestDataConfig {
     CommandLineRunner testDataInitializer(
             UserRepository userRepository,
             CollectionRepository collectionRepository,
-            QuizRepository quizRepository
+            QuizRepository quizRepository,
+            PasswordEncoder passwordEncoder
     ) {
         return args -> {
             // Clear existing data
@@ -33,9 +35,9 @@ public class TestDataConfig {
 
             // --- Create 3 Users ---
             List<User> users = List.of(
-                    new User("alice", "password123"),
-                    new User("bob", "password123"),
-                    new User("charlie", "password123")
+                    new User("alice", "alice", passwordEncoder),
+                    new User("bob", "bob", passwordEncoder),
+                    new User("charlie", "charlie", passwordEncoder)
             );
 
             userRepository.saveAll(users);
