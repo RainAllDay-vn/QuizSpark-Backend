@@ -7,7 +7,10 @@ import com.quizspark.quizsparkserver.repositories.CollectionRepository;
 import com.quizspark.quizsparkserver.repositories.QuizRepository;
 import com.quizspark.quizsparkserver.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,8 +38,14 @@ public class QuizService {
         return user.map(User::getCollections).orElse(null);
     }
 
-    public Optional<Collection> getCollectionById(String collectionId) {
-        return collectionRepository.findById(UUID.fromString(collectionId));
+    public Collection getCollectionById(String collectionId) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Optional<Collection> optional = collectionRepository.findById(UUID.fromString(collectionId));
+        if (optional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found");
+        Collection collection = optional.get();
+        if(user.getRole().equals("ROLE_ADMIN")) return collection;
+        if(!collection.getUser().equals(user)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this collection");
+        return collection;
     }
 
     public Collection saveCollection(Collection collection) {
