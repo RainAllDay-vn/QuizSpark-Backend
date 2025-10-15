@@ -1,7 +1,6 @@
 package com.quizspark.quizsparkserver.services;
 
 import com.quizspark.quizsparkserver.models.Collection;
-import com.quizspark.quizsparkserver.models.Quiz;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.repositories.CollectionRepository;
 import com.quizspark.quizsparkserver.repositories.QuizRepository;
@@ -16,13 +15,11 @@ import java.util.UUID;
 @Service
 public class QuizService {
     private final CollectionRepository collectionRepository;
-    private final QuizRepository quizRepository;
     private final UserRepository userRepository;
 
     @Autowired
-    public QuizService(CollectionRepository collectionRepository, QuizRepository quizRepository, UserRepository userRepository) {
+    public QuizService(CollectionRepository collectionRepository, UserRepository userRepository) {
         this.collectionRepository = collectionRepository;
-        this.quizRepository = quizRepository;
         this.userRepository = userRepository;
     }
 
