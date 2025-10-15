@@ -5,7 +5,10 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -26,17 +29,8 @@ public class Quiz {
     private String question;
 
     @Column(nullable = false)
-    private String answer;
+    private int answer;
 
-    @Column(name = "choice_1", nullable = false)
-    private String choice1;
-
-    @Column(name = "choice_2")
-    private String choice2;
-
-    @Column(name = "choice_3")
-    private String choice3;
-
-    @Column(name = "choice_4")
-    private String choice4;
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List<String> choices;
 }

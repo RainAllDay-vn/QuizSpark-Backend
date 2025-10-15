@@ -63,11 +63,10 @@ public class TestDataConfig {
                         Quiz quiz = new Quiz();
                         quiz.setCollection(collection);
                         quiz.setQuestion("Question " + j + " from " + collection.getName());
-                        quiz.setAnswer("Answer " + j);
-                        quiz.setChoice1("Choice A" + j);
-                        quiz.setChoice2("Choice B" + j);
-                        quiz.setChoice3("Choice C" + j);
-                        quiz.setChoice4("Choice D" + j);
+                        quiz.setAnswer(0);
+                        List<String> choices = new ArrayList<>();
+                        for (char c = 'A'; c <= 'D'; c++) choices.add("Choice " + c + j);
+                        quiz.setChoices(choices);
 
                         allQuizzes.add(quiz);
                     }
