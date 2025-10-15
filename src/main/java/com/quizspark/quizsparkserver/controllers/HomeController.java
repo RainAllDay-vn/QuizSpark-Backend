@@ -17,12 +17,10 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping
 public class HomeController {
     private final UserService userService;
-    private final QuizService quizService;
 
     @Autowired
-    public HomeController(UserService userService, QuizService quizService) {
+    public HomeController(UserService userService) {
         this.userService = userService;
-        this.quizService = quizService;
     }
 
     @GetMapping
@@ -34,21 +32,5 @@ public class HomeController {
     @GetMapping("/home")
     public String homePage() {
         return "pages/home";
-    }
-
-    @GetMapping("/practice")
-    @PreAuthorize("hasRole('ADMIN')")
-    public String practicePage(Model model, @RequestParam(required = false) String collectionId) {
-        Collection collection;
-        if (collectionId != null) {
-            collection = quizService.getCollectionById(collectionId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found"));
-        } else {
-            collection = quizService.getPublicCollections().get(0);
-        }
-        model.addAttribute("id", collection.getId());
-        model.addAttribute("name", collection.getName());
-        model.addAttribute("description", collection.getDescription());
-        return "pages/practice";
     }
 }
