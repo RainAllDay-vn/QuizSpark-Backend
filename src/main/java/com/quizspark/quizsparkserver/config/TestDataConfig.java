@@ -33,11 +33,11 @@ public class TestDataConfig {
             userRepository.deleteAll();
 
             // --- Create 3 Users ---
-            List<User> users = List.of(
-                    new User("alice", "alice", passwordEncoder),
-                    new User("bob", "bob", passwordEncoder),
-                    new User("charlie", "charlie", passwordEncoder)
-            );
+            List<User> users = new ArrayList<>();
+            users.add(new User("bob", "bob", passwordEncoder));
+            users.add(new User("alice", "alice", passwordEncoder));
+            users.add(new User("charlie", "charlie", passwordEncoder));
+            users.get(0).setRole("ROLE_ADMIN");
 
             userRepository.saveAll(users);
 

@@ -43,7 +43,7 @@ public class QuizController {
         Optional<Collection> optional = quizService.getCollectionById(collectionId);
         if (optional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found");
         Collection collection = optional.get();
-        if(user.getRole().equals("ADMIN")) return collection;
+        if(user.getRole().equals("ROLE_ADMIN")) return collection;
         if(!collection.getUser().equals(user)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this collection");
         return collection;
     }
