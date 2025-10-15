@@ -3,23 +3,25 @@ package com.quizspark.quizsparkserver.api;
 import com.quizspark.quizsparkserver.models.Collection;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.QuizService;
+import com.quizspark.quizsparkserver.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/collections")
 public class CollectionController {
+    private final UserService userService;
     private final QuizService quizService;
 
     @Autowired
-    public CollectionController(QuizService quizService) {
+    public CollectionController(UserService userService, QuizService quizService) {
+        this.userService = userService;
         this.quizService = quizService;
     }
 
@@ -34,5 +36,21 @@ public class CollectionController {
         List<Collection> collections = quizService.getCollectionByUser(user.getId().toString());
         if (collections == null) return ResponseEntity.notFound().build();
         return new ResponseEntity<>(collections, HttpStatus.OK);
+    }
+
+    @PostMapping("/public")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Object> createPublicCollection(@RequestBody Collection collection) {
+        quizService.saveCollection(collection);
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @PostMapping
+    public ResponseEntity<Object> createCollection(@AuthenticationPrincipal User user, @RequestBody Collection collection) {
+        collection.setUser(user);
+        user.getCollections().add(collection);
+        quizService.saveCollection(collection);
+        userService.saveUser(user);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 }
