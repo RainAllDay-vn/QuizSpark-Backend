@@ -3,7 +3,9 @@ package com.quizspark.quizsparkserver.services;
 import com.quizspark.quizsparkserver.models.Collection;
 import com.quizspark.quizsparkserver.models.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
@@ -34,7 +36,7 @@ public class TestService {
 
     public int submitAnswer(String sessionId, int questionNumber, int answer) {
         Test test = testMap.get(sessionId);
-        if (test == null) throw new RuntimeException("Test not found");
+        if (test == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Test not found");
         return test.submitAnswer(questionNumber, answer);
     }
 }

@@ -1,5 +1,6 @@
 package com.quizspark.quizsparkserver.api;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -42,6 +43,16 @@ public class TestController {
             questionNode.set("options", mapper.valueToTree(choices.get(i)));
             response.add(questionNode);
         }
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping("/answer")
+    public ResponseEntity<Object> submitAnswer(HttpSession session, @RequestParam int questionNumber, @RequestBody JsonNode body) {
+        ObjectNode response = mapper.createObjectNode();
+        int choice = body.get("choice").asInt();
+        int answer = testService.submitAnswer(session.getId(), questionNumber, choice);
+        response.put("correct", choice==answer);
+        response.put("answer", answer);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }
