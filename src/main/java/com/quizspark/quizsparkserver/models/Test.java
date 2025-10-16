@@ -3,10 +3,10 @@ package com.quizspark.quizsparkserver.models;
 import java.util.*;
 
 public class Test {
-    private String[] questions;
-    private String[][] choices;
-    private int[] answers;
-    private int[] userAnswers;
+    private final String[] questions;
+    private final String[][] choices;
+    private final int[] answers;
+    private final int[] userAnswers;
 
     public Test(Collection collection) {
         List<Quiz> quizzes = collection.getQuizzes();
@@ -39,11 +39,13 @@ public class Test {
         return questions.length;
     }
 
-    public String getQuestion(int questionNumber) {
-        return questions[questionNumber];
+    public List<String> getQuestions() {
+        return Arrays.asList(questions);
     }
 
-    public List<String> getChoices(int questionNumber) {
-        return Arrays.asList(choices[questionNumber]);
+    public List<List<String>> getChoices() {
+        List<List<String>> result = new LinkedList<>();
+        for (int i = 0; i < questions.length; i++) result.add(Arrays.asList(choices[i]));
+        return result;
     }
 }

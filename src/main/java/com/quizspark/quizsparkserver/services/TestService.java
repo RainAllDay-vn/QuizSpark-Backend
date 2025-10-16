@@ -22,16 +22,14 @@ public class TestService {
         testMap.put(sessionId, new Test(collection));
     }
 
-    public int getTestSize(String sessionId) {
-        return testMap.get(sessionId).getSize();
+    public List<String> getQuestions(String sessionId) {
+        Test test = testMap.get(sessionId);
+        return test.getQuestions();
     }
 
-    public List<String> getQuestionAndChoices(String sessionId, int questionNumber) {
+    public List<List<String>> getChoices(String sessionId) {
         Test test = testMap.get(sessionId);
-        List<String> result = new LinkedList<>();
-        result.add(test.getQuestion(questionNumber));
-        result.addAll(test.getChoices(questionNumber));
-        return result;
+        return test.getChoices();
     }
 
     public int submitAnswer(String sessionId, int questionNumber, int answer) {
