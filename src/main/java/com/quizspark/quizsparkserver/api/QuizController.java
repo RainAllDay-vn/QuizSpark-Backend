@@ -2,10 +2,12 @@ package com.quizspark.quizsparkserver.api;
 
 import com.quizspark.quizsparkserver.models.Collection;
 import com.quizspark.quizsparkserver.models.Quiz;
+import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.QuizService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,6 +29,11 @@ public class QuizController {
     @PostMapping
     public ResponseEntity<Object> addQuiz(@RequestParam String collectionId, @RequestBody Quiz quiz) {
         Collection collection = quizService.getCollectionById(collectionId);
+        User collectionUser = collection.getUser();
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (collectionUser==null && !user.getRole().equals("ROLE_ADMIN")) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         collection.getQuizzes().add(quiz);
         quiz.setCollection(collection);
         quizService.saveCollection(collection);

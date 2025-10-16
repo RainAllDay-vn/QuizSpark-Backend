@@ -30,9 +30,9 @@ public class WebSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/h2-console/**").permitAll()
-                        .requestMatchers("api/v1/users/register").permitAll()
-                        .requestMatchers("api/v1/collections/public").permitAll()
-                        .requestMatchers("api/v1/test/**").permitAll()
+                        .requestMatchers("/api/v1/users/register").permitAll()
+                        .requestMatchers("/api/v1/collections/public").permitAll()
+                        .requestMatchers("/api/v1/test/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(Customizer.withDefaults()); // Basic Authentication

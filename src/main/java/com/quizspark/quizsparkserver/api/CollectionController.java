@@ -41,8 +41,9 @@ public class CollectionController {
     @PostMapping("/public")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Object> createPublicCollection(@RequestBody Collection collection) {
-        quizService.saveCollection(collection);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        System.out.println(collection);
+        collection = quizService.saveCollection(collection);
+        return new ResponseEntity<>(collection, HttpStatus.CREATED);
     }
 
     @PostMapping
@@ -51,6 +52,6 @@ public class CollectionController {
         user.getCollections().add(collection);
         quizService.saveCollection(collection);
         userService.saveUser(user);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        return new ResponseEntity<>(collection, HttpStatus.CREATED);
     }
 }
