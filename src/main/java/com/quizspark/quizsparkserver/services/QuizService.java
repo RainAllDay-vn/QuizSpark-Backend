@@ -39,10 +39,11 @@ public class QuizService {
     }
 
     public Collection getCollectionById(String collectionId) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Optional<Collection> optional = collectionRepository.findById(UUID.fromString(collectionId));
         if (optional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found");
         Collection collection = optional.get();
+        if (collection.getAccess() == Collection.Access.PUBLIC) return collection;
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if(user.getRole().equals("ROLE_ADMIN")) return collection;
         if(!collection.getUser().equals(user)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this collection");
         return collection;
