@@ -25,7 +25,7 @@ public class Test {
             Collections.shuffle(answerMapping);
 
             questions[i] = quiz.getQuestion();
-            for (int j = 0; j < quizChoices.size(); j++) choices[i][j] = quizChoices.get(answerMapping.get(j));
+            for (int j = 0; j < quizChoices.size(); j++) choices[i][answerMapping.get(j)] = quizChoices.get(j);
             answers[i] = answerMapping.get(quiz.getAnswer());
         }
     }
