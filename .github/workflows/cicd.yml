@@ -55,4 +55,9 @@ jobs:
           sudo docker rm -f quizspark-server-container
           fi
       - name: Run Docker Image
-        run: sudo docker run -d -p 8080:8080 --name quizspark-server-container ${{ secrets.DOCKERHUB_USERNAME }}/quizspark-server:latest
+        run: |
+          sudo docker run -d -p 8080:8080 \
+            --name quizspark-server-container \
+            -e SPRING_PROFILES_ACTIVE=prod \
+            -e DB_SUPABASE_PASSWORD=${{ secrets.DB_SUPABASE_PASSWORD }} \
+            ${{ secrets.DOCKERHUB_USERNAME }}/quizspark-server:latest
