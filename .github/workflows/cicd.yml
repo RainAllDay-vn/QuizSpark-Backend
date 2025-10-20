@@ -1,6 +1,7 @@
 name: Java CI/CD with EC2
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "ec2-deployment" ]
 
