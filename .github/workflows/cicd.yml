@@ -55,6 +55,11 @@ jobs:
           if [ $(sudo docker ps -aq -f name=quizspark-server-container) ]; then
           sudo docker rm -f quizspark-server-container
           fi
+      - name: Create IPv6-Enabled Docker Network
+        run: |
+          if ! sudo docker network ls | grep -q "ipv6_spark_net"; then
+            sudo docker network create --driver bridge --ipv6 --subnet 2406:da1c:c6a:6300::/64 ipv6_spark_net
+          fi
       - name: Run Docker Image
         run: |
           sudo docker run -d -p 8080:8080 \
