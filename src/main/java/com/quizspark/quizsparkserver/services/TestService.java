@@ -11,7 +11,7 @@ import java.util.*;
 
 @Service
 public class TestService {
-    HashMap<String, Test> testMap = new HashMap<>();
+    HashMap<UUID, Test> testMap = new HashMap<>();
     private final QuizService quizService;
 
     @Autowired
@@ -19,23 +19,23 @@ public class TestService {
         this.quizService = quizService;
     }
 
-    public void createTest(String sessionId, String collectionId) {
+    public void createTest(UUID userId, String collectionId) {
         Collection collection = quizService.getCollectionById(collectionId);
-        testMap.put(sessionId, new Test(collection));
+        testMap.put(userId, new Test(collection));
     }
 
-    public List<String> getQuestions(String sessionId) {
-        Test test = testMap.get(sessionId);
+    public List<String> getQuestions(UUID userId) {
+        Test test = testMap.get(userId);
         return test.getQuestions();
     }
 
-    public List<List<String>> getChoices(String sessionId) {
-        Test test = testMap.get(sessionId);
+    public List<List<String>> getChoices(UUID userId) {
+        Test test = testMap.get(userId);
         return test.getChoices();
     }
 
-    public int submitAnswer(String sessionId, int questionNumber, int answer) {
-        Test test = testMap.get(sessionId);
+    public int submitAnswer(UUID userId, int questionNumber, int answer) {
+        Test test = testMap.get(userId);
         if (test == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Test not found");
         return test.submitAnswer(questionNumber, answer);
     }

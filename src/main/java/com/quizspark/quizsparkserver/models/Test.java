@@ -7,6 +7,8 @@ public class Test {
     private final String[][] choices;
     private final int[] answers;
     private final int[] userAnswers;
+    private final Date startDate;
+    private final Date endDate;
 
     public Test(Collection collection) {
         List<Quiz> quizzes = collection.getQuizzes();
@@ -14,6 +16,8 @@ public class Test {
         this.choices = new String[quizzes.size()][];
         this.answers = new int[quizzes.size()];
         this.userAnswers = new int[quizzes.size()];
+        this.startDate = new Date();
+        this.endDate = null;
         List<Integer> answerMapping = new ArrayList<>(5);
 
         for (int i = 0; i < quizzes.size(); i++) {
@@ -31,8 +35,11 @@ public class Test {
     }
 
     public int submitAnswer(int questionNumber, int answer) {
-        userAnswers[questionNumber] = answer;
-        return answers[questionNumber];
+        if (endDate != null && endDate.after(new Date())) {
+            userAnswers[questionNumber] = answer;
+            return answers[questionNumber];
+        }
+        else return -1;
     }
 
     public int getSize() {
