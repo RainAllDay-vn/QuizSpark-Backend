@@ -23,18 +23,25 @@ import java.util.UUID;
 public class User implements UserDetails {
     @Id
     private UUID id;
+    @Column(nullable = false)
     private String username;
+    @Column(nullable = false)
+    private String email;
+    @Column(nullable = false)
     private String password;
+    @Column(nullable = false)
     private String role;
 
     // Relationship: one user can own many collections
+    @Column(nullable = false)
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     @JsonIgnore
     private List<Collection> collections = new ArrayList<>();
 
-    public User(String username, String password, PasswordEncoder encoder) {
+    public User(String username, String email, String password, PasswordEncoder encoder) {
         this.username = username;
+        this.email = email;
         this.password = encoder.encode(password);
         this.id = UUID.randomUUID();
         this.collections = new ArrayList<>();
