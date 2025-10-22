@@ -1,13 +1,11 @@
 package com.quizspark.quizsparkserver.utils;
 
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
-import java.util.Map;
 
 @Component
 public class JwtUtil {

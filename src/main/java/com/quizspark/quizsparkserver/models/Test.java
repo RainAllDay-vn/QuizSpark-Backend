@@ -42,10 +42,6 @@ public class Test {
         else return -1;
     }
 
-    public int getSize() {
-        return questions.length;
-    }
-
     public List<String> getQuestions() {
         return Arrays.asList(questions);
     }

@@ -1,6 +1,5 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.UserService;
 import com.quizspark.quizsparkserver.utils.JwtUtil;
