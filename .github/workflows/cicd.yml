@@ -61,5 +61,7 @@ jobs:
             --network host \
             --name quizspark-server-container \
             -e SPRING_PROFILES_ACTIVE=prod \
+            -e FIREBASE_JSON_PATH=/run/secrets/backend-private-key.json \
             -e DB_SUPABASE_PASSWORD=${{ secrets.DB_SUPABASE_PASSWORD }} \
+            -v /home/ubuntu/backend-private-key.json:/run/secrets/backend-private-key.json:ro \
             ${{ secrets.DOCKERHUB_USERNAME }}/quizspark-server:latest
