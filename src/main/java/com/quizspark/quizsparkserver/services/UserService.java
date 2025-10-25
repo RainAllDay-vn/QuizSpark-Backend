@@ -34,6 +34,12 @@ public class UserService implements UserDetailsService {
         return user;
     }
 
+    public User getUserByEmail(String email) {
+        User user = userRepository.getUsersByEmail(email);
+        if (user == null) throw new UsernameNotFoundException(email);
+        return user;
+    }
+
     public Optional<User> saveUser(User user) {
         if(userRepository.getUsersByUsername(user.getUsername()) != null) return Optional.empty();
         user.setId(UUID.randomUUID());

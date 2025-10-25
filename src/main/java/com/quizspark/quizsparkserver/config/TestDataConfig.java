@@ -34,7 +34,7 @@ public class TestDataConfig {
 
             // --- Create 3 Users ---
             List<User> users = new ArrayList<>();
-            users.add(new User("bob", "bob@mail.com", "bob", passwordEncoder));
+            users.add(new User("bob", "lnvlong.dev@gmail.com", "bob", passwordEncoder));
             users.add(new User("alice", "alice@mail.com", "alice", passwordEncoder));
             users.add(new User("charlie", "charlie@mail.com", "charlie", passwordEncoder));
             users.get(0).setRole("ROLE_ADMIN");

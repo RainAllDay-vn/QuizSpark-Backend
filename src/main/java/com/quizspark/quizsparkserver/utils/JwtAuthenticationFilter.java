@@ -1,5 +1,6 @@
 package com.quizspark.quizsparkserver.utils;
 
+import com.google.firebase.auth.FirebaseAuthException;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.UserService;
 import jakarta.servlet.FilterChain;
@@ -37,9 +38,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         String token = authHeader.substring(7);
-        String username = jwtUtil.validateToken(token);
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            User user = userService.loadUserByUsername(username);
+        String email;
+        try {
+            email = jwtUtil.validateToken(token);
+        } catch (FirebaseAuthException e) {
+            throw new RuntimeException(e);
+        }
+        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            User user = userService.getUserByEmail(email);
             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                     user, null, Collections.emptyList());
             auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
