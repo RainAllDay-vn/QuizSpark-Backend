@@ -53,7 +53,8 @@ public class TestDataConfig {
                     QuestionBank questionBank = new QuestionBank();
                     questionBank.setName(user.getUsername() + "'s Collection " + i);
                     questionBank.setDescription("A quiz collection created by " + user.getUsername());
-                    questionBank.setStatus(i%2==0 ? QuestionBank.Status.PUBLIC : QuestionBank.Status.PRIVATE); // Alternate between public/private
+                    questionBank.setStatus(QuestionBank.Status.PUBLISHED);
+                    questionBank.setAccess(i%2==0 ? QuestionBank.Access.PUBLIC : QuestionBank.Access.PRIVATE); // Alternate between public/private
                     questionBank.setUser(user);
 
                     allQuestionBanks.add(questionBank);
@@ -62,7 +63,7 @@ public class TestDataConfig {
                     for (int j = 1; j <= quizzesPerCollection; j++) {
                         Question question = new Question();
                         question.setQuestionBank(questionBank);
-                        question.setQuestion("Question " + j + " from " + questionBank.getName());
+                        question.setDescription("Question " + j + " from " + questionBank.getName());
                         question.setAnswer(0);
                         List<String> choices = new ArrayList<>();
                         for (char c = 'A'; c <= 'D'; c++) choices.add("Choice " + c + j);
