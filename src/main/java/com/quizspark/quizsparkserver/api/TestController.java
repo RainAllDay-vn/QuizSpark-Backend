@@ -27,8 +27,8 @@ public class TestController {
     }
 
     @PostMapping("/new")
-    public ResponseEntity<Object> createTest(@AuthenticationPrincipal User user, @RequestParam String collectionId) {
-        testService.createTest(user.getId(), collectionId);
+    public ResponseEntity<Object> createTest(@AuthenticationPrincipal User user, @RequestParam String questionBankId) {
+        testService.createTest(user.getId(), questionBankId);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 

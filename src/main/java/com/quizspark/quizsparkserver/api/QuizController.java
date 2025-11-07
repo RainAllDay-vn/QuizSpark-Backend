@@ -1,9 +1,9 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.quizspark.quizsparkserver.models.Collection;
-import com.quizspark.quizsparkserver.models.Quiz;
+import com.quizspark.quizsparkserver.models.QuestionBank;
+import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.User;
-import com.quizspark.quizsparkserver.services.QuizService;
+import com.quizspark.quizsparkserver.services.QuestionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,31 +13,31 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/quizzes")
 public class QuizController {
-    private final QuizService quizService;
+    private final QuestionService questionService;
 
     @Autowired
-    public QuizController(QuizService quizService) {
-        this.quizService = quizService;
+    public QuizController(QuestionService questionService) {
+        this.questionService = questionService;
     }
 
     @GetMapping
     public ResponseEntity<Object> getQuizzes(@RequestParam String collectionId) {
-        Collection collection = quizService.getCollectionById(collectionId);
-        return new ResponseEntity<>(collection.getQuizzes(), HttpStatus.OK);
+        QuestionBank questionBank = questionService.getQuestionBankById(collectionId);
+        return new ResponseEntity<>(questionBank.getQuestions(), HttpStatus.OK);
     }
 
     @PostMapping
-    public ResponseEntity<Object> addQuiz(@RequestParam String collectionId, @RequestBody Quiz quiz) {
-        Collection collection = quizService.getCollectionById(collectionId);
-        User collectionUser = collection.getUser();
+    public ResponseEntity<Object> addQuiz(@RequestParam String collectionId, @RequestBody Question question) {
+        QuestionBank questionBank = questionService.getQuestionBankById(collectionId);
+        User collectionUser = questionBank.getUser();
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (collectionUser==null && !user.getRole().equals("ROLE_ADMIN")) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
-        collection.getQuizzes().add(quiz);
-        quiz.setCollection(collection);
-        quizService.saveCollection(collection);
-        quizService.saveQuiz(quiz);
+        questionBank.getQuestions().add(question);
+        question.setQuestionBank(questionBank);
+        questionService.saveQuestionBank(questionBank);
+        questionService.saveQuestion(question);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 

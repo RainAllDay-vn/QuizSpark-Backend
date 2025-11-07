@@ -1,10 +1,10 @@
 package com.quizspark.quizsparkserver.config;
 
-import com.quizspark.quizsparkserver.models.Collection;
-import com.quizspark.quizsparkserver.models.Quiz;
+import com.quizspark.quizsparkserver.models.QuestionBank;
+import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.User;
-import com.quizspark.quizsparkserver.repositories.CollectionRepository;
-import com.quizspark.quizsparkserver.repositories.QuizRepository;
+import com.quizspark.quizsparkserver.repositories.QuestionBankRepository;
+import com.quizspark.quizsparkserver.repositories.QuestionRepository;
 import com.quizspark.quizsparkserver.repositories.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -22,14 +22,14 @@ public class TestDataConfig {
     @Bean
     CommandLineRunner testDataInitializer(
             UserRepository userRepository,
-            CollectionRepository collectionRepository,
-            QuizRepository quizRepository,
+            QuestionBankRepository questionBankRepository,
+            QuestionRepository questionRepository,
             PasswordEncoder passwordEncoder
     ) {
         return args -> {
             // Clear existing data
-            quizRepository.deleteAll();
-            collectionRepository.deleteAll();
+            questionRepository.deleteAll();
+            questionBankRepository.deleteAll();
             userRepository.deleteAll();
 
             // --- Create 3 Users ---
@@ -41,8 +41,8 @@ public class TestDataConfig {
 
             userRepository.saveAll(users);
 
-            List<Collection> allCollections = new ArrayList<>();
-            List<Quiz> allQuizzes = new ArrayList<>();
+            List<QuestionBank> allQuestionBanks = new ArrayList<>();
+            List<Question> allQuizzes = new ArrayList<>();
 
             int collectionsPerUser = 3;
             int quizzesPerCollection = 8;
@@ -50,35 +50,35 @@ public class TestDataConfig {
             // --- Create Collections & Quizzes ---
             for (User user : users) {
                 for (int i = 1; i <= collectionsPerUser; i++) {
-                    Collection collection = new Collection();
-                    collection.setName(user.getUsername() + "'s Collection " + i);
-                    collection.setDescription("A quiz collection created by " + user.getUsername());
-                    collection.setAccess(i%2==0 ? Collection.Access.PUBLIC : Collection.Access.PRIVATE); // Alternate between public/private
-                    collection.setUser(user);
+                    QuestionBank questionBank = new QuestionBank();
+                    questionBank.setName(user.getUsername() + "'s Collection " + i);
+                    questionBank.setDescription("A quiz collection created by " + user.getUsername());
+                    questionBank.setStatus(i%2==0 ? QuestionBank.Status.PUBLIC : QuestionBank.Status.PRIVATE); // Alternate between public/private
+                    questionBank.setUser(user);
 
-                    allCollections.add(collection);
+                    allQuestionBanks.add(questionBank);
 
                     // --- Create Quizzes ---
                     for (int j = 1; j <= quizzesPerCollection; j++) {
-                        Quiz quiz = new Quiz();
-                        quiz.setCollection(collection);
-                        quiz.setQuestion("Question " + j + " from " + collection.getName());
-                        quiz.setAnswer(0);
+                        Question question = new Question();
+                        question.setQuestionBank(questionBank);
+                        question.setQuestion("Question " + j + " from " + questionBank.getName());
+                        question.setAnswer(0);
                         List<String> choices = new ArrayList<>();
                         for (char c = 'A'; c <= 'D'; c++) choices.add("Choice " + c + j);
-                        quiz.setChoices(choices);
+                        question.setChoices(choices);
 
-                        allQuizzes.add(quiz);
+                        allQuizzes.add(question);
                     }
                 }
             }
 
-            collectionRepository.saveAll(allCollections);
-            quizRepository.saveAll(allQuizzes);
+            questionBankRepository.saveAll(allQuestionBanks);
+            questionRepository.saveAll(allQuizzes);
 
             System.out.println("✅ Test data inserted into H2");
             System.out.printf("Users: %d, Collections: %d, Quizzes: %d%n",
-                    userRepository.count(), collectionRepository.count(), quizRepository.count());
+                    userRepository.count(), questionBankRepository.count(), questionRepository.count());
         };
     }
 }
