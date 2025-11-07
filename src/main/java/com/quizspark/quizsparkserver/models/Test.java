@@ -10,27 +10,27 @@ public class Test {
     private final Date startDate;
     private final Date endDate;
 
-    public Test(Collection collection) {
-        List<Quiz> quizzes = collection.getQuizzes();
-        this.questions = new String[quizzes.size()];
-        this.choices = new String[quizzes.size()][];
-        this.answers = new int[quizzes.size()];
-        this.userAnswers = new int[quizzes.size()];
+    public Test(QuestionBank questionBank) {
+        List<Question> questions = questionBank.getQuestions();
+        this.questions = new String[questions.size()];
+        this.choices = new String[questions.size()][];
+        this.answers = new int[questions.size()];
+        this.userAnswers = new int[questions.size()];
         this.startDate = new Date();
         this.endDate = null;
         List<Integer> answerMapping = new ArrayList<>(5);
 
-        for (int i = 0; i < quizzes.size(); i++) {
-            Quiz quiz = quizzes.get(i);
-            List<String> quizChoices = quiz.getChoices();
+        for (int i = 0; i < questions.size(); i++) {
+            Question question = questions.get(i);
+            List<String> quizChoices = question.getChoices();
             choices[i] = new String[quizChoices.size()];
             answerMapping.clear();
             for (int j = 0; j < quizChoices.size(); j++) answerMapping.add(j);
             Collections.shuffle(answerMapping);
 
-            questions[i] = quiz.getQuestion();
+            this.questions[i] = question.getDescription();
             for (int j = 0; j < quizChoices.size(); j++) choices[i][answerMapping.get(j)] = quizChoices.get(j);
-            answers[i] = answerMapping.get(quiz.getAnswer());
+            answers[i] = answerMapping.get(question.getAnswer());
         }
     }
 

@@ -37,14 +37,14 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     @JsonIgnore
-    private List<Collection> collections = new ArrayList<>();
+    private List<QuestionBank> questionBanks = new ArrayList<>();
 
     public User(String username, String email, String password, PasswordEncoder encoder) {
         this.username = username;
         this.email = email;
         this.password = encoder.encode(password);
         this.id = UUID.randomUUID();
-        this.collections = new ArrayList<>();
+        this.questionBanks = new ArrayList<>();
         this.role = "ROLE_USER";
     }
 

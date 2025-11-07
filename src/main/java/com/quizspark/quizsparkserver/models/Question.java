@@ -15,22 +15,23 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Quiz {
+public class Question {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "collection_id", nullable = false)
+    @JoinColumn(name = "bank_id", nullable = false)
     @JsonBackReference
-    private Collection collection;
+    private QuestionBank questionBank;
 
     @Column(nullable = false)
-    private String question;
+    private String description;
 
     @Column(nullable = false)
     private int answer;
 
     @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false)
     private List<String> choices;
 }

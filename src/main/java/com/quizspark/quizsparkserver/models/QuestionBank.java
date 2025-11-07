@@ -1,7 +1,6 @@
 package com.quizspark.quizsparkserver.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -16,7 +15,8 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Collection {
+public class QuestionBank {
+    public enum Status {DRAFT, PUBLISHED}
     public enum Access {PUBLIC, PRIVATE}
 
     @Id
@@ -29,6 +29,8 @@ public class Collection {
     private User user;
 
     @Enumerated(EnumType.STRING)
+    private Status status;
+    @Enumerated(EnumType.STRING)
     private Access access;
 
     @Column(nullable = false)
@@ -36,8 +38,8 @@ public class Collection {
 
     private String description;
 
-    // Relationship: One Collection can have many Quizzes
-    @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, orphanRemoval = true)
+    // Relationship: One QuestionBank can contain many Questions
+    @OneToMany(mappedBy = "questionBank", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    private List<Quiz> quizzes = new ArrayList<>();
+    private List<Question> questions = new ArrayList<>();
 }
