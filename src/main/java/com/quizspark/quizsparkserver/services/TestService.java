@@ -1,6 +1,6 @@
 package com.quizspark.quizsparkserver.services;
 
-import com.quizspark.quizsparkserver.models.Collection;
+import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,16 +12,16 @@ import java.util.*;
 @Service
 public class TestService {
     HashMap<UUID, Test> testMap = new HashMap<>();
-    private final QuizService quizService;
+    private final QuestionService questionService;
 
     @Autowired
-    public TestService(QuizService quizService) {
-        this.quizService = quizService;
+    public TestService(QuestionService questionService) {
+        this.questionService = questionService;
     }
 
-    public void createTest(UUID userId, String collectionId) {
-        Collection collection = quizService.getCollectionById(collectionId);
-        testMap.put(userId, new Test(collection));
+    public void createTest(UUID userId, String questionBankId) {
+        QuestionBank questionBank = questionService.getQuestionBankById(questionBankId);
+        testMap.put(userId, new Test(questionBank));
     }
 
     public List<String> getQuestions(UUID userId) {
