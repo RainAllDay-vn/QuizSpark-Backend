@@ -11,24 +11,24 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/quizzes")
-public class QuizController {
+@RequestMapping("/api/v1/questions")
+public class QuestionController {
     private final QuestionService questionService;
 
     @Autowired
-    public QuizController(QuestionService questionService) {
+    public QuestionController(QuestionService questionService) {
         this.questionService = questionService;
     }
 
     @GetMapping
-    public ResponseEntity<Object> getQuizzes(@RequestParam String collectionId) {
-        QuestionBank questionBank = questionService.getQuestionBankById(collectionId);
+    public ResponseEntity<Object> getQuestions(@RequestParam String bankId) {
+        QuestionBank questionBank = questionService.getQuestionBankById(bankId);
         return new ResponseEntity<>(questionBank.getQuestions(), HttpStatus.OK);
     }
 
     @PostMapping
-    public ResponseEntity<Object> addQuiz(@RequestParam String collectionId, @RequestBody Question question) {
-        QuestionBank questionBank = questionService.getQuestionBankById(collectionId);
+    public ResponseEntity<Object> addQuestion(@RequestParam String bankId, @RequestBody Question question) {
+        QuestionBank questionBank = questionService.getQuestionBankById(bankId);
         User collectionUser = questionBank.getUser();
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (collectionUser==null && !user.getRole().equals("ROLE_ADMIN")) {
@@ -40,5 +40,4 @@ public class QuizController {
         questionService.saveQuestion(question);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
-
 }
