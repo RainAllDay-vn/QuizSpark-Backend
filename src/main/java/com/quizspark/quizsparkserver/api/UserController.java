@@ -1,24 +1,24 @@
 package com.quizspark.quizsparkserver.api;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserController {
-    private final PasswordEncoder encoder;
     private final UserService userService;
 
     @Autowired
-    public UserController(PasswordEncoder encoder, UserService userService) {
-        this.encoder = encoder;
+    public UserController(UserService userService) {
         this.userService = userService;
     }
 
@@ -27,34 +27,22 @@ public class UserController {
         return new ResponseEntity<>(userService.getUserDatabaseStatus(), HttpStatus.OK);
     }
 
-    // Login now depend on FireBase
-//    @PostMapping("/login")
-//    public ResponseEntity<Object> login(@RequestBody Map<String, String> body) {
-//        String username = body.get("username");
-//        String password = body.get("password");
-//        if (username == null || password == null) {
-//            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-//        }
-//        UserDetails userDetails = userService.loadUserByUsername(username);
-//        if (!encoder.matches(password, userDetails.getPassword())) {
-//            return new ResponseEntity<>("Wrong Credential", HttpStatus.UNAUTHORIZED);
-//        }
-//        String token = jwtUtil.generateToken(body.get("username"));
-//        Map<String, String> response = new HashMap<>();
-//        response.put("username", username);
-//        response.put("token", token);
-//        return ResponseEntity.ok(response);
-//    }
+    @GetMapping("/me")
+    public ResponseEntity<Object> getUserData() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Map<String,String> response = new HashMap<>();
+        response.put("username", user.getUsername());
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody Map<String, String> body) {
-        if (!body.containsKey("username") || !body.containsKey("email") || !body.containsKey("password")) {
-            return new ResponseEntity<>("Invalid request", HttpStatus.BAD_REQUEST);
-        }
-        User user = new User(body.get("username"), body.get("password"), body.get("email"), encoder);
-        user.toEncodedUser(encoder);
-        return userService.saveUser(user)
-                .map(value -> new ResponseEntity<>(value.getId().toString(), HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>("Bad credentials", HttpStatus.BAD_REQUEST));
+    public ResponseEntity<String> register(@RequestBody JsonNode body) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (user != null) return new ResponseEntity<>(HttpStatus.CONFLICT);
+        String username = body.get("username").asText();
+        String email = body.get("email").asText();
+        user = new User(username, email);
+        userService.saveUser(user);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 }

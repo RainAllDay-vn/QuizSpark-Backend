@@ -10,7 +10,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,8 +22,7 @@ public class TestDataConfig {
     CommandLineRunner testDataInitializer(
             UserRepository userRepository,
             QuestionBankRepository questionBankRepository,
-            QuestionRepository questionRepository,
-            PasswordEncoder passwordEncoder
+            QuestionRepository questionRepository
     ) {
         return args -> {
             // Clear existing data
