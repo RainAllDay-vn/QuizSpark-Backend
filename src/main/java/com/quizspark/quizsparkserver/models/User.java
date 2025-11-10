@@ -9,7 +9,6 @@ import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,8 +27,6 @@ public class User implements UserDetails {
     @Column(nullable = false, unique = true)
     private String email;
     @Column(nullable = false)
-    private String password;
-    @Column(nullable = false)
     private String role;
 
     // Relationship: one user can own many collections
@@ -39,22 +36,22 @@ public class User implements UserDetails {
     @JsonIgnore
     private List<QuestionBank> questionBanks = new ArrayList<>();
 
-    public User(String username, String email, String password, PasswordEncoder encoder) {
+    public User(String username, String email) {
         this.username = username;
         this.email = email;
-        this.password = encoder.encode(password);
         this.id = UUID.randomUUID();
         this.questionBanks = new ArrayList<>();
         this.role = "ROLE_USER";
     }
 
-    public void toEncodedUser(PasswordEncoder encoder) {
-        this.password = encoder.encode("password");
-    }
-
     @Override
     public java.util.Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(role));
+    }
+
+    @Override
+    public String getPassword() {
+        return null;
     }
 
     @Override
