@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Configuration
@@ -54,6 +55,7 @@ public class TestDataConfig {
                     questionBank.setStatus(QuestionBank.Status.PUBLISHED);
                     questionBank.setAccess(i%2==0 ? QuestionBank.Access.PUBLIC : QuestionBank.Access.PRIVATE); // Alternate between public/private
                     questionBank.setUser(user);
+                    questionBank.setCreatedAt(new Date());
                     questionBank.setNumberOfQuestions(quizzesPerCollection);
                     questionBank.setNumberOfAttempts(0);
                     questionBank.setRating(5.0f);
