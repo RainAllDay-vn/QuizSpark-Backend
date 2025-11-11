@@ -39,12 +39,13 @@ public class UserRegistrationDAO {
 
     public User toUser(String email) {
         User user = new User();
+        user.setEmail(email);
         user.setUsername(username);
         user.setFirstName(firstName);
         user.setLastName(lastName);
         user.setRole("ROLE_"+accountType);
-        user.setDob(Date.valueOf(dob));
-        user.setEducationLevel(educationLevel);
+        if (dob != null) user.setDob(Date.valueOf(dob));
+        if (educationLevel != null) user.setEducationLevel(educationLevel);
         return user;
     }
 }
