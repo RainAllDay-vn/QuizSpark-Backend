@@ -1,8 +1,10 @@
 package com.quizspark.quizsparkserver.services;
 
+import com.quizspark.quizsparkserver.models.QuestionAnswerLog;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.User;
+import com.quizspark.quizsparkserver.repositories.QuestionAnswerLogRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionBankRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionRepository;
 import com.quizspark.quizsparkserver.repositories.UserRepository;
@@ -20,12 +22,19 @@ import java.util.UUID;
 public class QuestionService {
     private final QuestionBankRepository bankRepository;
     private final QuestionRepository questionRepository;
+    private final QuestionAnswerLogRepository logRepository;
     private final UserRepository userRepository;
 
     @Autowired
-    public QuestionService(QuestionBankRepository bankRepository, QuestionRepository questionRepository, UserRepository userRepository) {
+    public QuestionService(
+            QuestionBankRepository bankRepository,
+            QuestionRepository questionRepository,
+            QuestionAnswerLogRepository logRepository,
+            UserRepository userRepository
+    ) {
         this.bankRepository = bankRepository;
         this.questionRepository = questionRepository;
+        this.logRepository = logRepository;
         this.userRepository = userRepository;
     }
 
@@ -38,8 +47,8 @@ public class QuestionService {
         return user.map(User::getQuestionBanks).orElse(null);
     }
 
-    public QuestionBank getQuestionBankById(String collectionId) {
-        Optional<QuestionBank> optional = bankRepository.findById(UUID.fromString(collectionId));
+    public QuestionBank getQuestionBankById(String bankId) {
+        Optional<QuestionBank> optional = bankRepository.findById(UUID.fromString(bankId));
         if (optional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found");
         QuestionBank questionBank = optional.get();
         if (questionBank.getAccess() == QuestionBank.Access.PUBLIC) return questionBank;
@@ -53,7 +62,17 @@ public class QuestionService {
         return bankRepository.save(questionBank);
     }
 
-    public Question saveQuestion(Question question) {
-        return questionRepository.save(question);
+    public Question getQuestionById(String questionId) {
+        Optional<Question> question = questionRepository.findById(UUID.fromString(questionId));
+        if (question.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found");
+        return question.get();
+    }
+
+    public void saveQuestion(Question question) {
+        questionRepository.save(question);
+    }
+
+    public void saveQuestionAnswerLog(QuestionAnswerLog log) {
+        logRepository.save(log);
     }
 }

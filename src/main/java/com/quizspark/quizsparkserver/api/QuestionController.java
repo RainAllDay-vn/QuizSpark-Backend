@@ -1,5 +1,7 @@
 package com.quizspark.quizsparkserver.api;
 
+import com.quizspark.quizsparkserver.daos.QuestionAnswerLogDAO;
+import com.quizspark.quizsparkserver.models.QuestionAnswerLog;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.User;
@@ -38,6 +40,17 @@ public class QuestionController {
         question.setQuestionBank(questionBank);
         questionService.saveQuestionBank(questionBank);
         questionService.saveQuestion(question);
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @PostMapping("/log")
+    public ResponseEntity<String> log(@RequestBody QuestionAnswerLogDAO logDAO) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        System.out.println(logDAO.getQuestionId());
+        Question question = questionService.getQuestionById(logDAO.getQuestionId());
+        if (!logDAO.validateAnswer(question)) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        QuestionAnswerLog log = logDAO.toQuestionAnswerLog(user, question);
+        questionService.saveQuestionAnswerLog(log);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 }
