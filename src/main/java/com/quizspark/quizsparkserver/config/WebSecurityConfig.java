@@ -38,9 +38,10 @@ public class WebSecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/h2-console/**").permitAll()
-                        .requestMatchers("/api/v1/users/register", "/api/v1/users/register").permitAll()
+                        .requestMatchers("/api/v1/users/me").permitAll()
                         .requestMatchers("/api/v1/banks/public").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/v1/users/register").hasRole("NEW")
+                        .anyRequest().hasAnyRole("STUDENT", "TEACHER", "ADMIN")
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));

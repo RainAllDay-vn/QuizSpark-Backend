@@ -1,8 +1,9 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.quizspark.quizsparkserver.daos.UserRegistrationDAO;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,19 +31,18 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<Object> getUserData() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (user.getRole().equals("ROLE_NEW")) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         Map<String,String> response = new HashMap<>();
         response.put("username", user.getUsername());
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody JsonNode body) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (user != null) return new ResponseEntity<>(HttpStatus.CONFLICT);
-        String username = body.get("username").asText();
-        String email = body.get("email").asText();
-        user = new User(username, email);
-        userService.saveUser(user);
+    public ResponseEntity<String> register(@RequestBody @Valid UserRegistrationDAO userRegistration) {
+        User tempUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String email = tempUser.getEmail();
+        User newUser = userRegistration.toUser(email);
+        userService.saveUser(newUser);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 }

@@ -31,19 +31,19 @@ public class UserRegistrationDAO {
     @Pattern(regexp = "^[a-zA-ZÀ-ÿ'-]+$", message = "Last name can only contain letters, hyphens, and apostrophes")
     private String lastName;
 
-    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Date of birth must be in YYYY-MM-DD format")
     private String dob; // Date of birth
 
     private String educationLevel;
 
+    private String error;
+
     public User toUser(String email) {
         User user = new User();
         user.setUsername(username);
-        user.setEmail(email);
         user.setFirstName(firstName);
         user.setLastName(lastName);
         user.setRole("ROLE_"+accountType);
-        user.setDob(dob == null ? null : Date.valueOf(dob));
+        user.setDob(Date.valueOf(dob));
         user.setEducationLevel(educationLevel);
         return user;
     }

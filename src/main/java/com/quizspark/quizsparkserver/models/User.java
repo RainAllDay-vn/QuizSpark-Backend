@@ -44,7 +44,7 @@ public class User implements UserDetails {
     public User(String username, String email) {
         this.username = username;
         this.email = email;
-        this.role = "ROLE_USER";
+        this.role = "ROLE_STUDENT";
     }
 
     @Override
