@@ -11,6 +11,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,6 +29,10 @@ public class User implements UserDetails {
     private String email;
     @Column(nullable = false)
     private String role;
+    private String firstName;
+    private String lastName;
+    private Date dob;
+    private String educationLevel;
 
     // Relationship: one user can own many collections
     @Column(nullable = false)
