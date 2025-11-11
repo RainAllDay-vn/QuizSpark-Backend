@@ -38,6 +38,15 @@ public class QuestionBank {
 
     private String description;
 
+    @Column(nullable = false)
+    private float rating;
+
+    @Column(nullable = false)
+    private int numberOfQuestions;
+
+    @Column(nullable = false)
+    private int numberOfAttempts;
+
     // Relationship: One QuestionBank can contain many Questions
     @OneToMany(mappedBy = "questionBank", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)

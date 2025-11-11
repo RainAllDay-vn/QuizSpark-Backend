@@ -25,6 +25,9 @@ public class Question {
     @JsonBackReference
     private QuestionBank questionBank;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List<String> tags;
+
     @Column(nullable = false)
     private String description;
 
