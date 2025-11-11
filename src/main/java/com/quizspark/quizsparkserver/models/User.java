@@ -22,7 +22,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class User implements UserDetails {
     @Id
-    private UUID id;
+    private UUID id = UUID.randomUUID();
     @Column(nullable = false, unique = true)
     private String username;
     @Column(nullable = false, unique = true)
@@ -44,8 +44,6 @@ public class User implements UserDetails {
     public User(String username, String email) {
         this.username = username;
         this.email = email;
-        this.id = UUID.randomUUID();
-        this.questionBanks = new ArrayList<>();
         this.role = "ROLE_USER";
     }
 
