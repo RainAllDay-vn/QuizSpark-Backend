@@ -42,7 +42,7 @@ public class QuestionBank {
     @Column(nullable = false)
     private Date createdAt;
 
-    private float rating;
+    private Float rating;
 
     @Column(nullable = false)
     private int numberOfQuestions;
