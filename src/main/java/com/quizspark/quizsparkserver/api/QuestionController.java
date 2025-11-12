@@ -46,7 +46,6 @@ public class QuestionController {
     @PostMapping("/log")
     public ResponseEntity<String> log(@RequestBody QuestionAnswerLogDAO logDAO) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        System.out.println(logDAO.getQuestionId());
         Question question = questionService.getQuestionById(logDAO.getQuestionId());
         if (!logDAO.validateAnswer(question)) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         QuestionAnswerLog log = logDAO.toQuestionAnswerLog(user, question);

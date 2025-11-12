@@ -40,6 +40,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/", "/h2-console/**").permitAll()
                         .requestMatchers("/api/v1/users/me").permitAll()
                         .requestMatchers("/api/v1/banks/public").permitAll()
+                        .requestMatchers("api/v1/questions").permitAll()
                         .requestMatchers("/api/v1/users/register").hasRole("NEW")
                         .anyRequest().hasAnyRole("STUDENT", "TEACHER", "ADMIN")
                 )
