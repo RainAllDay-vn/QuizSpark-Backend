@@ -35,7 +35,6 @@ public class FirebaseConfig {
 
         } catch (IOException e) {
             log.error("FATAL: Firebase initialization failed. Please check your configuration.", e);
-            throw new RuntimeException("Firebase initialization failed", e);
         }
     }
 
