@@ -1,6 +1,6 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.quizspark.quizsparkserver.daos.UserRegistrationDAO;
+import com.quizspark.quizsparkserver.dto.UserRegistrationDTO;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.UserService;
 import jakarta.validation.Valid;
@@ -38,7 +38,7 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody @Valid UserRegistrationDAO userRegistration) {
+    public ResponseEntity<String> register(@RequestBody @Valid UserRegistrationDTO userRegistration) {
         User tempUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String email = tempUser.getEmail();
         User newUser = userRegistration.toUser(email);

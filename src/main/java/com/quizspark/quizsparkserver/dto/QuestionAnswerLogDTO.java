@@ -1,4 +1,4 @@
-package com.quizspark.quizsparkserver.daos;
+package com.quizspark.quizsparkserver.dto;
 
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.QuestionAnswerLog;
@@ -12,7 +12,7 @@ import java.util.Date;
 @Setter
 @Getter
 @NoArgsConstructor
-public class QuestionAnswerLogDAO {
+public class QuestionAnswerLogDTO {
     private String questionId;
     private int answer;
 

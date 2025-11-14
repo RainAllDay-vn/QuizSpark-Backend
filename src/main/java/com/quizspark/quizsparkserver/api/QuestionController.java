@@ -1,6 +1,6 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.quizspark.quizsparkserver.daos.QuestionAnswerLogDAO;
+import com.quizspark.quizsparkserver.dto.QuestionAnswerLogDTO;
 import com.quizspark.quizsparkserver.models.QuestionAnswerLog;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.Question;
@@ -44,7 +44,7 @@ public class QuestionController {
     }
 
     @PostMapping("/log")
-    public ResponseEntity<String> log(@RequestBody QuestionAnswerLogDAO logDAO) {
+    public ResponseEntity<String> log(@RequestBody QuestionAnswerLogDTO logDAO) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Question question = questionService.getQuestionById(logDAO.getQuestionId());
         if (!logDAO.validateAnswer(question)) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

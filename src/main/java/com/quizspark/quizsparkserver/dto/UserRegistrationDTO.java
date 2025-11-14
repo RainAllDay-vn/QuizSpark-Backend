@@ -1,4 +1,4 @@
-package com.quizspark.quizsparkserver.daos;
+package com.quizspark.quizsparkserver.dto;
 
 import com.quizspark.quizsparkserver.models.User;
 import jakarta.validation.constraints.NotBlank;
@@ -11,7 +11,7 @@ import java.sql.Date;
 
 @Setter
 @NoArgsConstructor
-public class UserRegistrationDAO {
+public class UserRegistrationDTO {
     @NotBlank(message = "Account type is required")
     @Pattern(regexp = "STUDENT|TEACHER", message = "Account type must be either STUDENT or TEACHER")
     private String accountType; // "STUDENT" or "TEACHER"
@@ -34,8 +34,6 @@ public class UserRegistrationDAO {
     private String dob; // Date of birth
 
     private String educationLevel;
-
-    private String error;
 
     public User toUser(String email) {
         User user = new User();
