@@ -58,8 +58,8 @@ public class QuestionService {
         return questionBank;
     }
 
-    public QuestionBank saveQuestionBank(QuestionBank questionBank) {
-        return bankRepository.save(questionBank);
+    public void saveQuestionBank(QuestionBank questionBank) {
+        bankRepository.save(questionBank);
     }
 
     public Question getQuestionById(String questionId) {

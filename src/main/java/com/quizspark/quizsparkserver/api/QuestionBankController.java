@@ -1,9 +1,11 @@
 package com.quizspark.quizsparkserver.api;
 
+import com.quizspark.quizsparkserver.dto.QuestionBankCreationDTO;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.QuestionService;
 import com.quizspark.quizsparkserver.services.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,18 +42,16 @@ public class QuestionBankController {
 
     @PostMapping("/public")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Object> createPublicQuestionBank(@RequestBody QuestionBank questionBank) {
-        System.out.println(questionBank);
-        questionBank = questionService.saveQuestionBank(questionBank);
-        return new ResponseEntity<>(questionBank, HttpStatus.CREATED);
+    public ResponseEntity<Object> createPublicQuestionBank(@RequestBody @Valid QuestionBankCreationDTO creationDTO) {
+        QuestionBank bank = creationDTO.toQuestionBank(null);
+        questionService.saveQuestionBank(bank);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @PostMapping
-    public ResponseEntity<Object> createQuestionBank(@AuthenticationPrincipal User user, @RequestBody QuestionBank questionBank) {
-        questionBank.setUser(user);
-        user.getQuestionBanks().add(questionBank);
-        questionService.saveQuestionBank(questionBank);
-        userService.saveUser(user);
-        return new ResponseEntity<>(questionBank, HttpStatus.CREATED);
+    public ResponseEntity<Object> createQuestionBank(@AuthenticationPrincipal User user, @RequestBody @Valid QuestionBankCreationDTO creationDTO) {
+        QuestionBank bank = creationDTO.toQuestionBank(user);
+        questionService.saveQuestionBank(bank);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 }

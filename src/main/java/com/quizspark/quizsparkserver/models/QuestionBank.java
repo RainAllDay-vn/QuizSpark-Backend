@@ -40,15 +40,15 @@ public class QuestionBank {
     private String description;
 
     @Column(nullable = false)
-    private Date createdAt;
+    private Date createdAt = new Date();
 
     private Float rating;
 
     @Column(nullable = false)
-    private int numberOfQuestions;
+    private int numberOfQuestions = 0;
 
     @Column(nullable = false)
-    private int numberOfAttempts;
+    private int numberOfAttempts = 0;
 
     // Relationship: One QuestionBank can contain many Questions
     @OneToMany(mappedBy = "questionBank", cascade = CascadeType.ALL, orphanRemoval = true)
