@@ -1,10 +1,10 @@
 package com.quizspark.quizsparkserver.api;
 
 import com.quizspark.quizsparkserver.dto.QuestionBankCreationDTO;
+import com.quizspark.quizsparkserver.dto.QuestionBankDTO;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.QuestionService;
-import com.quizspark.quizsparkserver.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,26 +18,32 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/banks")
 public class QuestionBankController {
-    private final UserService userService;
     private final QuestionService questionService;
 
     @Autowired
-    public QuestionBankController(UserService userService, QuestionService questionService) {
-        this.userService = userService;
+    public QuestionBankController(QuestionService questionService) {
         this.questionService = questionService;
     }
 
     @GetMapping("/public")
-    public ResponseEntity<Object> getPublicQuestionBanks() {
+    public ResponseEntity<List<QuestionBankDTO>> getPublicQuestionBanks() {
         List<QuestionBank> publicQuestionBanks = questionService.getPublicQuestionBanks();
-        return new ResponseEntity<>(publicQuestionBanks, HttpStatus.OK);
+        List<QuestionBankDTO> body = publicQuestionBanks.stream().map(QuestionBankDTO::new).toList();
+        return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @GetMapping()
-    public ResponseEntity<Object> getQuestionBanks(@AuthenticationPrincipal User user) {
-        List<QuestionBank> questionBanks = questionService.getQuestionBankByUser(user.getId().toString());
-        if (questionBanks == null) return ResponseEntity.notFound().build();
-        return new ResponseEntity<>(questionBanks, HttpStatus.OK);
+    public ResponseEntity<List<QuestionBankDTO>> getUserQuestionBanks() {
+        List<QuestionBank> questionBanks = questionService.getQuestionBankByUser();
+        List<QuestionBankDTO> body = questionBanks.stream().map(QuestionBankDTO::new).toList();
+        return new ResponseEntity<>(body, HttpStatus.OK);
+    }
+
+    @GetMapping("/single/{id}")
+    public ResponseEntity<Object> getSingleQuestionBank(@PathVariable String id) {
+        QuestionBank bank = questionService.getQuestionBankById(id);
+        QuestionBankDTO body = new QuestionBankDTO(bank).appendQuestions();
+        return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @PostMapping("/public")

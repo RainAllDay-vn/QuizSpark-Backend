@@ -10,6 +10,7 @@ import lombok.Setter;
 import java.util.Date;
 
 @Setter
+@Getter
 @NoArgsConstructor
 public class QuestionAnswerLogDTO {
     private String questionId;

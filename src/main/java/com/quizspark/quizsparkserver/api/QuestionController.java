@@ -22,20 +22,9 @@ public class QuestionController {
         this.questionService = questionService;
     }
 
-    @GetMapping
-    public ResponseEntity<Object> getQuestions(@RequestParam String bankId) {
-        QuestionBank questionBank = questionService.getQuestionBankById(bankId);
-        return new ResponseEntity<>(questionBank.getQuestions(), HttpStatus.OK);
-    }
-
     @PostMapping
     public ResponseEntity<Object> addQuestion(@RequestParam String bankId, @RequestBody Question question) {
         QuestionBank questionBank = questionService.getQuestionBankById(bankId);
-        User collectionUser = questionBank.getUser();
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (collectionUser==null && !user.getRole().equals("ROLE_ADMIN")) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
         questionBank.getQuestions().add(question);
         question.setQuestionBank(questionBank);
         questionService.saveQuestionBank(questionBank);

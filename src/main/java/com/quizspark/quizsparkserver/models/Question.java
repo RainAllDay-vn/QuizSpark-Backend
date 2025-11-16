@@ -1,6 +1,5 @@
 package com.quizspark.quizsparkserver.models;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,7 +21,6 @@ public class Question {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bank_id", nullable = false)
-    @JsonBackReference
     private QuestionBank questionBank;
 
     @JdbcTypeCode(SqlTypes.JSON)

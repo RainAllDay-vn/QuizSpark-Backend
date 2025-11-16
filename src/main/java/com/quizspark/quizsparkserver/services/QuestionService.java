@@ -7,7 +7,6 @@ import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.repositories.QuestionAnswerLogRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionBankRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionRepository;
-import com.quizspark.quizsparkserver.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,28 +22,25 @@ public class QuestionService {
     private final QuestionBankRepository bankRepository;
     private final QuestionRepository questionRepository;
     private final QuestionAnswerLogRepository logRepository;
-    private final UserRepository userRepository;
 
     @Autowired
     public QuestionService(
             QuestionBankRepository bankRepository,
             QuestionRepository questionRepository,
-            QuestionAnswerLogRepository logRepository,
-            UserRepository userRepository
+            QuestionAnswerLogRepository logRepository
     ) {
         this.bankRepository = bankRepository;
         this.questionRepository = questionRepository;
         this.logRepository = logRepository;
-        this.userRepository = userRepository;
     }
 
     public List<QuestionBank> getPublicQuestionBanks() {
         return bankRepository.findAllByAccess(QuestionBank.Access.PUBLIC);
     }
 
-    public List<QuestionBank> getQuestionBankByUser(String userId) {
-        Optional<User> user = userRepository.findById(UUID.fromString(userId));
-        return user.map(User::getQuestionBanks).orElse(null);
+    public List<QuestionBank> getQuestionBankByUser() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return user.getQuestionBanks();
     }
 
     public QuestionBank getQuestionBankById(String bankId) {

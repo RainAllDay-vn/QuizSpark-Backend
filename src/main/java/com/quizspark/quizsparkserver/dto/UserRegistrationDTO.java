@@ -4,12 +4,14 @@ import com.quizspark.quizsparkserver.models.User;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.sql.Date;
 
 @Setter
+@Getter
 @NoArgsConstructor
 public class UserRegistrationDTO {
     @NotBlank(message = "Account type is required")

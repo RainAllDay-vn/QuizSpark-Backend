@@ -5,12 +5,12 @@ import com.quizspark.quizsparkserver.models.User;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Date;
-
 @Setter
+@Getter
 @NoArgsConstructor
 public class QuestionBankCreationDTO {
     @Pattern(regexp = "PRIVATE|PUBLIC", message = "Question bank must either be PRIVATE or PUBLIC")
@@ -29,7 +29,7 @@ public class QuestionBankCreationDTO {
         bank.setStatus(QuestionBank.Status.DRAFT);
         bank.setAccess(QuestionBank.Access.valueOf(access));
         bank.setName(name);
-        bank.setDescription(description);
+        if (description!=null && !description.isBlank()) bank.setDescription(description);
         return bank;
     }
 }
