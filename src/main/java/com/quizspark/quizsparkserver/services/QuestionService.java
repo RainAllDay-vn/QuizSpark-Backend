@@ -72,6 +72,10 @@ public class QuestionService {
         questionRepository.save(question);
     }
 
+    public void deleteQuestion(Question question) {
+        questionRepository.delete(question);
+    }
+
     public void saveQuestionAnswerLog(QuestionAnswerLog log) {
         logRepository.save(log);
     }

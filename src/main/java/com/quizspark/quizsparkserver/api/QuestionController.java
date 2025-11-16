@@ -43,6 +43,13 @@ public class QuestionController {
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
+    @DeleteMapping
+    public ResponseEntity<QuestionDTO> deleteQuestion(@RequestParam String questionId) {
+        Question question = questionService.getQuestionById(questionId);
+        questionService.deleteQuestion(question);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @PostMapping("/log")
     public ResponseEntity<String> log(@RequestBody QuestionAnswerLogDTO logDAO) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
