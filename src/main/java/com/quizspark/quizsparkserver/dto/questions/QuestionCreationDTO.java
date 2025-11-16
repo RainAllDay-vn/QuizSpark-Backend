@@ -31,12 +31,4 @@ public class QuestionCreationDTO {
         question.setQuestionBank(bank);
         return question;
     }
-
-    public void updateQuestion(Question question) throws IllegalArgumentException{
-        if (answer<0 || answer>=choices.size()) throw new IllegalArgumentException("Answer is out side of choices' range");
-        question.setTags(tags);
-        question.setDescription(description);
-        question.setAnswer(answer);
-        question.setChoices(choices);
-    }
 }

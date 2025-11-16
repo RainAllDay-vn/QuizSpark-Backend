@@ -3,6 +3,7 @@ package com.quizspark.quizsparkserver.api;
 import com.quizspark.quizsparkserver.dto.questions.QuestionAnswerLogDTO;
 import com.quizspark.quizsparkserver.dto.questions.QuestionCreationDTO;
 import com.quizspark.quizsparkserver.dto.questions.QuestionDTO;
+import com.quizspark.quizsparkserver.dto.questions.QuestionUpdateDTO;
 import com.quizspark.quizsparkserver.models.QuestionAnswerLog;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.Question;
@@ -34,8 +35,8 @@ public class QuestionController {
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
-    @PutMapping
-    public ResponseEntity<QuestionDTO> updateQuestion(@RequestParam String questionId, @RequestBody @Valid QuestionCreationDTO payload) {
+    @PutMapping("/{questionId}")
+    public ResponseEntity<QuestionDTO> updateQuestion(@PathVariable String questionId, @RequestBody @Valid QuestionUpdateDTO payload) {
         Question question = questionService.getQuestionById(questionId);
         payload.updateQuestion(question);
         questionService.saveQuestion(question);
@@ -43,8 +44,8 @@ public class QuestionController {
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
-    @DeleteMapping
-    public ResponseEntity<QuestionDTO> deleteQuestion(@RequestParam String questionId) {
+    @DeleteMapping("/{questionId}")
+    public ResponseEntity<QuestionDTO> deleteQuestion(@PathVariable String questionId) {
         Question question = questionService.getQuestionById(questionId);
         questionService.deleteQuestion(question);
         return new ResponseEntity<>(HttpStatus.OK);
