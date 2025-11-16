@@ -61,7 +61,11 @@ public class QuestionService {
     public Question getQuestionById(String questionId) {
         Optional<Question> question = questionRepository.findById(UUID.fromString(questionId));
         if (question.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found");
-        return question.get();
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (user.getRole().equals("ROLE_ADMIN")) return question.get();
+        QuestionBank bank = question.get().getQuestionBank();
+        if (bank.getUser().getId().equals(user.getId())) return question.get();
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
 
     public void saveQuestion(Question question) {

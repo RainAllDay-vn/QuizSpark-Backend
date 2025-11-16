@@ -34,6 +34,15 @@ public class QuestionController {
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
+    @PutMapping
+    public ResponseEntity<QuestionDTO> updateQuestion(@RequestParam String questionId, @RequestBody @Valid QuestionCreationDTO payload) {
+        Question question = questionService.getQuestionById(questionId);
+        payload.updateQuestion(question);
+        questionService.saveQuestion(question);
+        QuestionDTO body = new QuestionDTO(question);
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
+    }
+
     @PostMapping("/log")
     public ResponseEntity<String> log(@RequestBody QuestionAnswerLogDTO logDAO) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
