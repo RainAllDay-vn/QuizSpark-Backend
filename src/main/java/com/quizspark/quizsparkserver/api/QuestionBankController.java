@@ -2,6 +2,7 @@ package com.quizspark.quizsparkserver.api;
 
 import com.quizspark.quizsparkserver.dto.QuestionBankCreationDTO;
 import com.quizspark.quizsparkserver.dto.QuestionBankDTO;
+import com.quizspark.quizsparkserver.dto.QuestionBankUpdateDTO;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.QuestionService;
@@ -40,7 +41,7 @@ public class QuestionBankController {
     }
 
     @GetMapping("/single/{id}")
-    public ResponseEntity<Object> getSingleQuestionBank(@PathVariable String id) {
+    public ResponseEntity<QuestionBankDTO> getSingleQuestionBank(@PathVariable String id) {
         QuestionBank bank = questionService.getQuestionBankById(id);
         QuestionBankDTO body = new QuestionBankDTO(bank).appendQuestions();
         return new ResponseEntity<>(body, HttpStatus.OK);
@@ -59,5 +60,14 @@ public class QuestionBankController {
         QuestionBank bank = creationDTO.toQuestionBank(user);
         questionService.saveQuestionBank(bank);
         return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @PutMapping("/single/{id}")
+    public ResponseEntity<QuestionBankDTO> updateSingleQuestionBank(@PathVariable String id, @RequestBody @Valid QuestionBankUpdateDTO payload) {
+        QuestionBank bank = questionService.getQuestionBankById(id);
+        payload.updateQuestionBank(bank);
+        questionService.saveQuestionBank(bank);
+        QuestionBankDTO body = new QuestionBankDTO(bank).appendQuestions();
+        return new ResponseEntity<>(body, HttpStatus.OK);
     }
 }
