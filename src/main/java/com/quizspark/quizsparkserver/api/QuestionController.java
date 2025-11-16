@@ -1,11 +1,14 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.quizspark.quizsparkserver.dto.QuestionAnswerLogDTO;
+import com.quizspark.quizsparkserver.dto.questions.QuestionAnswerLogDTO;
+import com.quizspark.quizsparkserver.dto.questions.QuestionCreationDTO;
+import com.quizspark.quizsparkserver.dto.questions.QuestionDTO;
 import com.quizspark.quizsparkserver.models.QuestionAnswerLog;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.QuestionService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,13 +26,12 @@ public class QuestionController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> addQuestion(@RequestParam String bankId, @RequestBody Question question) {
+    public ResponseEntity<QuestionDTO> addQuestion(@RequestParam String bankId, @RequestBody @Valid QuestionCreationDTO payload) {
         QuestionBank questionBank = questionService.getQuestionBankById(bankId);
-        questionBank.getQuestions().add(question);
-        question.setQuestionBank(questionBank);
-        questionService.saveQuestionBank(questionBank);
+        Question question = payload.toQuestion(questionBank);
         questionService.saveQuestion(question);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        QuestionDTO body = new QuestionDTO(question);
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
     @PostMapping("/log")

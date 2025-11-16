@@ -1,8 +1,8 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.quizspark.quizsparkserver.dto.QuestionBankCreationDTO;
-import com.quizspark.quizsparkserver.dto.QuestionBankDTO;
-import com.quizspark.quizsparkserver.dto.QuestionBankUpdateDTO;
+import com.quizspark.quizsparkserver.dto.banks.QuestionBankCreationDTO;
+import com.quizspark.quizsparkserver.dto.banks.QuestionBankDTO;
+import com.quizspark.quizsparkserver.dto.banks.QuestionBankUpdateDTO;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.QuestionService;
