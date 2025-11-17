@@ -73,6 +73,10 @@ public class QuestionService {
         bankRepository.save(questionBank);
     }
 
+    public void deleteQuestionBank(QuestionBank questionBank) {
+        bankRepository.delete(questionBank);
+    }
+
     public Question getQuestionById(String questionId) {
         Optional<Question> question = questionRepository.findById(UUID.fromString(questionId));
         if (question.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found");

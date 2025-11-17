@@ -63,10 +63,11 @@ public class QuestionBankController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> createQuestionBank(@AuthenticationPrincipal User user, @RequestBody @Valid QuestionBankCreationDTO creationDTO) {
+    public ResponseEntity<QuestionBankDTO> createQuestionBank(@AuthenticationPrincipal User user, @RequestBody @Valid QuestionBankCreationDTO creationDTO) {
         QuestionBank bank = creationDTO.toQuestionBank(user);
         questionService.saveQuestionBank(bank);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        QuestionBankDTO body = new QuestionBankDTO(bank);
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
     @PutMapping("/single/{id}")
@@ -76,5 +77,12 @@ public class QuestionBankController {
         questionService.saveQuestionBank(bank);
         QuestionBankDTO body = new QuestionBankDTO(bank).appendQuestions();
         return new ResponseEntity<>(body, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/single/{id}")
+    public ResponseEntity<Object> deleteSingleQuestionBank(@PathVariable String id) {
+        QuestionBank bank = questionService.getQuestionBankById(id);
+        questionService.deleteQuestionBank(bank);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }
