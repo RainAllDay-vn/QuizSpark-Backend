@@ -29,14 +29,21 @@ public class QuestionBankController {
     @GetMapping("/public")
     public ResponseEntity<List<QuestionBankDTO>> getPublicQuestionBanks() {
         List<QuestionBank> publicQuestionBanks = questionService.getPublicQuestionBanks();
-        List<QuestionBankDTO> body = publicQuestionBanks.stream().map(QuestionBankDTO::new).toList();
+        List<QuestionBankDTO> body = publicQuestionBanks
+                .stream()
+                .map(QuestionBankDTO::new)
+                .toList();
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @GetMapping()
-    public ResponseEntity<List<QuestionBankDTO>> getUserQuestionBanks() {
+    public ResponseEntity<List<QuestionBankDTO>> getUserQuestionBanks(@AuthenticationPrincipal User user) {
         List<QuestionBank> questionBanks = questionService.getQuestionBankByUser();
-        List<QuestionBankDTO> body = questionBanks.stream().map(QuestionBankDTO::new).toList();
+        if (user.getRole().equals("ROLE_ADMIN")) questionBanks.addAll(questionService.getAdminBank());
+        List<QuestionBankDTO> body = questionBanks
+                .stream()
+                .map(QuestionBankDTO::new)
+                .toList();
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 

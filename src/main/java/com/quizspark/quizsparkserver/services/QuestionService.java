@@ -35,12 +35,27 @@ public class QuestionService {
     }
 
     public List<QuestionBank> getPublicQuestionBanks() {
-        return bankRepository.findAllByAccess(QuestionBank.Access.PUBLIC);
+        return bankRepository.findAllByAccess(QuestionBank.Access.PUBLIC)
+                .stream()
+                .filter(bank -> bank.getStatus() == QuestionBank.Status.PUBLISHED)
+                .toList();
     }
 
     public List<QuestionBank> getQuestionBankByUser() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return user.getQuestionBanks();
+        return bankRepository.getQuestionBankByUser(user);
+    }
+
+    public List<QuestionBank> getAdminBank() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if(user.getRole().equals("ROLE_ADMIN")) {
+            return bankRepository.findAll()
+                    .stream()
+                    .filter(bank -> bank.getUser() == null)
+                    .toList();
+        } else {
+            return List.of();
+        }
     }
 
     public QuestionBank getQuestionBankById(String bankId) {
