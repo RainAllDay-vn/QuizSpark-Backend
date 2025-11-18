@@ -20,14 +20,14 @@ public class PracticeDTO {
     private boolean closed;
     private Date date;
 
-    public PracticeDTO(Practice practice, boolean revealAnswer) {
+    public PracticeDTO(Practice practice) {
         this.id = practice.getId();
         this.questionBank = new QuestionBankDTO(practice.getQuestionBank());
         this.questions = practice.getPracticeQuestion()
                 .stream()
                 .map(PracticeQuestionDTO::new)
                 .toList();
-        if (!revealAnswer) questions.forEach(question -> question.setAnswer(null));
+        if (!practice.isRevealAnswer()) questions.forEach(question -> question.setAnswer(null));
         this.closed = practice.isClosed();
         this.date = practice.getDate();
     }

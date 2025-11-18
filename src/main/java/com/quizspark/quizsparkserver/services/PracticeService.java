@@ -42,11 +42,11 @@ public class PracticeService {
     }
 
     @Transactional
-    public UUID startNewPractice(String questionBankId, int limit, boolean shuffleAnswer) {
+    public UUID startNewPractice(String questionBankId, int limit, boolean shuffleAnswer, boolean revealAnswer) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         QuestionBank bank = questionService.getQuestionBankById(questionBankId);
         List<Question> suitableQuestions = getSuitableQuestions(bank, user, limit);
-        Practice practice = new Practice(user, bank, suitableQuestions, shuffleAnswer);
+        Practice practice = new Practice(user, bank, suitableQuestions, shuffleAnswer, revealAnswer);
         practice = practiceRepository.save(practice);
         return practice.getId();
     }

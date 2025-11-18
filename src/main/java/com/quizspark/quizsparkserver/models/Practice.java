@@ -31,14 +31,18 @@ public class Practice {
     private boolean closed = false;
 
     @Column(nullable = false)
+    private boolean revealAnswer = false;
+
+    @Column(nullable = false)
     private Date date = new Date();
 
-    public Practice(User user, QuestionBank questionBank, List<Question> questions, boolean shuffleAnswer) {
+    public Practice(User user, QuestionBank questionBank, List<Question> questions, boolean shuffleAnswer, boolean revealAnswer) {
         this.user = user;
         this.questionBank = questionBank;
         this.practiceQuestion = questions
                 .stream()
                 .map(question -> new PracticeQuestion(question, shuffleAnswer))
                 .toList();
+        this.revealAnswer = revealAnswer;
     }
 }

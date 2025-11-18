@@ -1,7 +1,5 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.quizspark.quizsparkserver.dto.practice.PracticeDTO;
-import com.quizspark.quizsparkserver.models.Practice;
 import com.quizspark.quizsparkserver.services.PracticeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +23,7 @@ public class PracticeController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "true") boolean shuffle,
             @RequestParam(defaultValue = "true") boolean revealAnswer){
-        UUID practiceId = practiceService.startNewPractice(bankId, size, shuffle);
+        UUID practiceId = practiceService.startNewPractice(bankId, size, shuffle, revealAnswer);
         HashMap<Object, Object> body = new HashMap<>();
         body.put("id", practiceId.toString());
         return new ResponseEntity<>(body, HttpStatus.CREATED);
