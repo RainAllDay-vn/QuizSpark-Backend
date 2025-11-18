@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,12 +42,12 @@ public class PracticeService {
     }
 
     @Transactional
-    public Practice getNewPractice(String questionBankId, int limit, boolean shuffleAnswer) {
+    public UUID startNewPractice(String questionBankId, int limit, boolean shuffleAnswer) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         QuestionBank bank = questionService.getQuestionBankById(questionBankId);
         List<Question> suitableQuestions = getSuitableQuestions(bank, user, limit);
         Practice practice = new Practice(user, bank, suitableQuestions, shuffleAnswer);
-        practiceRepository.save(practice);
-        return practice;
+        practice = practiceRepository.save(practice);
+        return practice.getId();
     }
 }
