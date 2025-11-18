@@ -1,10 +1,8 @@
 package com.quizspark.quizsparkserver.services;
 
-import com.quizspark.quizsparkserver.models.QuestionAnswerLog;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.User;
-import com.quizspark.quizsparkserver.repositories.QuestionAnswerLogRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionBankRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,17 +19,14 @@ import java.util.UUID;
 public class QuestionService {
     private final QuestionBankRepository bankRepository;
     private final QuestionRepository questionRepository;
-    private final QuestionAnswerLogRepository logRepository;
 
     @Autowired
     public QuestionService(
             QuestionBankRepository bankRepository,
-            QuestionRepository questionRepository,
-            QuestionAnswerLogRepository logRepository
+            QuestionRepository questionRepository
     ) {
         this.bankRepository = bankRepository;
         this.questionRepository = questionRepository;
-        this.logRepository = logRepository;
     }
 
     public List<QuestionBank> getPublicQuestionBanks() {
@@ -93,9 +88,5 @@ public class QuestionService {
 
     public void deleteQuestion(Question question) {
         questionRepository.delete(question);
-    }
-
-    public void saveQuestionAnswerLog(QuestionAnswerLog log) {
-        logRepository.save(log);
     }
 }

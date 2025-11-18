@@ -1,19 +1,15 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.quizspark.quizsparkserver.dto.questions.QuestionAnswerLogDTO;
 import com.quizspark.quizsparkserver.dto.questions.QuestionCreationDTO;
 import com.quizspark.quizsparkserver.dto.questions.QuestionDTO;
 import com.quizspark.quizsparkserver.dto.questions.QuestionUpdateDTO;
-import com.quizspark.quizsparkserver.models.QuestionAnswerLog;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.Question;
-import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.QuestionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -49,15 +45,5 @@ public class QuestionController {
         Question question = questionService.getQuestionById(questionId);
         questionService.deleteQuestion(question);
         return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @PostMapping("/log")
-    public ResponseEntity<String> log(@RequestBody QuestionAnswerLogDTO logDAO) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Question question = questionService.getQuestionById(logDAO.getQuestionId());
-        if (!logDAO.validateAnswer(question)) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        QuestionAnswerLog log = logDAO.toQuestionAnswerLog(user, question);
-        questionService.saveQuestionAnswerLog(log);
-        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 }
