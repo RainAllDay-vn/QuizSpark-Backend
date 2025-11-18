@@ -56,7 +56,6 @@ public class TestDataConfig {
                     questionBank.setAccess(i%2==0 ? QuestionBank.Access.PUBLIC : QuestionBank.Access.PRIVATE); // Alternate between public/private
                     questionBank.setUser(user);
                     questionBank.setCreatedAt(new Date());
-                    questionBank.setNumberOfQuestions(quizzesPerCollection);
                     questionBank.setNumberOfAttempts(0);
                     questionBank.setRating(5.0f);
 

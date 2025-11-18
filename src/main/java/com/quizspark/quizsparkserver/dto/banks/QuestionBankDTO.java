@@ -42,7 +42,7 @@ public class QuestionBankDTO {
         this.status = questionBank.getStatus() != null ? questionBank.getStatus().toString() : null;
         this.createdAt = questionBank.getCreatedAt();
         this.rating = questionBank.getRating();
-        this.numberOfQuestions = questionBank.getNumberOfQuestions();
+        this.numberOfQuestions = questionBank.getQuestions().size();
         this.numberOfAttempts = questionBank.getNumberOfAttempts();
         User owner = questionBank.getUser();
         this.username = owner != null ? owner.getUsername() : null;

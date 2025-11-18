@@ -42,9 +42,6 @@ public class QuestionBank {
     private Float rating;
 
     @Column(nullable = false)
-    private int numberOfQuestions = 0;
-
-    @Column(nullable = false)
     private int numberOfAttempts = 0;
 
     // Relationship: One QuestionBank can contain many Questions
