@@ -8,7 +8,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,8 +27,8 @@ public class PracticeService {
         this.practiceQuestionRepository = practiceQuestionRepository;
     }
 
-    public List<Question> getSuitableQuestions(QuestionBank bank, int limit){
-        List<PracticeQuestion> practiceHistory = practiceQuestionRepository.findByQuestionBankId(bank);
+    public List<Question> getSuitableQuestions(QuestionBank bank, User user, int limit){
+        List<PracticeQuestion> practiceHistory = practiceQuestionRepository.findByQuestionBankAndUser(bank, user);
         return practiceHistory.stream()
                 .collect(Collectors.groupingBy(PracticeQuestion::getQuestion))
                 .entrySet()
@@ -45,7 +44,7 @@ public class PracticeService {
     public Practice getNewPractice(String questionBankId, int limit, boolean shuffleAnswer) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         QuestionBank bank = questionService.getQuestionBankById(questionBankId);
-        List<Question> suitableQuestions = getSuitableQuestions(bank, limit);
+        List<Question> suitableQuestions = getSuitableQuestions(bank, user, limit);
         Practice practice = new Practice(user, bank, suitableQuestions, shuffleAnswer);
         practiceRepository.save(practice);
         return practice;

@@ -26,6 +26,8 @@ public class PracticeQuestionDTO {
         this.index = practiceQuestion.getIndex();
         this.tags = practiceQuestion.getQuestion().getTags();
         this.description = practiceQuestion.getQuestion().getDescription();
+        applyShuffle(practiceQuestion);
+        this.userAnswer = practiceQuestion.getAnswer();
     }
 
     private void applyShuffle(PracticeQuestion practiceQuestion){
