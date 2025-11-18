@@ -32,4 +32,13 @@ public class Practice {
 
     @Column(nullable = false)
     private Date date = new Date();
+
+    public Practice(User user, QuestionBank questionBank, List<Question> questions, boolean shuffleAnswer) {
+        this.user = user;
+        this.questionBank = questionBank;
+        this.practiceQuestion = questions
+                .stream()
+                .map(question -> new PracticeQuestion(question, shuffleAnswer))
+                .toList();
+    }
 }

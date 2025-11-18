@@ -33,4 +33,23 @@ public class PracticeQuestion {
     private Integer answer;
 
     private Boolean isCorrect;
+
+    public PracticeQuestion(Question question, boolean shuffleAnswer) {
+        this.question = question;
+        this.answer = null;
+        this.isCorrect = null;
+        if (shuffleAnswer) {
+            int choiceCount = question.getChoices().size();
+            this.shuffleMapping = new Integer[choiceCount];
+            for (int i = 0; i < choiceCount; i++) this.shuffleMapping[i] = i;
+            for (int i = choiceCount - 1; i > 0; i--) {
+                int j = (int) (Math.random() * (i + 1));
+                int temp = this.shuffleMapping[i];
+                this.shuffleMapping[i] = this.shuffleMapping[j];
+                this.shuffleMapping[j] = temp;
+            }
+        } else {
+            this.shuffleMapping = null;
+        }
+    }
 }

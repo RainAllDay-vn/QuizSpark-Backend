@@ -35,4 +35,11 @@ public class Question {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false)
     private List<String> choices;
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj.getClass()!=this.getClass()) return false;
+        Question question = (Question) obj;
+        return this.getId().equals(question.getId());
+    }
 }
