@@ -13,8 +13,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-@Entity
-@Table(name="users")
+@Entity(name =" users")
 @Getter
 @Setter
 @NoArgsConstructor

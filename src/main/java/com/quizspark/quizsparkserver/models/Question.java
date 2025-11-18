@@ -10,7 +10,7 @@ import org.hibernate.type.SqlTypes;
 import java.util.List;
 import java.util.UUID;
 
-@Entity
+@Entity(name = "question")
 @Getter
 @Setter
 @NoArgsConstructor

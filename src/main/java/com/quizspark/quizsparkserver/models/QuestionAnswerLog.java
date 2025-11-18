@@ -7,7 +7,7 @@ import lombok.Setter;
 
 import java.util.Date;
 
-@Entity
+@Entity(name = "question_answer_log")
 @Getter
 @Setter
 @NoArgsConstructor
