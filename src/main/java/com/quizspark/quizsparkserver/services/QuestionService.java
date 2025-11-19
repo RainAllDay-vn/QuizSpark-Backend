@@ -54,39 +54,49 @@ public class QuestionService {
     }
 
     public QuestionBank getQuestionBankById(String bankId) {
-        Optional<QuestionBank> optional = bankRepository.findById(UUID.fromString(bankId));
-        if (optional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found");
-        QuestionBank questionBank = optional.get();
-        if (questionBank.getAccess() == QuestionBank.Access.PUBLIC) return questionBank;
+        Optional<QuestionBank> bankOptional = bankRepository.findById(UUID.fromString(bankId));
+        if (bankOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found");
+        QuestionBank bank = bankOptional.get();
+        if (bank.getAccess() == QuestionBank.Access.PUBLIC) return bank;
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(user.getRole().equals("ROLE_ADMIN")) return questionBank;
-        if(!questionBank.getUser().equals(user)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this collection");
-        return questionBank;
+        if(user.getRole().equals("ROLE_ADMIN")) return bank;
+        if(!bank.getUser().equals(user)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
+        return bank;
     }
 
     public void saveQuestionBank(QuestionBank questionBank) {
-        bankRepository.save(questionBank);
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if(user.getRole().equals("ROLE_ADMIN") || questionBank.getUser().equals(user)) bankRepository.save(questionBank);
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
     }
 
     public void deleteQuestionBank(QuestionBank questionBank) {
-        bankRepository.delete(questionBank);
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if(user.getRole().equals("ROLE_ADMIN") || questionBank.getUser().equals(user)) bankRepository.delete(questionBank);
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
     }
 
     public Question getQuestionById(String questionId) {
-        Optional<Question> question = questionRepository.findById(UUID.fromString(questionId));
-        if (question.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found");
+        Optional<Question> questionOptional = questionRepository.findById(UUID.fromString(questionId));
+        if (questionOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found");
+        Question question = questionOptional.get();
+        if (question.getQuestionBank().getAccess()==QuestionBank.Access.PUBLIC) return question;
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (user.getRole().equals("ROLE_ADMIN")) return question.get();
-        QuestionBank bank = question.get().getQuestionBank();
-        if (bank.getUser().getId().equals(user.getId())) return question.get();
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        if (user.getRole().equals("ROLE_ADMIN")) return question;
+        QuestionBank bank = question.getQuestionBank();
+        if (bank.getUser().getId().equals(user.getId())) return question;
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
     }
 
     public void saveQuestion(Question question) {
-        questionRepository.save(question);
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if(user.getRole().equals("ROLE_ADMIN") || question.getQuestionBank().getUser().equals(user)) questionRepository.save(question);
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
     }
 
     public void deleteQuestion(Question question) {
-        questionRepository.delete(question);
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if(user.getRole().equals("ROLE_ADMIN") || question.getQuestionBank().getUser().equals(user)) questionRepository.delete(question);
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
     }
 }

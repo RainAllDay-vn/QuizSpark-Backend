@@ -54,6 +54,12 @@ public class PracticeService {
         return practice.getId();
     }
 
+    public Practice startNewAnonymPractice(String questionBankId, int limit, boolean shuffleAnswer) {
+        QuestionBank bank = questionService.getQuestionBankById(questionBankId);
+        List<Question> questions = bank.getQuestions().stream().limit(limit).toList();
+        return new Practice(null, bank, questions, shuffleAnswer, true);
+    }
+
     public Practice getPractice(String practiceId){
         Optional<Practice> practiceOptional = practiceRepository.findById(UUID.fromString(practiceId));
         if (practiceOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "There isn't a practice with such ID");

@@ -31,6 +31,17 @@ public class PracticeController {
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
+    @GetMapping("/new/anonymous")
+    public ResponseEntity<PracticeDTO> startNewAnonymousPractice(
+            @RequestParam String bankId,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "true") boolean shuffle
+    ){
+        Practice practice = practiceService.startNewAnonymPractice(bankId, size, shuffle);
+        PracticeDTO body = new PracticeDTO(practice);
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
+    }
+
     @GetMapping("/{practiceId}")
     public ResponseEntity<PracticeDTO> getPractice(@PathVariable String practiceId){
         Practice practice = practiceService.getPractice(practiceId);

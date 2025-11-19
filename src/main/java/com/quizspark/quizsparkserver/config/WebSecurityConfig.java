@@ -37,10 +37,11 @@ public class WebSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/h2-console/**").permitAll()
+                        .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/v1/users/me").permitAll()
                         .requestMatchers("/api/v1/banks/public").permitAll()
-                        .requestMatchers("api/v1/questions").permitAll()
+                        .requestMatchers("/api/v1/questions").permitAll()
+                        .requestMatchers("/api/v1/practice/new/anonymous").permitAll()
                         .requestMatchers("/api/v1/users/register").hasRole("NEW")
                         .anyRequest().hasAnyRole("STUDENT", "TEACHER", "ADMIN")
                 )
