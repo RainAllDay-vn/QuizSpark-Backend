@@ -4,11 +4,15 @@ import com.quizspark.quizsparkserver.dto.practice.QuestionStatisticDTO;
 import com.quizspark.quizsparkserver.models.*;
 import com.quizspark.quizsparkserver.repositories.PracticeQuestionRepository;
 import com.quizspark.quizsparkserver.repositories.PracticeRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -49,5 +53,14 @@ public class PracticeService {
         Practice practice = new Practice(user, bank, suitableQuestions, shuffleAnswer, revealAnswer);
         practice = practiceRepository.save(practice);
         return practice.getId();
+    }
+
+    public Practice getPractice(String practiceId){
+        Optional<Practice> practiceOptional = practiceRepository.findById(UUID.fromString(practiceId));
+        if (practiceOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "There isn't a practice with such ID");
+        Practice practice = practiceOptional.get();
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (practice.getUser().equals(user)) return practice;
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this practice");
     }
 }

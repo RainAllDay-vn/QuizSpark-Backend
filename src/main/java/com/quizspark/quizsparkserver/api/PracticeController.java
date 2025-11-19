@@ -1,5 +1,7 @@
 package com.quizspark.quizsparkserver.api;
 
+import com.quizspark.quizsparkserver.dto.practice.PracticeDTO;
+import com.quizspark.quizsparkserver.models.Practice;
 import com.quizspark.quizsparkserver.services.PracticeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,5 +29,12 @@ public class PracticeController {
         HashMap<Object, Object> body = new HashMap<>();
         body.put("id", practiceId.toString());
         return new ResponseEntity<>(body, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{practiceId}")
+    public ResponseEntity<PracticeDTO> getPractice(@PathVariable String practiceId){
+        Practice practice = practiceService.getPractice(practiceId);
+        PracticeDTO body = new PracticeDTO(practice);
+        return new ResponseEntity<>(body, HttpStatus.OK);
     }
 }
