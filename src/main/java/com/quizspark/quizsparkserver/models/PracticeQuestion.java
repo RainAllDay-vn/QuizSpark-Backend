@@ -7,6 +7,10 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 @Entity(name = "practice_question")
 @Getter
 @Setter
@@ -28,8 +32,9 @@ public class PracticeQuestion {
     private Question question;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    private Integer[] shuffleMapping;
+    private List<Integer> shuffleMapping;
 
+    @Column
     private Integer answer;
 
     private Boolean isCorrect;
@@ -40,14 +45,9 @@ public class PracticeQuestion {
         this.isCorrect = null;
         if (shuffleAnswer) {
             int choiceCount = question.getChoices().size();
-            this.shuffleMapping = new Integer[choiceCount];
-            for (int i = 0; i < choiceCount; i++) this.shuffleMapping[i] = i;
-            for (int i = choiceCount - 1; i > 0; i--) {
-                int j = (int) (Math.random() * (i + 1));
-                int temp = this.shuffleMapping[i];
-                this.shuffleMapping[i] = this.shuffleMapping[j];
-                this.shuffleMapping[j] = temp;
-            }
+            this.shuffleMapping = new ArrayList<>();
+            for (int i = 0; i < choiceCount; i++) this.shuffleMapping.add(i);
+            Collections.shuffle(this.shuffleMapping);
         } else {
             this.shuffleMapping = null;
         }

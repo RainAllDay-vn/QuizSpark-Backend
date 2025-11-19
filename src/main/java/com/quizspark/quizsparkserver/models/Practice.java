@@ -43,6 +43,7 @@ public class Practice {
                 .stream()
                 .map(question -> new PracticeQuestion(question, shuffleAnswer))
                 .toList();
+        for (int i=0;i<practiceQuestion.size();i++) practiceQuestion.get(i).setIndex(i);
         this.revealAnswer = revealAnswer;
     }
 }

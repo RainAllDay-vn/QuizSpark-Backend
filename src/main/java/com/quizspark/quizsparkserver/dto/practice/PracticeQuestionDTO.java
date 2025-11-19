@@ -32,20 +32,20 @@ public class PracticeQuestionDTO {
 
     private void applyShuffle(PracticeQuestion practiceQuestion){
         Question originalQuestion = practiceQuestion.getQuestion();
-        Integer[] shuffleMapping = practiceQuestion.getShuffleMapping();
+        List<Integer> shuffleMapping = practiceQuestion.getShuffleMapping();
 
         // If there's shuffle mapping, apply it
-        if (shuffleMapping != null && shuffleMapping.length > 1) {
+        if (shuffleMapping != null && shuffleMapping.size() > 1) {
             List<String> originalChoices = originalQuestion.getChoices();
             List<String> shuffledChoices = new ArrayList<>(originalChoices.size());
             for (int i = 0; i < originalChoices.size(); i++) {
-                shuffledChoices.add(originalChoices.get(shuffleMapping[i]));
+                shuffledChoices.add(originalChoices.get(shuffleMapping.get(i)));
             }
             this.choices = shuffledChoices;
 
             int originalAnswer = originalQuestion.getAnswer();
-            for (int i = 0; i < shuffleMapping.length; i++) {
-                if (shuffleMapping[i] == originalAnswer) {
+            for (int i = 0; i < shuffleMapping.size(); i++) {
+                if (shuffleMapping.get(i) == originalAnswer) {
                     this.answer = i;
                     break;
                 }
