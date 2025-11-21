@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/questions")
 public class QuestionController {
@@ -28,6 +30,20 @@ public class QuestionController {
         Question question = payload.toQuestion(questionBank);
         questionService.saveQuestion(question);
         QuestionDTO body = new QuestionDTO(question);
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/all")
+    public ResponseEntity<List<QuestionDTO>> overwriteAllQuestions(
+            @RequestParam String bankId,
+            @RequestBody @Valid List<QuestionCreationDTO> payload
+    ){
+        QuestionBank questionBank = questionService.getQuestionBankById(bankId);
+        List<Question> oldQuestions = questionBank.getQuestions();
+        List<Question> newQuestions = payload.stream().map(dto -> dto.toQuestion(questionBank)).toList();
+        questionService.deleteAllQuestion(oldQuestions);
+        questionService.saveAllQuestion(newQuestions);
+        List<QuestionDTO> body = newQuestions.stream().map(QuestionDTO::new).toList();
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
