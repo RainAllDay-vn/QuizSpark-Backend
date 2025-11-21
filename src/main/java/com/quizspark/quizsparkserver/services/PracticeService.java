@@ -1,6 +1,6 @@
 package com.quizspark.quizsparkserver.services;
 
-import com.quizspark.quizsparkserver.dto.practice.QuestionStatisticDTO;
+import com.quizspark.quizsparkserver.models.PracticeStatistic;
 import com.quizspark.quizsparkserver.models.*;
 import com.quizspark.quizsparkserver.repositories.PracticeQuestionRepository;
 import com.quizspark.quizsparkserver.repositories.PracticeRepository;
@@ -13,7 +13,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class PracticeService {
@@ -32,14 +31,12 @@ public class PracticeService {
     }
 
     public List<Question> getSuitableQuestions(QuestionBank bank, User user, int limit){
+        List<Question> questions = bank.getQuestions();
         List<PracticeQuestion> practiceHistory = practiceQuestionRepository.findByQuestionBankAndUser(bank, user);
-        return practiceHistory.stream()
-                .collect(Collectors.groupingBy(PracticeQuestion::getQuestion))
-                .entrySet()
+        PracticeStatistic practiceStatistic = new PracticeStatistic(questions);
+        practiceStatistic.calculateStatistic(practiceHistory);
+        return practiceStatistic.getResult()
                 .stream()
-                .map(entry -> new QuestionStatisticDTO(entry.getKey(), entry.getValue()))
-                .sorted()
-                .map(QuestionStatisticDTO::getQuestion)
                 .limit(limit)
                 .toList();
     }

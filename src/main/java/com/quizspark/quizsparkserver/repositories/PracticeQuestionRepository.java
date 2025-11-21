@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface PracticeQuestionRepository extends JpaRepository<PracticeQuestion, Integer> {
-    @Query("SELECT pq, pq.question " +
+    @Query("SELECT pq " +
             "FROM practice_question pq " +
             "WHERE pq.practice.questionBank = :bank " +
             "   AND pq.practice.user = :user")
