@@ -20,10 +20,6 @@ public class Practice {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne( fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_bank_id")
-    private QuestionBank questionBank;
-
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "practice", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PracticeQuestion> practiceQuestion;
 
@@ -36,16 +32,11 @@ public class Practice {
     @Column(nullable = false)
     private Date date = new Date();
 
-    public Practice(User user, QuestionBank questionBank, List<Question> questions, boolean shuffleAnswer, boolean revealAnswer) {
+    public Practice(User user, List<Question> questions, boolean shuffleAnswer, boolean revealAnswer) {
         this.user = user;
-        this.questionBank = questionBank;
-        this.practiceQuestion = questions
-                .stream()
-                .map(question -> new PracticeQuestion(question, shuffleAnswer))
-                .toList();
-        for (int i=0;i<practiceQuestion.size();i++){
-            practiceQuestion.get(i).setPractice(this);
-            practiceQuestion.get(i).setIndex(i);
+        this.practiceQuestion = new ArrayList<>(questions.size());
+        for (int i=0; i<questions.size(); i++) {
+            this.practiceQuestion.add(new PracticeQuestion(this, i, questions.get(i), shuffleAnswer));
         }
         this.revealAnswer = revealAnswer;
     }

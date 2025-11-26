@@ -1,48 +1,75 @@
 package com.quizspark.quizsparkserver.models;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.io.Serializable;
+import java.util.*;
 
 @Entity(name = "practice_question")
 @Getter
 @Setter
 @NoArgsConstructor
 public class PracticeQuestion {
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private int id;
 
+    @Embeddable
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PracticeQuestionId implements Serializable {
+        private UUID practiceId;
+        private Integer index;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PracticeQuestionId that = (PracticeQuestionId) o;
+            return Objects.equals(practiceId, that.practiceId) &&
+                    Objects.equals(index, that.index);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(practiceId, index);
+        }
+    }
+
+    @EmbeddedId
+    private PracticeQuestionId id = new PracticeQuestionId();
+
+    @MapsId("practiceId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "practice_id", nullable = false)
     private Practice practice;
 
-    @Column(nullable = false)
-    private int index;
+    @MapsId("index")
+    @Column(name = "index", nullable = false)
+    private Integer index;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "question_id", nullable = false)
     private Question question;
 
     @JdbcTypeCode(SqlTypes.JSON)
     private List<Integer> shuffleMapping;
 
-    @Column
-    private Integer answer;
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List<String> userAnswer = null;
 
-    private Boolean isCorrect;
+    private Boolean isCorrect = null;
 
-    public PracticeQuestion(Question question, boolean shuffleAnswer) {
+    private Integer secondsToAnswer = null;
+
+    public PracticeQuestion(Practice practice, int index, Question question, boolean shuffleAnswer) {
+        this.id = new PracticeQuestionId(practice.getId(), index);
         this.question = question;
-        this.answer = null;
-        this.isCorrect = null;
         if (shuffleAnswer) {
             int choiceCount = question.getChoices().size();
             this.shuffleMapping = new ArrayList<>();

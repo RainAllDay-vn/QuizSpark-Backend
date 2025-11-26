@@ -10,7 +10,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-@Entity@Table(name = "question_bank")
+@Entity(name = "question_bank")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -28,6 +28,7 @@ public class QuestionBank {
 
     @Enumerated(EnumType.STRING)
     private Status status;
+
     @Enumerated(EnumType.STRING)
     private Access access;
 
@@ -40,9 +41,6 @@ public class QuestionBank {
     private Date createdAt = new Date();
 
     private Float rating;
-
-    @Column(nullable = false)
-    private int numberOfAttempts = 0;
 
     // Relationship: One QuestionBank can contain many Questions
     @OneToMany(mappedBy = "questionBank", cascade = CascadeType.ALL, orphanRemoval = true)
