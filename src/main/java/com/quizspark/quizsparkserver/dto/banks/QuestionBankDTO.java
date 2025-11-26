@@ -28,7 +28,6 @@ public class QuestionBankDTO {
     private Date createdAt;
     private Float rating;
     private int numberOfQuestions;
-    private int numberOfAttempts;
     private String username; // Owner's username
     private List<QuestionDTO> questions; // List of questions in the question bank
     private boolean editable;
@@ -43,7 +42,6 @@ public class QuestionBankDTO {
         this.createdAt = questionBank.getCreatedAt();
         this.rating = questionBank.getRating();
         this.numberOfQuestions = questionBank.getQuestions().size();
-        this.numberOfAttempts = questionBank.getNumberOfAttempts();
         User owner = questionBank.getUser();
         this.username = owner != null ? owner.getUsername() : null;
     }

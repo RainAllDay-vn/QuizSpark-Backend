@@ -6,21 +6,34 @@ import lombok.Setter;
 
 import java.util.List;
 
+import static com.quizspark.quizsparkserver.dto.questions.ChoicesAndAnswerProcessor.*;
+import static com.quizspark.quizsparkserver.dto.questions.ChoicesAndAnswerProcessor.processOpenAnswerQuestion;
+
 @Setter
 @Getter
-public class QuestionUpdateDTO {
-    private String description;
-    private List<String> choices;
-    private int answer;
+public class QuestionUpdateDTO{
     private List<String> tags;
-    
-    public void updateQuestion(Question question) throws IllegalArgumentException{
-        if (answer < 0 || answer >= choices.size()) {
-            throw new IllegalArgumentException("Answer is outside of choices' range");
+
+    private String description;
+
+    private List<String> answer;
+
+    private List<String> choices;
+
+    private String explanation;
+
+    public void updateQuestion(Question question) throws IllegalArgumentException {
+        switch (question.getQuestionType()){
+            case SINGLE_ANSWER -> processSingleAnswerQuestion(question, choices, answer);
+            case MULTIPLE_ANSWER -> processMultipleAnswerQuestion(question, choices, answer);
+            case FILL_THE_BLANK -> processFillTheBlankQuestion(question, choices, answer);
+            case OPEN_ANSWER -> processOpenAnswerQuestion(question);
         }
-        question.setTags(tags);
-        question.setDescription(description);
-        question.setAnswer(answer);
-        question.setChoices(choices);
+        if (tags!=null) question.setTags(tags);
+        if (description!=null) question.setDescription(description);
+        if (explanation!=null) {
+            if (explanation.isBlank()) question.setExplanation(null);
+            else question.setExplanation(explanation);
+        }
     }
 }

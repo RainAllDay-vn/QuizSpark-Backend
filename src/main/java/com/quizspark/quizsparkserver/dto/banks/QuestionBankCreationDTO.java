@@ -3,6 +3,7 @@ package com.quizspark.quizsparkserver.dto.banks;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.User;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -13,6 +14,7 @@ import lombok.Setter;
 @Getter
 @NoArgsConstructor
 public class QuestionBankCreationDTO {
+    @NotNull(message = "Access type is required")
     @Pattern(regexp = "PRIVATE|PUBLIC", message = "Question bank must either be PRIVATE or PUBLIC")
     private String access;
 

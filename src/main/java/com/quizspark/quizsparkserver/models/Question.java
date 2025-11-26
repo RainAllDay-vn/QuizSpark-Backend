@@ -17,8 +17,8 @@ import java.util.UUID;
 @NoArgsConstructor
 public class Question {
     public enum QuestionType{
-        SINGLE_CHOICE,
-        MULTIPLE_CHOICE,
+        SINGLE_ANSWER,
+        MULTIPLE_ANSWER,
         FILL_THE_BLANK,
         OPEN_ANSWER
     }
@@ -42,7 +42,6 @@ public class Question {
     private String description;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(nullable = false)
     private List<String> answer;
 
     @JdbcTypeCode(SqlTypes.JSON)

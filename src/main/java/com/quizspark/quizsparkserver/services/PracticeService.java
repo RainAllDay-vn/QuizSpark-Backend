@@ -32,7 +32,7 @@ public class PracticeService {
 
     public List<Question> getSuitableQuestions(QuestionBank bank, User user, int limit){
         List<Question> questions = bank.getQuestions();
-        List<PracticeQuestion> practiceHistory = practiceQuestionRepository.findByQuestionBankAndUser(bank, user);
+        List<PracticeQuestion> practiceHistory = practiceQuestionRepository.findByQuestionsAndUser(questions, user);
         PracticeStatistic practiceStatistic = new PracticeStatistic(questions);
         practiceStatistic.calculateStatistic(practiceHistory);
         return practiceStatistic.getResult()

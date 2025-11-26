@@ -13,7 +13,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-@Entity(name =" users")
+@Entity(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -32,7 +32,6 @@ public class User implements UserDetails {
     private String educationLevel;
 
     // Relationship: one user can own many collections
-    @Column(nullable = false)
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuestionBank> questionBanks = new ArrayList<>();
 
