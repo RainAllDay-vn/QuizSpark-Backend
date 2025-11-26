@@ -13,13 +13,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-@Entity(name = "users")
+@Entity
+@Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
 public class User implements UserDetails {
     @Id
-    private UUID id = UUID.randomUUID();
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
     @Column(nullable = false, unique = true)
     private String username;
     @Column(nullable = false, unique = true)

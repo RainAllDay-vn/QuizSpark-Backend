@@ -11,7 +11,8 @@ import org.hibernate.type.SqlTypes;
 import java.io.Serializable;
 import java.util.*;
 
-@Entity(name = "practice_question")
+@Entity
+@Table(name = "practice_question")
 @Getter
 @Setter
 @NoArgsConstructor

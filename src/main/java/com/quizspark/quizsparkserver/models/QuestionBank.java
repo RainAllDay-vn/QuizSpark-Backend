@@ -10,7 +10,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-@Entity(name = "question_bank")
+@Entity
+@Table(name = "question_bank")
 @Getter
 @Setter
 @NoArgsConstructor
