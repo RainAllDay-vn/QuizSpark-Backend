@@ -50,10 +50,6 @@ public class PracticeQuestion {
     @JoinColumn(name = "practice_id", nullable = false)
     private Practice practice;
 
-    @MapsId("index")
-    @Column(name = "index", nullable = false)
-    private Integer index;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "question_id", nullable = false)
     private Question question;

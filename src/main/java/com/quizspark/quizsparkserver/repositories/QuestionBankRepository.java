@@ -13,6 +13,6 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, UUID
 
     List<QuestionBank> findQuestionBankByUser(User user);
 
-    @Query("SELECT qb FROM question_bank qb WHERE qb.user IS NULL")
+    @Query("SELECT qb FROM QuestionBank qb WHERE qb.user IS NULL")
     List<QuestionBank> findAdminQuestionBank();
 }

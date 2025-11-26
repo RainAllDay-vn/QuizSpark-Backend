@@ -22,7 +22,7 @@ public class PracticeQuestionDTO {
     private List<String> userAnswer;
 
     public PracticeQuestionDTO(PracticeQuestion practiceQuestion) {
-        this.index = practiceQuestion.getIndex();
+        this.index = practiceQuestion.getId().getIndex();
         this.type = practiceQuestion.getQuestion().getQuestionType().toString();
         this.tags = practiceQuestion.getQuestion().getTags();
         this.description = practiceQuestion.getQuestion().getDescription();

@@ -8,9 +8,9 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
-public interface PracticeQuestionRepository extends JpaRepository<PracticeQuestion, Integer> {
+public interface PracticeQuestionRepository extends JpaRepository<PracticeQuestion, PracticeQuestion.PracticeQuestionId> {
     @Query("SELECT pq " +
-            "FROM practice_question pq " +
+            "FROM PracticeQuestion pq " +
             "WHERE pq.question IN :questions " +
             "   AND pq.practice.user = :user")
     List<PracticeQuestion> findByQuestionsAndUser(List<Question> questions, User user);

@@ -32,6 +32,7 @@ public class Question {
     private QuestionBank questionBank;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private QuestionType questionType;
 
     @JdbcTypeCode(SqlTypes.JSON)
