@@ -46,7 +46,7 @@ public class PracticeService {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         QuestionBank bank = questionService.getQuestionBankById(questionBankId);
         List<Question> suitableQuestions = getSuitableQuestions(bank, user, limit);
-        Practice practice = new Practice(user, bank, suitableQuestions, shuffleAnswer, revealAnswer);
+        Practice practice = new Practice(user, suitableQuestions, shuffleAnswer, revealAnswer);
         practice = practiceRepository.save(practice);
         return practice.getId();
     }
@@ -54,7 +54,7 @@ public class PracticeService {
     public Practice startNewAnonymPractice(String questionBankId, int limit, boolean shuffleAnswer) {
         QuestionBank bank = questionService.getQuestionBankById(questionBankId);
         List<Question> questions = bank.getQuestions().stream().limit(limit).toList();
-        return new Practice(null, bank, questions, shuffleAnswer, true);
+        return new Practice(null, questions, shuffleAnswer, true);
     }
 
     public Practice getPractice(String practiceId){
