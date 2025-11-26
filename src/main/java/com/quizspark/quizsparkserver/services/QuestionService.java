@@ -38,16 +38,13 @@ public class QuestionService {
 
     public List<QuestionBank> getQuestionBankByUser() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return bankRepository.getQuestionBankByUser(user);
+        return bankRepository.findQuestionBankByUser(user);
     }
 
     public List<QuestionBank> getAdminBank() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if(user.getRole().equals("ROLE_ADMIN")) {
-            return bankRepository.findAll()
-                    .stream()
-                    .filter(bank -> bank.getUser() == null)
-                    .toList();
+            return bankRepository.findAdminQuestionBank();
         } else {
             return List.of();
         }
@@ -65,20 +62,11 @@ public class QuestionService {
     }
 
     public void saveQuestionBank(QuestionBank questionBank) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(user.getRole().equals("ROLE_ADMIN") || questionBank.getUser().equals(user)) {
-            bankRepository.save(questionBank);
-            return;
-        }
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
+        bankRepository.save(questionBank);
     }
 
     public void deleteQuestionBank(QuestionBank questionBank) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(user.getRole().equals("ROLE_ADMIN") || questionBank.getUser().equals(user)) {
-            bankRepository.delete(questionBank);
-            return;
-        }
+        bankRepository.delete(questionBank);
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
     }
 
@@ -95,40 +83,18 @@ public class QuestionService {
     }
 
     public void saveQuestion(Question question) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(user.getRole().equals("ROLE_ADMIN") || question.getQuestionBank().getUser().equals(user)) {
-            questionRepository.save(question);
-            return;
-        }
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
+        questionRepository.save(question);
     }
 
     public void saveAllQuestion(List<Question> questions) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        QuestionBank bank = questions.get(0).getQuestionBank();
-        if(user.getRole().equals("ROLE_ADMIN") || bank.getUser().equals(user)) {
-            questionRepository.saveAll(questions);
-            return;
-        }
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
+        questionRepository.saveAll(questions);
     }
 
     public void deleteQuestion(Question question) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(user.getRole().equals("ROLE_ADMIN") || question.getQuestionBank().getUser().equals(user)) {
-            questionRepository.delete(question);
-            return;
-        }
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
+        questionRepository.delete(question);
     }
 
     public void deleteAllQuestion(List<Question> questions) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        QuestionBank bank = questions.get(0).getQuestionBank();
-        if(user.getRole().equals("ROLE_ADMIN") || bank.getUser().equals(user)) {
-            questionRepository.deleteAll(questions);
-            return;
-        }
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
+        questionRepository.deleteAll(questions);
     }
 }
