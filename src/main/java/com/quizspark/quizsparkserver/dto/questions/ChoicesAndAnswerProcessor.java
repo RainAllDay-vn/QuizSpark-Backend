@@ -27,10 +27,9 @@ public class ChoicesAndAnswerProcessor {
         question.setAnswer(answer);
     }
 
-    public static void processFillTheBlankQuestion(Question question, List<String> choices, List<String> answer){
-        if (choices==null || choices.isEmpty()) throw new IllegalArgumentException("Fill the blank question must have at least 1 choice");
-        if (answer==null || answer.size()!=choices.size()) throw new IllegalArgumentException("Fill the blank question must have same number of choices and answers");
-        question.setChoices(choices);
+    public static void processFillTheBlankQuestion(Question question, List<String> answer){
+        if (answer==null || answer.isEmpty()) throw new IllegalArgumentException("Fill the blank question must have answers");
+        question.setChoices(null);
         question.setAnswer(answer);
     }
 

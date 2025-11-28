@@ -66,8 +66,12 @@ public class PracticeQuestion {
 
     public PracticeQuestion(Practice practice, int index, Question question, boolean shuffleAnswer) {
         this.id = new PracticeQuestionId(practice.getId(), index);
+        this.practice = practice;
         this.question = question;
-        if (shuffleAnswer) {
+        if (shuffleAnswer && (
+                question.getQuestionType() == Question.QuestionType.SINGLE_ANSWER
+                        || question.getQuestionType() == Question.QuestionType.MULTIPLE_ANSWER
+        )) {
             int choiceCount = question.getChoices().size();
             this.shuffleMapping = new ArrayList<>();
             for (int i = 0; i < choiceCount; i++) this.shuffleMapping.add(i);
@@ -75,5 +79,19 @@ public class PracticeQuestion {
         } else {
             this.shuffleMapping = null;
         }
+    }
+
+    public boolean isClosed() {
+        if (practice.isClosed()) return true;
+        return practice.isRevealAnswer() && userAnswer != null && !userAnswer.isEmpty();
+    }
+
+    public List<String> answer(List<String> userAnswer, int secondsToAnswer) {
+        if (isClosed()) return null;
+        this.userAnswer = userAnswer;
+        this.isCorrect = userAnswer.equals(question.getAnswer());
+        this.secondsToAnswer = secondsToAnswer;
+        if (this.practice.isRevealAnswer()) return question.getAnswer();
+        else return null;
     }
 }

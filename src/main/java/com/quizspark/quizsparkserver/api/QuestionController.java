@@ -12,7 +12,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/questions")
@@ -34,13 +37,23 @@ public class QuestionController {
     }
 
     @PostMapping("/all")
-    public ResponseEntity<List<QuestionDTO>> overwriteAllQuestions(
+    public ResponseEntity<Object> overwriteAllQuestions(
             @RequestParam String bankId,
             @RequestBody @Valid List<QuestionCreationDTO> payload
     ){
         QuestionBank questionBank = questionService.getQuestionBankById(bankId);
         List<Question> oldQuestions = questionBank.getQuestions();
-        List<Question> newQuestions = payload.stream().map(dto -> dto.toQuestion(questionBank)).toList();
+        List<Question> newQuestions = new LinkedList<>();
+        for (QuestionCreationDTO questionCreationDTO: payload){
+            try{
+                newQuestions.add(questionCreationDTO.toQuestion(questionBank));
+            } catch (IllegalArgumentException e) {
+                Map<String, Object> body = new HashMap<>();
+                body.put("message", e.getMessage());
+                body.put("errorQuestion", questionCreationDTO);
+                return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+            }
+        }
         questionService.deleteAllQuestion(oldQuestions);
         questionService.saveAllQuestion(newQuestions);
         List<QuestionDTO> body = newQuestions.stream().map(QuestionDTO::new).toList();

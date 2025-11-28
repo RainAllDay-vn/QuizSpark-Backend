@@ -34,7 +34,7 @@ public class QuestionCreationDTO {
         switch (question.getQuestionType()){
             case SINGLE_ANSWER -> processSingleAnswerQuestion(question, choices, answer);
             case MULTIPLE_ANSWER -> processMultipleAnswerQuestion(question, choices, answer);
-            case FILL_THE_BLANK -> processFillTheBlankQuestion(question, choices, answer);
+            case FILL_THE_BLANK -> processFillTheBlankQuestion(question, answer);
             case OPEN_ANSWER -> processOpenAnswerQuestion(question);
         }
         question.setTags(tags==null ? new ArrayList<>() : tags);

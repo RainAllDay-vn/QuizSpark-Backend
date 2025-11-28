@@ -57,6 +57,11 @@ public class PracticeService {
         return new Practice(null, questions, shuffleAnswer, true);
     }
 
+    public List<Practice> getUserPractice(){
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return practiceRepository.findByUser(user);
+    }
+
     public Practice getPractice(String practiceId){
         Optional<Practice> practiceOptional = practiceRepository.findById(UUID.fromString(practiceId));
         if (practiceOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "There isn't a practice with such ID");
@@ -64,5 +69,23 @@ public class PracticeService {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (practice.getUser().equals(user)) return practice;
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this practice");
+    }
+
+    public PracticeQuestion getPracticeQuestion(String practiceId, int index){
+        Optional<PracticeQuestion> practiceQuestionOptional = practiceQuestionRepository.findByPracticeAndIndex(UUID.fromString(practiceId), index);
+        if (practiceQuestionOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "There isn't a practice question with such ID");
+        PracticeQuestion practiceQuestion = practiceQuestionOptional.get();
+        Practice practice = practiceQuestion.getPractice();
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!practice.getUser().getId().equals(user.getId())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this practice question");
+        return practiceQuestion;
+    }
+
+    public List<String> answerPracticeQuestion(String practiceId, int index, List<String> userAnswer, int secondsToAnswer){
+        PracticeQuestion question = getPracticeQuestion(practiceId, index);
+        if (question.isClosed()) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot answer this question");
+        List<String> correctAnswer = question.answer(userAnswer, secondsToAnswer);
+        practiceQuestionRepository.save(question);
+        return correctAnswer;
     }
 }

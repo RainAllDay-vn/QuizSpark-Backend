@@ -1,5 +1,6 @@
 package com.quizspark.quizsparkserver.api;
 
+import com.quizspark.quizsparkserver.dto.practice.PracticeAnswerDTO;
 import com.quizspark.quizsparkserver.dto.practice.PracticeDTO;
 import com.quizspark.quizsparkserver.models.Practice;
 import com.quizspark.quizsparkserver.services.PracticeService;
@@ -8,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -38,14 +40,34 @@ public class PracticeController {
             @RequestParam(defaultValue = "true") boolean shuffle
     ){
         Practice practice = practiceService.startNewAnonymPractice(bankId, size, shuffle);
-        PracticeDTO body = new PracticeDTO(practice);
+        PracticeDTO body = new PracticeDTO(practice).appendQuestions();
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
-    @GetMapping("/{practiceId}")
-    public ResponseEntity<PracticeDTO> getPractice(@PathVariable String practiceId){
-        Practice practice = practiceService.getPractice(practiceId);
-        PracticeDTO body = new PracticeDTO(practice);
+    @GetMapping("/me")
+    public ResponseEntity<List<PracticeDTO>> getPractice(){
+        List<Practice> practices = practiceService.getUserPractice();
+        List<PracticeDTO> body = practices.stream().map(PracticeDTO::new).toList();
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
+
+    @GetMapping("/id/{practiceId}")
+    public ResponseEntity<PracticeDTO> getPractice(@PathVariable String practiceId){
+        Practice practice = practiceService.getPractice(practiceId);
+        PracticeDTO body = new PracticeDTO(practice).appendQuestions();
+        return new ResponseEntity<>(body, HttpStatus.OK);
+    }
+
+    @PostMapping("/id/{practiceId}/answer")
+    public ResponseEntity<Object> answerQuestion(@PathVariable String practiceId, @RequestBody PracticeAnswerDTO answer){
+        List<String> correctAnswer = practiceService.answerPracticeQuestion(
+                practiceId,
+                answer.getIndex(),
+                answer.getAnswer(),
+                answer.getSecondsToAnswer());
+        HashMap<String, Object> body = new HashMap<>();
+        body.put("correctAnswer", correctAnswer);
+        return new ResponseEntity<>(body, HttpStatus.OK);
+    }
+
 }
