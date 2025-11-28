@@ -3,6 +3,7 @@ package com.quizspark.quizsparkserver.dto.practice;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
 import com.quizspark.quizsparkserver.models.Question;
+import com.quizspark.quizsparkserver.models.Tag;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,7 +25,7 @@ public class PracticeQuestionDTO {
     public PracticeQuestionDTO(PracticeQuestion practiceQuestion) {
         this.index = practiceQuestion.getId().getIndex();
         this.type = practiceQuestion.getQuestion().getQuestionType().toString();
-        this.tags = practiceQuestion.getQuestion().getTags();
+        this.tags = practiceQuestion.getQuestion().getTags().stream().map(Tag::getName).toList();
         this.description = practiceQuestion.getQuestion().getDescription();
         applyShuffle(practiceQuestion);
         this.userAnswer = practiceQuestion.getUserAnswer();

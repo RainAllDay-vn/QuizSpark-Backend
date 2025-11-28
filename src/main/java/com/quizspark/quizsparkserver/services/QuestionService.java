@@ -2,31 +2,35 @@ package com.quizspark.quizsparkserver.services;
 
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.Question;
+import com.quizspark.quizsparkserver.models.Tag;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.repositories.QuestionBankRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionRepository;
+import com.quizspark.quizsparkserver.repositories.TagRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class QuestionService {
     private final QuestionBankRepository bankRepository;
     private final QuestionRepository questionRepository;
+    private final TagRepository tagRepository;
 
     @Autowired
     public QuestionService(
             QuestionBankRepository bankRepository,
-            QuestionRepository questionRepository
-    ) {
+            QuestionRepository questionRepository,
+            TagRepository tagRepository) {
         this.bankRepository = bankRepository;
         this.questionRepository = questionRepository;
+        this.tagRepository = tagRepository;
     }
 
     public List<QuestionBank> getPublicQuestionBanks() {
@@ -90,11 +94,44 @@ public class QuestionService {
         questionRepository.saveAll(questions);
     }
 
+    @Transactional
+    public void overwriteQuestions(QuestionBank bank, List<Question> questions){
+        List<Tag> oldTags = getQuestionBankTags(bank);
+        Map<String, Tag> newTagsMap = questions.stream()
+                .flatMap(question -> question.getTags().stream())
+                .collect(Collectors.toMap(Tag::getName, tag -> tag, (tag1, tag2) -> tag1));
+        for (Question question: questions) {
+            List<Tag> tags = question.getTags();
+            tags.forEach(tag -> newTagsMap.get(tag.getName()));
+            question.setTags(tags);
+        }
+        List<Tag> newTags = new ArrayList<>(newTagsMap.values());
+        newTags.forEach(tag -> tag.setBank(bank));
+        questions.forEach(question -> question.setQuestionBank(bank));
+
+        deleteAllTags(oldTags);
+        deleteAllQuestion(bank.getQuestions());
+        saveAllTags(newTags);
+        saveAllQuestion(questions);
+    }
+
     public void deleteQuestion(Question question) {
         questionRepository.delete(question);
     }
 
     public void deleteAllQuestion(List<Question> questions) {
         questionRepository.deleteAll(questions);
+    }
+
+    public List<Tag> getQuestionBankTags(QuestionBank bank) {
+        return tagRepository.findAllByBank(bank);
+    }
+
+    public void saveAllTags(List<Tag> tags) {
+        tagRepository.saveAll(tags);
+    }
+
+    public void deleteAllTags(List<Tag> tags) {
+        tagRepository.deleteAll(tags);
     }
 }

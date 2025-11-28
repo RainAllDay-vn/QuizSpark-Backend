@@ -10,7 +10,9 @@ import java.util.UUID;
 
 public interface QuestionRepository extends JpaRepository<Question, UUID> {
 
-    @Query("SELECT q FROM Question q LEFT JOIN FETCH q.questionBank WHERE q.id = :id")
+    @Query("SELECT q FROM Question q " +
+            "LEFT JOIN FETCH q.questionBank " +
+            "WHERE q.id = :id")
     @NonNull
     Optional<Question> findById(@NonNull UUID id);
 }

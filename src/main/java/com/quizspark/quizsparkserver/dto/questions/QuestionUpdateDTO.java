@@ -29,7 +29,6 @@ public class QuestionUpdateDTO{
             case FILL_THE_BLANK -> processFillTheBlankQuestion(question, answer);
             case OPEN_ANSWER -> processOpenAnswerQuestion(question);
         }
-        if (tags!=null) question.setTags(tags);
         if (description!=null) question.setDescription(description);
         if (explanation!=null) {
             if (explanation.isBlank()) question.setExplanation(null);

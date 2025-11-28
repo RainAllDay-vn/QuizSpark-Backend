@@ -1,12 +1,11 @@
 package com.quizspark.quizsparkserver.dto.questions;
 
 import com.quizspark.quizsparkserver.models.Question;
-import com.quizspark.quizsparkserver.models.QuestionBank;
+import com.quizspark.quizsparkserver.models.Tag;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static com.quizspark.quizsparkserver.dto.questions.ChoicesAndAnswerProcessor.*;
@@ -14,6 +13,8 @@ import static com.quizspark.quizsparkserver.dto.questions.ChoicesAndAnswerProces
 @Getter
 @Setter
 public class QuestionCreationDTO {
+    private Question question;
+
     @NotBlank
     private String questionType;
 
@@ -28,8 +29,8 @@ public class QuestionCreationDTO {
 
     private String explanation;
 
-    public Question toQuestion(QuestionBank bank) throws IllegalArgumentException{
-        Question question = new Question();
+    public Question toQuestion() throws IllegalArgumentException{
+        question = new Question();
         question.setQuestionType(Question.QuestionType.valueOf(questionType));
         switch (question.getQuestionType()){
             case SINGLE_ANSWER -> processSingleAnswerQuestion(question, choices, answer);
@@ -37,9 +38,8 @@ public class QuestionCreationDTO {
             case FILL_THE_BLANK -> processFillTheBlankQuestion(question, answer);
             case OPEN_ANSWER -> processOpenAnswerQuestion(question);
         }
-        question.setTags(tags==null ? new ArrayList<>() : tags);
+        question.setTags(tags.stream().map(Tag::new).toList());
         question.setDescription(description);
-        question.setQuestionBank(bank);
         if (explanation!=null && !explanation.isBlank()) question.setExplanation(explanation);
         question.setExplanation(null);
         return question;

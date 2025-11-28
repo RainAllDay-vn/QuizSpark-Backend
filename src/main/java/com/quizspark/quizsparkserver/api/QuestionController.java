@@ -30,7 +30,8 @@ public class QuestionController {
     @PostMapping
     public ResponseEntity<QuestionDTO> addQuestion(@RequestParam String bankId, @RequestBody @Valid QuestionCreationDTO payload) {
         QuestionBank questionBank = questionService.getQuestionBankById(bankId);
-        Question question = payload.toQuestion(questionBank);
+        Question question = payload.toQuestion();
+        question.setQuestionBank(questionBank);
         questionService.saveQuestion(question);
         QuestionDTO body = new QuestionDTO(question);
         return new ResponseEntity<>(body, HttpStatus.CREATED);
@@ -42,11 +43,10 @@ public class QuestionController {
             @RequestBody @Valid List<QuestionCreationDTO> payload
     ){
         QuestionBank questionBank = questionService.getQuestionBankById(bankId);
-        List<Question> oldQuestions = questionBank.getQuestions();
         List<Question> newQuestions = new LinkedList<>();
         for (QuestionCreationDTO questionCreationDTO: payload){
             try{
-                newQuestions.add(questionCreationDTO.toQuestion(questionBank));
+                newQuestions.add(questionCreationDTO.toQuestion());
             } catch (IllegalArgumentException e) {
                 Map<String, Object> body = new HashMap<>();
                 body.put("message", e.getMessage());
@@ -54,8 +54,7 @@ public class QuestionController {
                 return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
             }
         }
-        questionService.deleteAllQuestion(oldQuestions);
-        questionService.saveAllQuestion(newQuestions);
+        questionService.overwriteQuestions(questionBank, newQuestions);
         List<QuestionDTO> body = newQuestions.stream().map(QuestionDTO::new).toList();
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
