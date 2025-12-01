@@ -11,6 +11,9 @@ import org.hibernate.type.SqlTypes;
 import java.io.Serializable;
 import java.util.*;
 
+import static com.quizspark.quizsparkserver.models.Question.QuestionType.MULTIPLE_ANSWER;
+import static com.quizspark.quizsparkserver.models.Question.QuestionType.SINGLE_ANSWER;
+
 @Entity
 @Table(name = "practice_question")
 @Getter
@@ -69,8 +72,8 @@ public class PracticeQuestion {
         this.practice = practice;
         this.question = question;
         if (shuffleAnswer && (
-                question.getQuestionType() == Question.QuestionType.SINGLE_ANSWER
-                        || question.getQuestionType() == Question.QuestionType.MULTIPLE_ANSWER
+                question.getQuestionType() == SINGLE_ANSWER
+                        || question.getQuestionType() == MULTIPLE_ANSWER
         )) {
             int choiceCount = question.getChoices().size();
             this.shuffleMapping = new ArrayList<>();
@@ -89,9 +92,39 @@ public class PracticeQuestion {
     public List<String> answer(List<String> userAnswer, int secondsToAnswer) {
         if (isClosed()) return null;
         this.userAnswer = userAnswer;
-        this.isCorrect = userAnswer.equals(question.getAnswer());
+        this.isCorrect = userAnswer.equals(getCorrectAnswer());
         this.secondsToAnswer = secondsToAnswer;
-        if (this.practice.isRevealAnswer()) return question.getAnswer();
+        if (this.practice.isRevealAnswer()) return getCorrectAnswer();
         else return null;
+    }
+
+    public List<String> getCorrectAnswer() {
+        List<String> correctAnswer = new ArrayList<>(question.getAnswer().size());
+        if (shuffleMapping!=null && shuffleMapping.size()>1){
+            List<String> originalChoices = question.getChoices();
+            switch (question.getQuestionType()){
+                case SINGLE_ANSWER:
+                case MULTIPLE_ANSWER:
+                    List<Integer> originalAnswer = question.getAnswer()
+                            .stream()
+                            .map(Integer::parseInt)
+                            .toList();
+                    for (int i = 0; i < shuffleMapping.size(); i++) {
+                        if (originalAnswer.contains(shuffleMapping.get(i))) {
+                            correctAnswer.add(String.valueOf(i));
+                        }
+                    }
+                    return correctAnswer;
+                case FILL_THE_BLANK:
+                    for (int i = 0; i < originalChoices.size(); i++) {
+                        correctAnswer.add(originalChoices.get(shuffleMapping.get(i)));
+                    }
+                    return correctAnswer;
+                default:
+                    return question.getAnswer();
+            }
+        } else {
+            return question.getAnswer();
+        }
     }
 }

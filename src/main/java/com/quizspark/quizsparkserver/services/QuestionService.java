@@ -102,7 +102,7 @@ public class QuestionService {
                 .collect(Collectors.toMap(Tag::getName, tag -> tag, (tag1, tag2) -> tag1));
         for (Question question: questions) {
             List<Tag> tags = question.getTags();
-            tags.forEach(tag -> newTagsMap.get(tag.getName()));
+            tags = tags.stream().map(tag -> newTagsMap.get(tag.getName())).toList();
             question.setTags(tags);
         }
         List<Tag> newTags = new ArrayList<>(newTagsMap.values());
@@ -111,7 +111,6 @@ public class QuestionService {
 
         deleteAllTags(oldTags);
         deleteAllQuestion(bank.getQuestions());
-        saveAllTags(newTags);
         saveAllQuestion(questions);
     }
 
@@ -125,10 +124,6 @@ public class QuestionService {
 
     public List<Tag> getQuestionBankTags(QuestionBank bank) {
         return tagRepository.findAllByBank(bank);
-    }
-
-    public void saveAllTags(List<Tag> tags) {
-        tagRepository.saveAll(tags);
     }
 
     public void deleteAllTags(List<Tag> tags) {

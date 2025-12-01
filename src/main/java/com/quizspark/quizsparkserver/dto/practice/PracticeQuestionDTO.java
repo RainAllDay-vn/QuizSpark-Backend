@@ -1,5 +1,6 @@
 package com.quizspark.quizsparkserver.dto.practice;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
 import com.quizspark.quizsparkserver.models.Question;
@@ -14,24 +15,27 @@ import java.util.List;
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PracticeQuestionDTO {
+    @JsonIgnore
+    private PracticeQuestion practiceQuestion;
     private int index;
     private String type;
     private List<String> tags;
     private String description;
     private List<String> choices;
-    private List<String> answer;
+    private List<String> correctAnswer;
     private List<String> userAnswer;
 
     public PracticeQuestionDTO(PracticeQuestion practiceQuestion) {
+        this.practiceQuestion = practiceQuestion;
         this.index = practiceQuestion.getId().getIndex();
         this.type = practiceQuestion.getQuestion().getQuestionType().toString();
         this.tags = practiceQuestion.getQuestion().getTags().stream().map(Tag::getName).toList();
         this.description = practiceQuestion.getQuestion().getDescription();
-        applyShuffle(practiceQuestion);
         this.userAnswer = practiceQuestion.getUserAnswer();
+        applyShuffle();
     }
 
-    private void applyShuffle(PracticeQuestion practiceQuestion){
+    private void applyShuffle(){
         Question originalQuestion = practiceQuestion.getQuestion();
         List<Integer> shuffleMapping = practiceQuestion.getShuffleMapping();
 
@@ -43,33 +47,12 @@ public class PracticeQuestionDTO {
                 shuffledChoices.add(originalChoices.get(shuffleMapping.get(i)));
             }
             this.choices = shuffledChoices;
-
-            switch (originalQuestion.getQuestionType()){
-                case SINGLE_ANSWER:
-                case MULTIPLE_ANSWER:
-                    List<Integer> originalAnswer = originalQuestion.getAnswer()
-                            .stream()
-                            .map(Integer::parseInt)
-                            .toList();
-                    this.answer = new ArrayList<>(originalAnswer.size());
-                    for (int i = 0; i < shuffleMapping.size(); i++) {
-                        if (originalAnswer.contains(shuffleMapping.get(i))) {
-                            this.answer.add(String.valueOf(i));
-                        }
-                    }
-                    break;
-                case FILL_THE_BLANK:
-                    this.answer = new ArrayList<>(originalChoices.size());
-                    for (int i = 0; i < originalChoices.size(); i++) {
-                        this.answer.add(originalChoices.get(shuffleMapping.get(i)));
-                    }
-                    break;
-                default:
-                    this.answer = originalQuestion.getAnswer();
-            }
         } else {
             this.choices = originalQuestion.getChoices();
-            this.answer = originalQuestion.getAnswer();
         }
+    }
+
+    public void appendCorrectAnswer() {
+        this.correctAnswer = practiceQuestion.getCorrectAnswer();
     }
 }

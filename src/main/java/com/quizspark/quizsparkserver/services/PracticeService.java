@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -67,8 +68,9 @@ public class PracticeService {
         if (practiceOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "There isn't a practice with such ID");
         Practice practice = practiceOptional.get();
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (practice.getUser().equals(user)) return practice;
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this practice");
+        if (!practice.getUser().equals(user)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this practice");
+        practice.getPracticeQuestion().sort(Comparator.comparingInt(q -> q.getId().getIndex()));
+        return practice;
     }
 
     public PracticeQuestion getPracticeQuestion(String practiceId, int index){

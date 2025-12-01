@@ -33,7 +33,11 @@ public class PracticeDTO {
                 .stream()
                 .map(PracticeQuestionDTO::new)
                 .toList();
-        questions.forEach(question -> question.setAnswer(null));
+        for (PracticeQuestionDTO questionDTO: questions) {
+            if(questionDTO.getUserAnswer()!=null && practice.isRevealAnswer()) {
+                questionDTO.appendCorrectAnswer();
+            }
+        }
         return this;
     }
 }
