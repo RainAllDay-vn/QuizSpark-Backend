@@ -44,6 +44,7 @@ public class Question {
     private List<Tag> tags = new ArrayList<>();
 
     @Column(nullable = false)
+    @Lob
     private String description;
 
     @JdbcTypeCode(SqlTypes.JSON)

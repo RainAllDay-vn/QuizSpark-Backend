@@ -96,4 +96,10 @@ public class PracticeService {
         practiceQuestionRepository.save(question);
         return correctAnswer;
     }
+
+    public Practice finishPractice(String practiceId) {
+        Practice practice = getPractice(practiceId);
+        practice.setClosed(true);
+        return practiceRepository.save(practice);
+    }
 }

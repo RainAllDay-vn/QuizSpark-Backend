@@ -72,4 +72,10 @@ public class PracticeController {
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
+    @PostMapping("/id/{practiceId}/finish")
+    public ResponseEntity<Object> finishPractice(@PathVariable String practiceId) {
+        Practice practice = practiceService.finishPractice(practiceId);
+        PracticeDTO body = new PracticeDTO(practice).appendQuestions();
+        return new ResponseEntity<>(body, HttpStatus.OK);
+    }
 }

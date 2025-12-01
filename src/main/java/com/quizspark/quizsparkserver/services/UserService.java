@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -41,7 +40,6 @@ public class UserService implements UserDetailsService {
 
     public void saveUser(User user) {
         if(userRepository.getUsersByUsername(user.getUsername()) != null) return;
-        user.setId(UUID.randomUUID());
         userRepository.save(user);
     }
 }
