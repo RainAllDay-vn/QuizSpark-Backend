@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.quizspark.quizsparkserver.dto.questions.QuestionDTO;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.QuestionBank;
+import com.quizspark.quizsparkserver.models.Tag;
 import com.quizspark.quizsparkserver.models.User;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,21 +30,22 @@ public class QuestionBankDTO {
     private Float rating;
     private int numberOfQuestions;
     private String username; // Owner's username
+    private List<String> tags; // List of tags in the question bank
     private List<QuestionDTO> questions; // List of questions in the question bank
-    private boolean editable;
 
     public QuestionBankDTO(QuestionBank questionBank) {
         this.questionBank = questionBank;
         this.id = questionBank.getId();
         this.name = questionBank.getName();
         this.description = questionBank.getDescription();
-        this.access = questionBank.getAccess() != null ? questionBank.getAccess().toString() : null;
-        this.status = questionBank.getStatus() != null ? questionBank.getStatus().toString() : null;
+        this.access = questionBank.getAccess().toString();
+        this.status = questionBank.getStatus().toString();
         this.createdAt = questionBank.getCreatedAt();
         this.rating = questionBank.getRating();
         this.numberOfQuestions = questionBank.getQuestions().size();
         User owner = questionBank.getUser();
         this.username = owner != null ? owner.getUsername() : null;
+        this.tags = questionBank.getTags().stream().map(Tag::getName).toList();
     }
 
     public QuestionBankDTO appendQuestions() {

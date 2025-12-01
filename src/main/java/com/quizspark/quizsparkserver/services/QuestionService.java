@@ -6,7 +6,6 @@ import com.quizspark.quizsparkserver.models.Tag;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.repositories.QuestionBankRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionRepository;
-import com.quizspark.quizsparkserver.repositories.TagRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,16 +20,13 @@ import java.util.stream.Collectors;
 public class QuestionService {
     private final QuestionBankRepository bankRepository;
     private final QuestionRepository questionRepository;
-    private final TagRepository tagRepository;
 
     @Autowired
     public QuestionService(
             QuestionBankRepository bankRepository,
-            QuestionRepository questionRepository,
-            TagRepository tagRepository) {
+            QuestionRepository questionRepository) {
         this.bankRepository = bankRepository;
         this.questionRepository = questionRepository;
-        this.tagRepository = tagRepository;
     }
 
     public List<QuestionBank> getPublicQuestionBanks() {
@@ -90,13 +86,8 @@ public class QuestionService {
         questionRepository.save(question);
     }
 
-    public void saveAllQuestion(List<Question> questions) {
-        questionRepository.saveAll(questions);
-    }
-
     @Transactional
     public void overwriteQuestions(QuestionBank bank, List<Question> questions){
-        List<Tag> oldTags = getQuestionBankTags(bank);
         Map<String, Tag> newTagsMap = questions.stream()
                 .flatMap(question -> question.getTags().stream())
                 .collect(Collectors.toMap(Tag::getName, tag -> tag, (tag1, tag2) -> tag1));
@@ -109,24 +100,13 @@ public class QuestionService {
         newTags.forEach(tag -> tag.setBank(bank));
         questions.forEach(question -> question.setQuestionBank(bank));
 
-        deleteAllTags(oldTags);
-        deleteAllQuestion(bank.getQuestions());
-        saveAllQuestion(questions);
+        bank.getQuestions().clear();
+        bank.getTags().clear();
+        bank.getQuestions().addAll(questions);
+        bank.getTags().addAll(newTags);
     }
 
     public void deleteQuestion(Question question) {
         questionRepository.delete(question);
-    }
-
-    public void deleteAllQuestion(List<Question> questions) {
-        questionRepository.deleteAll(questions);
-    }
-
-    public List<Tag> getQuestionBankTags(QuestionBank bank) {
-        return tagRepository.findAllByBank(bank);
-    }
-
-    public void deleteAllTags(List<Tag> tags) {
-        tagRepository.deleteAll(tags);
     }
 }

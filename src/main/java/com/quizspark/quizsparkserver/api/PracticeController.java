@@ -26,8 +26,9 @@ public class PracticeController {
             @RequestParam String bankId,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "true") boolean shuffle,
-            @RequestParam(defaultValue = "true") boolean revealAnswer){
-        UUID practiceId = practiceService.startNewPractice(bankId, size, shuffle, revealAnswer);
+            @RequestParam(defaultValue = "true") boolean revealAnswer,
+            @RequestParam(defaultValue = "") List<String> tags){
+        UUID practiceId = practiceService.startNewPractice(bankId, size, shuffle, revealAnswer, tags);
         HashMap<Object, Object> body = new HashMap<>();
         body.put("id", practiceId.toString());
         return new ResponseEntity<>(body, HttpStatus.CREATED);
@@ -37,9 +38,10 @@ public class PracticeController {
     public ResponseEntity<PracticeDTO> startNewAnonymousPractice(
             @RequestParam String bankId,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "true") boolean shuffle
+            @RequestParam(defaultValue = "true") boolean shuffle,
+            @RequestParam(defaultValue = "") List<String> tags
     ){
-        Practice practice = practiceService.startNewAnonymPractice(bankId, size, shuffle);
+        Practice practice = practiceService.startNewAnonymPractice(bankId, size, shuffle, tags);
         PracticeDTO body = new PracticeDTO(practice).appendQuestions();
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }

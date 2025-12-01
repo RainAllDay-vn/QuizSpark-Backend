@@ -10,10 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class PracticeService {
@@ -31,8 +28,12 @@ public class PracticeService {
         this.practiceQuestionRepository = practiceQuestionRepository;
     }
 
-    public List<Question> getSuitableQuestions(QuestionBank bank, User user, int limit){
-        List<Question> questions = bank.getQuestions();
+    public List<Question> getSuitableQuestions(QuestionBank bank, User user, int limit, List<String> tags){
+        Set<String> tagSet = new HashSet<>(tags);
+        List<Question> questions = bank.getQuestions()
+                .stream()
+                .filter(question -> tagSet.containsAll(question.getTags().stream().map(Tag::getName).toList()))
+                .toList();
         List<PracticeQuestion> practiceHistory = practiceQuestionRepository.findByQuestionsAndUser(questions, user);
         PracticeStatistic practiceStatistic = new PracticeStatistic(questions);
         practiceStatistic.calculateStatistic(practiceHistory);
@@ -43,18 +44,23 @@ public class PracticeService {
     }
 
     @Transactional
-    public UUID startNewPractice(String questionBankId, int limit, boolean shuffleAnswer, boolean revealAnswer) {
+    public UUID startNewPractice(String questionBankId, int limit, boolean shuffleAnswer, boolean revealAnswer, List<String> tags) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         QuestionBank bank = questionService.getQuestionBankById(questionBankId);
-        List<Question> suitableQuestions = getSuitableQuestions(bank, user, limit);
+        List<Question> suitableQuestions = getSuitableQuestions(bank, user, limit, tags);
         Practice practice = new Practice(user, suitableQuestions, shuffleAnswer, revealAnswer);
         practice = practiceRepository.save(practice);
         return practice.getId();
     }
 
-    public Practice startNewAnonymPractice(String questionBankId, int limit, boolean shuffleAnswer) {
+    public Practice startNewAnonymPractice(String questionBankId, int limit, boolean shuffleAnswer, List<String> tags) {
+        Set<String> tagSet = new HashSet<>(tags);
         QuestionBank bank = questionService.getQuestionBankById(questionBankId);
-        List<Question> questions = bank.getQuestions().stream().limit(limit).toList();
+        List<Question> questions = bank.getQuestions()
+                .stream()
+                .filter(question -> tagSet.containsAll(question.getTags().stream().map(Tag::getName).toList()))
+                .limit(limit)
+                .toList();
         return new Practice(null, questions, shuffleAnswer, true);
     }
 

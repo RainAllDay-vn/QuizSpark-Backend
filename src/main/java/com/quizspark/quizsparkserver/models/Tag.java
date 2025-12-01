@@ -25,7 +25,7 @@ public class Tag {
     @Column(nullable = false)
     private String name;
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
     private List<Question> questions = new ArrayList<>();
 
     public Tag(String name){
