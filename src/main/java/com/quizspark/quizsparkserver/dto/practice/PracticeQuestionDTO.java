@@ -24,6 +24,7 @@ public class PracticeQuestionDTO {
     private List<String> choices;
     private List<String> correctAnswer;
     private List<String> userAnswer;
+    private int secondsToAnswer;
 
     public PracticeQuestionDTO(PracticeQuestion practiceQuestion) {
         this.practiceQuestion = practiceQuestion;
@@ -32,6 +33,7 @@ public class PracticeQuestionDTO {
         this.tags = practiceQuestion.getQuestion().getTags().stream().map(Tag::getName).toList();
         this.description = practiceQuestion.getQuestion().getDescription();
         this.userAnswer = practiceQuestion.getUserAnswer();
+        this.secondsToAnswer = practiceQuestion.getSecondsToAnswer()!=null ? practiceQuestion.getSecondsToAnswer() : 0;
         applyShuffle();
     }
 

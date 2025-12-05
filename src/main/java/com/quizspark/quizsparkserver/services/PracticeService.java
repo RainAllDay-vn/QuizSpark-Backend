@@ -4,6 +4,8 @@ import com.quizspark.quizsparkserver.models.PracticeStatistic;
 import com.quizspark.quizsparkserver.models.*;
 import com.quizspark.quizsparkserver.repositories.PracticeQuestionRepository;
 import com.quizspark.quizsparkserver.repositories.PracticeRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -64,9 +66,9 @@ public class PracticeService {
         return new Practice(null, questions, shuffleAnswer, true);
     }
 
-    public List<Practice> getUserPractice(){
+    public Page<Practice> getUserPractice(Pageable pageable){
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return practiceRepository.findByUser(user);
+        return practiceRepository.findByUser(user, pageable);
     }
 
     public Practice getPractice(String practiceId){
