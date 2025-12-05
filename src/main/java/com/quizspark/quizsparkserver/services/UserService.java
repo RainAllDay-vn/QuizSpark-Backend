@@ -1,14 +1,13 @@
 package com.quizspark.quizsparkserver.services;
 
+import com.quizspark.quizsparkserver.dto.UserStatisticDTO;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -19,10 +18,9 @@ public class UserService implements UserDetailsService {
         this.userRepository = userRepository;
     }
 
-    public Map<String, Object> getUserDatabaseStatus() {
-        Map<String, Object> status = new HashMap<>();
-        status.put("userCount", userRepository.findAll().size());
-        return status;
+    public UserStatisticDTO getUserStatistic() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return userRepository.getUserStatistic(user.getId());
     }
 
     @Override

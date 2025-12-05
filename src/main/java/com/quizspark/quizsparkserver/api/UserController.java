@@ -1,6 +1,7 @@
 package com.quizspark.quizsparkserver.api;
 
 import com.quizspark.quizsparkserver.dto.UserRegistrationDTO;
+import com.quizspark.quizsparkserver.dto.UserStatisticDTO;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.UserService;
 import jakarta.validation.Valid;
@@ -23,9 +24,10 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/status")
-    public ResponseEntity<Object> getUserDatabaseStatus() {
-        return new ResponseEntity<>(userService.getUserDatabaseStatus(), HttpStatus.OK);
+    @GetMapping("/statistic")
+    public ResponseEntity<Object> getUserDatabaseStatistic() {
+        UserStatisticDTO body = userService.getUserStatistic();
+        return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @GetMapping("/me")
