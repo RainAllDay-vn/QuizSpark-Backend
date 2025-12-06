@@ -12,6 +12,8 @@ import static com.quizspark.quizsparkserver.dto.questions.ChoicesAndAnswerProces
 @Setter
 @Getter
 public class QuestionUpdateDTO{
+    private String questionType;
+
     private List<String> tags;
 
     private String description;
@@ -23,11 +25,16 @@ public class QuestionUpdateDTO{
     private String explanation;
 
     public void updateQuestion(Question question) throws IllegalArgumentException {
-        switch (question.getQuestionType()){
-            case SINGLE_ANSWER -> processSingleAnswerQuestion(question, choices, answer);
-            case MULTIPLE_ANSWER -> processMultipleAnswerQuestion(question, choices, answer);
-            case FILL_THE_BLANK -> processFillTheBlankQuestion(question, answer);
-            case OPEN_ANSWER -> processOpenAnswerQuestion(question);
+        if (questionType!=null) {
+            question.setQuestionType(Question.QuestionType.valueOf(questionType));
+        }
+        if (choices!=null || answer!=null) {
+            switch (question.getQuestionType()){
+                case SINGLE_ANSWER -> processSingleAnswerQuestion(question, choices, answer);
+                case MULTIPLE_ANSWER -> processMultipleAnswerQuestion(question, choices, answer);
+                case FILL_THE_BLANK -> processFillTheBlankQuestion(question, answer);
+                case OPEN_ANSWER -> processOpenAnswerQuestion(question);
+            }
         }
         if (description!=null) question.setDescription(description);
         if (explanation!=null) {

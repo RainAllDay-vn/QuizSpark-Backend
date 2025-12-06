@@ -1,10 +1,14 @@
 package com.quizspark.quizsparkserver.api;
 
+import com.quizspark.quizsparkserver.dto.PageResponseDTO;
 import com.quizspark.quizsparkserver.dto.practice.PracticeAnswerDTO;
 import com.quizspark.quizsparkserver.dto.practice.PracticeDTO;
 import com.quizspark.quizsparkserver.models.Practice;
 import com.quizspark.quizsparkserver.services.PracticeService;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -48,11 +52,12 @@ public class PracticeController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<List<PracticeDTO>> getPractice(Pageable pageable){
-        List<PracticeDTO> body = practiceService.getUserPractice(pageable)
-                .stream()
-                .map(PracticeDTO::new)
-                .toList();
+    public ResponseEntity<Object> getPractice(
+            @PageableDefault(sort = "date", direction = Sort.Direction.DESC) Pageable pageable,
+            @RequestParam(required = false) Boolean isClosed
+    ){
+        Page<Practice> page = practiceService.getUserPractice(pageable, isClosed);
+        PageResponseDTO<Practice, PracticeDTO> body = new PageResponseDTO<>(page, PracticeDTO::new);
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
