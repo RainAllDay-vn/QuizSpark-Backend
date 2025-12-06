@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
+@Table(indexes = {
+    @Index(name = "idx_tag_bank_id", columnList = "bank_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

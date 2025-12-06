@@ -15,7 +15,10 @@ import static com.quizspark.quizsparkserver.models.Question.QuestionType.MULTIPL
 import static com.quizspark.quizsparkserver.models.Question.QuestionType.SINGLE_ANSWER;
 
 @Entity
-@Table(name = "practice_question")
+@Table(name = "practice_question", indexes = {
+    @Index(name = "idx_practice_question_practice_id", columnList = "practice_id"),
+    @Index(name = "idx_practice_question_question_id", columnList = "question_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

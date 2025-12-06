@@ -8,6 +8,10 @@ import lombok.Setter;
 import java.util.*;
 
 @Entity
+@Table(indexes = {
+    @Index(name = "idx_practice_user_id", columnList = "user_id"),
+    @Index(name = "idx_practice_date", columnList = "date")
+})
 @Getter
 @Setter
 @NoArgsConstructor
