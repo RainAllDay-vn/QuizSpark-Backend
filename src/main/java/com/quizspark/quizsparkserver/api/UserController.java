@@ -24,12 +24,6 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/statistic")
-    public ResponseEntity<Object> getUserDatabaseStatistic() {
-        UserStatisticDTO body = userService.getUserStatistic();
-        return new ResponseEntity<>(body, HttpStatus.OK);
-    }
-
     @GetMapping("/me")
     public ResponseEntity<Object> getUserData() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -37,6 +31,12 @@ public class UserController {
         Map<String,String> response = new HashMap<>();
         response.put("username", user.getUsername());
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping("/me/statistic")
+    public ResponseEntity<Object> getUserStatistic() {
+        UserStatisticDTO body = userService.getUserStatistic();
+        return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @PostMapping("/register")
