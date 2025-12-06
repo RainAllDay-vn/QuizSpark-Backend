@@ -66,9 +66,10 @@ public class PracticeService {
         return new Practice(null, questions, shuffleAnswer, true);
     }
 
-    public Page<Practice> getUserPractice(Pageable pageable){
+    public List<Practice> getUserPractice(Pageable pageable){
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return practiceRepository.findByUser(user, pageable);
+        Page<Practice> practicePage = practiceRepository.findByUser(user, pageable);
+        return practicePage.get().toList();
     }
 
     public Practice getPractice(String practiceId){

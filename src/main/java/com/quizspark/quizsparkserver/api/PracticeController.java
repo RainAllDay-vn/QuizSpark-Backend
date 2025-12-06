@@ -4,7 +4,6 @@ import com.quizspark.quizsparkserver.dto.practice.PracticeAnswerDTO;
 import com.quizspark.quizsparkserver.dto.practice.PracticeDTO;
 import com.quizspark.quizsparkserver.models.Practice;
 import com.quizspark.quizsparkserver.services.PracticeService;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,9 +48,11 @@ public class PracticeController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<Page<PracticeDTO>> getPractice(Pageable pageable){
-        Page<Practice> practices = practiceService.getUserPractice(pageable);
-        Page<PracticeDTO> body = practices.map(PracticeDTO::new);
+    public ResponseEntity<List<PracticeDTO>> getPractice(Pageable pageable){
+        List<PracticeDTO> body = practiceService.getUserPractice(pageable)
+                .stream()
+                .map(PracticeDTO::new)
+                .toList();
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
