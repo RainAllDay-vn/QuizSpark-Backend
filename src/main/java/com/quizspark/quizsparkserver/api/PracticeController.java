@@ -1,6 +1,6 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.quizspark.quizsparkserver.dto.PageResponseDTO;
+import com.quizspark.quizsparkserver.dto.repositories.PageResponseDTO;
 import com.quizspark.quizsparkserver.dto.practice.PracticeAnswerDTO;
 import com.quizspark.quizsparkserver.dto.practice.PracticeDTO;
 import com.quizspark.quizsparkserver.models.Practice;

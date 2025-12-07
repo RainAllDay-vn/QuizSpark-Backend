@@ -1,4 +1,4 @@
-package com.quizspark.quizsparkserver.dto;
+package com.quizspark.quizsparkserver.dto.repositories;
 
 import lombok.Getter;
 import lombok.Setter;
