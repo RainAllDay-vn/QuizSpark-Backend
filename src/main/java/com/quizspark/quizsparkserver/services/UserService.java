@@ -1,6 +1,7 @@
 package com.quizspark.quizsparkserver.services;
 
 import com.quizspark.quizsparkserver.dto.UserStatisticDTO;
+import com.quizspark.quizsparkserver.dto.repositories.PracticeStatisticsDTO;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,12 @@ public class UserService implements UserDetailsService {
 
     public UserStatisticDTO getUserStatistic() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return userRepository.getUserStatistic(user.getId());
+        UserStatisticDTO userStatisticDTO = new UserStatisticDTO();
+        long totalQuestionBanks = userRepository.getQuestionBankCount(user.getId());
+        PracticeStatisticsDTO practiceStatistics = userRepository.getPracticeStatistics(user.getId());
+        userStatisticDTO.setTotalQuestionBanks(totalQuestionBanks);
+        userStatisticDTO.updatePracticeStatistics(practiceStatistics);
+        return userStatisticDTO;
     }
 
     @Override
