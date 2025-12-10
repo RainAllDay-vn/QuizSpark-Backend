@@ -92,13 +92,11 @@ public class PracticeQuestion {
         return practice.isRevealAnswer() && userAnswer != null && !userAnswer.isEmpty();
     }
 
-    public List<String> answer(List<String> userAnswer, int secondsToAnswer) {
-        if (isClosed()) return null;
+    public void updateUserAnswer(List<String> userAnswer, int secondsToAnswer) {
+        if (isClosed()) return;
         this.userAnswer = userAnswer;
         this.isCorrect = userAnswer.equals(getCorrectAnswer());
         this.secondsToAnswer = secondsToAnswer;
-        if (this.practice.isRevealAnswer()) return getCorrectAnswer();
-        else return null;
     }
 
     public List<String> getCorrectAnswer() {

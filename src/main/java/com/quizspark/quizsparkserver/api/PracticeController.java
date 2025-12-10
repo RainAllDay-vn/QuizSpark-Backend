@@ -1,9 +1,9 @@
 package com.quizspark.quizsparkserver.api;
 
+import com.quizspark.quizsparkserver.dto.practice.PracticeAnswerResponseDTO;
 import com.quizspark.quizsparkserver.dto.repositories.PageResponseDTO;
 import com.quizspark.quizsparkserver.dto.practice.PracticeAnswerDTO;
 import com.quizspark.quizsparkserver.dto.practice.PracticeDTO;
-import com.quizspark.quizsparkserver.models.Practice;
 import com.quizspark.quizsparkserver.services.PracticeService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -46,8 +46,7 @@ public class PracticeController {
             @RequestParam(defaultValue = "true") boolean shuffle,
             @RequestParam(defaultValue = "") List<String> tags
     ){
-        Practice practice = practiceService.startNewAnonymPractice(bankId, size, shuffle, tags);
-        PracticeDTO body = new PracticeDTO(practice).appendQuestions();
+        PracticeDTO body = practiceService.startNewAnonymPractice(bankId, size, shuffle, tags);
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
@@ -56,34 +55,30 @@ public class PracticeController {
             @PageableDefault(sort = "date", direction = Sort.Direction.DESC) Pageable pageable,
             @RequestParam(required = false) Boolean isClosed
     ){
-        Page<Practice> page = practiceService.getUserPractice(pageable, isClosed);
-        PageResponseDTO<Practice, PracticeDTO> body = new PageResponseDTO<>(page, PracticeDTO::new);
+        Page<PracticeDTO> page = practiceService.getUserPractice(pageable, isClosed);
+        PageResponseDTO<PracticeDTO> body = new PageResponseDTO<>(page);
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @GetMapping("/id/{practiceId}")
     public ResponseEntity<PracticeDTO> getPractice(@PathVariable String practiceId){
-        Practice practice = practiceService.getPractice(practiceId);
-        PracticeDTO body = new PracticeDTO(practice).appendQuestions();
+        PracticeDTO body = practiceService.getPractice(practiceId);
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @PostMapping("/id/{practiceId}/answer")
     public ResponseEntity<Object> answerQuestion(@PathVariable String practiceId, @RequestBody PracticeAnswerDTO answer){
-        List<String> correctAnswer = practiceService.answerPracticeQuestion(
+        PracticeAnswerResponseDTO body = practiceService.answerPracticeQuestion(
                 practiceId,
                 answer.getIndex(),
                 answer.getAnswer(),
                 answer.getSecondsToAnswer());
-        HashMap<String, Object> body = new HashMap<>();
-        body.put("correctAnswer", correctAnswer);
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @PostMapping("/id/{practiceId}/finish")
     public ResponseEntity<Object> finishPractice(@PathVariable String practiceId) {
-        Practice practice = practiceService.finishPractice(practiceId);
-        PracticeDTO body = new PracticeDTO(practice).appendQuestions();
+        PracticeDTO body = practiceService.finishPractice(practiceId);
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 }

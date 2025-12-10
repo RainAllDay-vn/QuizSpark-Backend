@@ -1,5 +1,8 @@
 package com.quizspark.quizsparkserver.services;
 
+import com.quizspark.quizsparkserver.dto.practice.PracticeAnswerResponseDTO;
+import com.quizspark.quizsparkserver.dto.practice.PracticeDTO;
+import com.quizspark.quizsparkserver.dto.questions.QuestionCommentDTO;
 import com.quizspark.quizsparkserver.models.PracticeStatistic;
 import com.quizspark.quizsparkserver.models.*;
 import com.quizspark.quizsparkserver.repositories.PracticeQuestionRepository;
@@ -30,7 +33,7 @@ public class PracticeService {
         this.practiceQuestionRepository = practiceQuestionRepository;
     }
 
-    public List<Question> getSuitableQuestions(QuestionBank bank, User user, int limit, List<String> tags){
+    private List<Question> getSuitableQuestions(QuestionBank bank, User user, int limit, List<String> tags){
         Set<String> tagSet = new HashSet<>(tags);
         List<Question> questions = bank.getQuestions()
                 .stream()
@@ -55,7 +58,7 @@ public class PracticeService {
         return practice.getId();
     }
 
-    public Practice startNewAnonymPractice(String questionBankId, int limit, boolean shuffleAnswer, List<String> tags) {
+    public PracticeDTO startNewAnonymPractice(String questionBankId, int limit, boolean shuffleAnswer, List<String> tags) {
         Set<String> tagSet = new HashSet<>(tags);
         QuestionBank bank = questionService.getQuestionBankById(questionBankId);
         List<Question> questions = bank.getQuestions()
@@ -63,15 +66,21 @@ public class PracticeService {
                 .filter(question -> tagSet.containsAll(question.getTags().stream().map(Tag::getName).toList()))
                 .limit(limit)
                 .toList();
-        return new Practice(null, questions, shuffleAnswer, true);
+        Practice practice = new Practice(null, questions, shuffleAnswer, true);
+        return new PracticeDTO(practice);
     }
 
-    public Page<Practice> getUserPractice(Pageable pageable, Boolean isClosed){
+    public Page<PracticeDTO> getUserPractice(Pageable pageable, Boolean isClosed){
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return practiceRepository.findByUser(user, isClosed, pageable);
+        Page<Practice> page = practiceRepository.findByUser(user, isClosed, pageable);
+        return page.map(PracticeDTO::new);
     }
 
-    public Practice getPractice(String practiceId){
+    public PracticeDTO getPractice(String practiceId){
+        return new PracticeDTO(getPracticeEntity(practiceId));
+    }
+
+    private Practice getPracticeEntity(String practiceId){
         Optional<Practice> practiceOptional = practiceRepository.findById(UUID.fromString(practiceId));
         if (practiceOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "There isn't a practice with such ID");
         Practice practice = practiceOptional.get();
@@ -81,7 +90,7 @@ public class PracticeService {
         return practice;
     }
 
-    public PracticeQuestion getPracticeQuestion(String practiceId, int index){
+    private PracticeQuestion getPracticeQuestionEntity(String practiceId, int index){
         Optional<PracticeQuestion> practiceQuestionOptional = practiceQuestionRepository.findByPracticeAndIndex(UUID.fromString(practiceId), index);
         if (practiceQuestionOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "There isn't a practice question with such ID");
         PracticeQuestion practiceQuestion = practiceQuestionOptional.get();
@@ -91,17 +100,21 @@ public class PracticeService {
         return practiceQuestion;
     }
 
-    public List<String> answerPracticeQuestion(String practiceId, int index, List<String> userAnswer, int secondsToAnswer){
-        PracticeQuestion question = getPracticeQuestion(practiceId, index);
+    public PracticeAnswerResponseDTO answerPracticeQuestion(String practiceId, int index, List<String> userAnswer, int secondsToAnswer){
+        PracticeQuestion question = getPracticeQuestionEntity(practiceId, index);
         if (question.isClosed()) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot answer this question");
-        List<String> correctAnswer = question.answer(userAnswer, secondsToAnswer);
+        question.updateUserAnswer(userAnswer, secondsToAnswer);
         practiceQuestionRepository.save(question);
-        return correctAnswer;
+        PracticeAnswerResponseDTO dto = new PracticeAnswerResponseDTO();
+        if (question.getPractice().isRevealAnswer()) dto.setCorrectAnswer(question.getCorrectAnswer());
+        dto.setQuestionComments(question.getQuestion().getComments().stream().map(QuestionCommentDTO::new).toList());
+        return dto;
     }
 
-    public Practice finishPractice(String practiceId) {
-        Practice practice = getPractice(practiceId);
+    public PracticeDTO finishPractice(String practiceId) {
+        Practice practice = getPracticeEntity(practiceId);
         practice.setClosed(true);
-        return practiceRepository.save(practice);
+        practice = practiceRepository.save(practice);
+        return new PracticeDTO(practice);
     }
 }
