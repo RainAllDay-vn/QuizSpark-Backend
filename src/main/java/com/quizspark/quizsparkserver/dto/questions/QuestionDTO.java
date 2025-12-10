@@ -20,7 +20,6 @@ public class QuestionDTO {
     private String description;
     private List<String> answer;
     private List<String> choices;
-    private String explanation;
 
     public QuestionDTO(Question question) {
         this.id = question.getId();
@@ -30,6 +29,5 @@ public class QuestionDTO {
         this.description = question.getDescription();
         this.answer = question.getAnswer();
         this.choices = question.getChoices();
-        this.explanation = question.getExplanation();
     }
 }

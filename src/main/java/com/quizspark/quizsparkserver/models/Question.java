@@ -60,7 +60,8 @@ public class Question {
     @JdbcTypeCode(SqlTypes.JSON)
     private List<String> choices;
 
-    private String explanation;
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QuestionComment> comments;
 
     @Override
     public boolean equals(Object obj) {

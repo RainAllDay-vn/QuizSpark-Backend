@@ -22,8 +22,6 @@ public class QuestionUpdateDTO{
 
     private List<String> choices;
 
-    private String explanation;
-
     public void updateQuestion(Question question) throws IllegalArgumentException {
         if (questionType!=null) {
             question.setQuestionType(Question.QuestionType.valueOf(questionType));
@@ -37,9 +35,5 @@ public class QuestionUpdateDTO{
             }
         }
         if (description!=null) question.setDescription(description);
-        if (explanation!=null) {
-            if (explanation.isBlank()) question.setExplanation(null);
-            else question.setExplanation(explanation);
-        }
     }
 }

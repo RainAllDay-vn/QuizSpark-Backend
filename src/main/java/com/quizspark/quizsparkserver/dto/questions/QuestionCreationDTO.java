@@ -27,8 +27,6 @@ public class QuestionCreationDTO {
 
     private List<String> choices;
 
-    private String explanation;
-
     public Question toQuestion() throws IllegalArgumentException{
         question = new Question();
         question.setQuestionType(Question.QuestionType.valueOf(questionType));
@@ -40,8 +38,6 @@ public class QuestionCreationDTO {
         }
         question.setTags(tags.stream().map(Tag::new).toList());
         question.setDescription(description);
-        if (explanation!=null && !explanation.isBlank()) question.setExplanation(explanation);
-        question.setExplanation(null);
         return question;
     }
 }
