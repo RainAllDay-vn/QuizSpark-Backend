@@ -34,7 +34,6 @@ public class QuestionComment{
     private String comment;
 
     @Column(name = "date", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
     private Date date;
 
     @Column(name = "is_answer", nullable = false)
