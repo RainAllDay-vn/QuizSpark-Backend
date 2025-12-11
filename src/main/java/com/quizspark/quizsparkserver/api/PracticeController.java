@@ -62,7 +62,8 @@ public class PracticeController {
 
     @GetMapping("/id/{practiceId}")
     public ResponseEntity<PracticeDTO> getPractice(@PathVariable String practiceId){
-        PracticeDTO body = practiceService.getPractice(practiceId);
+        PracticeDTO body = practiceService.getPractice(practiceId)
+                .appendQuestions();
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 

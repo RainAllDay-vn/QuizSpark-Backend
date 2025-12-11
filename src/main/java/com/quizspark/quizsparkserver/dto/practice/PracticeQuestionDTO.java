@@ -2,6 +2,7 @@ package com.quizspark.quizsparkserver.dto.practice;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.quizspark.quizsparkserver.dto.questions.QuestionCommentDTO;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.Tag;
@@ -25,6 +26,7 @@ public class PracticeQuestionDTO {
     private List<String> correctAnswer;
     private List<String> userAnswer;
     private int secondsToAnswer;
+    private List<QuestionCommentDTO> comments;
 
     public PracticeQuestionDTO(PracticeQuestion practiceQuestion) {
         this.practiceQuestion = practiceQuestion;
@@ -56,5 +58,13 @@ public class PracticeQuestionDTO {
 
     public void appendCorrectAnswer() {
         this.correctAnswer = practiceQuestion.getCorrectAnswer();
+    }
+
+    public void appendComments() {
+        this.comments = practiceQuestion.getQuestion()
+                .getComments()
+                .stream()
+                .map(QuestionCommentDTO::new)
+                .toList();
     }
 }

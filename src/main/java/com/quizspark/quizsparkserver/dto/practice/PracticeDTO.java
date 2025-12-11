@@ -50,6 +50,7 @@ public class PracticeDTO {
         for (PracticeQuestionDTO questionDTO: questions) {
             if(questionDTO.getUserAnswer()!=null && practice.isRevealAnswer()) {
                 questionDTO.appendCorrectAnswer();
+                questionDTO.appendComments();
             }
         }
         return this;
