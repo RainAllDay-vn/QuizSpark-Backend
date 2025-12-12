@@ -1,10 +1,10 @@
 package com.quizspark.quizsparkserver.services;
 
-import com.quizspark.quizsparkserver.models.QuestionBank;
-import com.quizspark.quizsparkserver.models.Question;
-import com.quizspark.quizsparkserver.models.Tag;
-import com.quizspark.quizsparkserver.models.User;
+import com.quizspark.quizsparkserver.dto.questions.QuestionCommentCreationDTO;
+import com.quizspark.quizsparkserver.dto.questions.QuestionCommentDTO;
+import com.quizspark.quizsparkserver.models.*;
 import com.quizspark.quizsparkserver.repositories.QuestionBankRepository;
+import com.quizspark.quizsparkserver.repositories.QuestionCommentRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,13 +20,15 @@ import java.util.stream.Collectors;
 public class QuestionService {
     private final QuestionBankRepository bankRepository;
     private final QuestionRepository questionRepository;
+    private final QuestionCommentRepository questionCommentRepository;
 
     @Autowired
     public QuestionService(
             QuestionBankRepository bankRepository,
-            QuestionRepository questionRepository) {
+            QuestionRepository questionRepository, QuestionCommentRepository questionCommentRepository) {
         this.bankRepository = bankRepository;
         this.questionRepository = questionRepository;
+        this.questionCommentRepository = questionCommentRepository;
     }
 
     public List<QuestionBank> getPublicQuestionBanks() {
@@ -108,5 +110,21 @@ public class QuestionService {
 
     public void deleteQuestion(Question question) {
         questionRepository.delete(question);
+    }
+
+    public List<QuestionCommentDTO> getComments(String questionId) {
+        Question question = getQuestionById(questionId);
+        List<QuestionComment> comments = question.getComments();
+        return comments.stream()
+                .map(QuestionCommentDTO::new)
+                .toList();
+    }
+
+    public QuestionCommentDTO addComment(String questionId, QuestionCommentCreationDTO commentCreationDTO) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Question question = getQuestionById(questionId);
+        QuestionComment comment = commentCreationDTO.toComment(user, question);
+        comment = questionCommentRepository.save(comment);
+        return new QuestionCommentDTO(comment);
     }
 }

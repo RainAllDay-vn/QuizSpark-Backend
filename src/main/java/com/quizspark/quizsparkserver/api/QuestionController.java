@@ -1,8 +1,6 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.quizspark.quizsparkserver.dto.questions.QuestionCreationDTO;
-import com.quizspark.quizsparkserver.dto.questions.QuestionDTO;
-import com.quizspark.quizsparkserver.dto.questions.QuestionUpdateDTO;
+import com.quizspark.quizsparkserver.dto.questions.*;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.services.QuestionService;
@@ -59,7 +57,7 @@ public class QuestionController {
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{questionId}")
+    @PutMapping("single/{questionId}")
     public ResponseEntity<QuestionDTO> updateQuestion(@PathVariable String questionId, @RequestBody @Valid QuestionUpdateDTO payload) {
         Question question = questionService.getQuestionById(questionId);
         payload.updateQuestion(question);
@@ -68,10 +66,22 @@ public class QuestionController {
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
-    @DeleteMapping("/{questionId}")
+    @DeleteMapping("single/{questionId}")
     public ResponseEntity<QuestionDTO> deleteQuestion(@PathVariable String questionId) {
         Question question = questionService.getQuestionById(questionId);
         questionService.deleteQuestion(question);
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("single/{questionId}/comments")
+    public ResponseEntity<List<QuestionCommentDTO>> getComments(@PathVariable String questionId) {
+        List<QuestionCommentDTO> body = questionService.getComments(questionId);
+        return new ResponseEntity<>(body, HttpStatus.OK);
+    }
+
+    @PostMapping("/single/{questionId}/comments")
+    public ResponseEntity<QuestionCommentDTO> addComment(@PathVariable String questionId, @RequestBody @Valid QuestionCommentCreationDTO payload) {
+        QuestionCommentDTO body = questionService.addComment(questionId, payload);
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 }
