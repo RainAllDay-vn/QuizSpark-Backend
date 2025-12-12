@@ -51,8 +51,9 @@ public class PracticeService {
     @Transactional
     public UUID startNewPractice(String questionBankId, int limit, boolean shuffleAnswer, boolean revealAnswer, List<String> tags) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        QuestionBank bank = questionService.getQuestionBankById(questionBankId);
-        List<Question> suitableQuestions = getSuitableQuestions(bank, user, limit, tags);
+        QuestionBank bank = questionService.getQuestionBankEntityById(questionBankId);
+        List<Question> suitableQuestions = new ArrayList<>(getSuitableQuestions(bank, user, limit, tags));
+        Collections.shuffle(suitableQuestions);
         Practice practice = new Practice(user, suitableQuestions, shuffleAnswer, revealAnswer);
         practice = practiceRepository.save(practice);
         return practice.getId();
@@ -60,7 +61,7 @@ public class PracticeService {
 
     public PracticeDTO startNewAnonymPractice(String questionBankId, int limit, boolean shuffleAnswer, List<String> tags) {
         Set<String> tagSet = new HashSet<>(tags);
-        QuestionBank bank = questionService.getQuestionBankById(questionBankId);
+        QuestionBank bank = questionService.getQuestionBankEntityById(questionBankId);
         List<Question> questions = bank.getQuestions()
                 .stream()
                 .filter(question -> tagSet.containsAll(question.getTags().stream().map(Tag::getName).toList()))

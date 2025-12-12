@@ -1,8 +1,6 @@
 package com.quizspark.quizsparkserver.api;
 
 import com.quizspark.quizsparkserver.dto.questions.*;
-import com.quizspark.quizsparkserver.models.QuestionBank;
-import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.services.QuestionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,10 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/questions")
@@ -27,11 +22,7 @@ public class QuestionController {
 
     @PostMapping
     public ResponseEntity<QuestionDTO> addQuestion(@RequestParam String bankId, @RequestBody @Valid QuestionCreationDTO payload) {
-        QuestionBank questionBank = questionService.getQuestionBankById(bankId);
-        Question question = payload.toQuestion();
-        question.setQuestionBank(questionBank);
-        questionService.saveQuestion(question);
-        QuestionDTO body = new QuestionDTO(question);
+        QuestionDTO body = questionService.saveQuestion(bankId, payload);
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
@@ -40,36 +31,19 @@ public class QuestionController {
             @RequestParam String bankId,
             @RequestBody @Valid List<QuestionCreationDTO> payload
     ){
-        QuestionBank questionBank = questionService.getQuestionBankById(bankId);
-        List<Question> newQuestions = new LinkedList<>();
-        for (QuestionCreationDTO questionCreationDTO: payload){
-            try{
-                newQuestions.add(questionCreationDTO.toQuestion());
-            } catch (IllegalArgumentException e) {
-                Map<String, Object> body = new HashMap<>();
-                body.put("message", e.getMessage());
-                body.put("errorQuestion", questionCreationDTO);
-                return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
-            }
-        }
-        questionService.overwriteQuestions(questionBank, newQuestions);
-        List<QuestionDTO> body = newQuestions.stream().map(QuestionDTO::new).toList();
+        List<QuestionDTO> body = questionService.overwriteQuestions(bankId, payload);
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
     @PutMapping("single/{questionId}")
     public ResponseEntity<QuestionDTO> updateQuestion(@PathVariable String questionId, @RequestBody @Valid QuestionUpdateDTO payload) {
-        Question question = questionService.getQuestionById(questionId);
-        payload.updateQuestion(question);
-        questionService.saveQuestion(question);
-        QuestionDTO body = new QuestionDTO(question);
-        return new ResponseEntity<>(body, HttpStatus.CREATED);
+        QuestionDTO body = questionService.updateQuestion(questionId, payload);
+        return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @DeleteMapping("single/{questionId}")
     public ResponseEntity<QuestionDTO> deleteQuestion(@PathVariable String questionId) {
-        Question question = questionService.getQuestionById(questionId);
-        questionService.deleteQuestion(question);
+        questionService.deleteQuestion(questionId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

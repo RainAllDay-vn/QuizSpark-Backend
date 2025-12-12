@@ -3,7 +3,6 @@ package com.quizspark.quizsparkserver.api;
 import com.quizspark.quizsparkserver.dto.banks.QuestionBankCreationDTO;
 import com.quizspark.quizsparkserver.dto.banks.QuestionBankDTO;
 import com.quizspark.quizsparkserver.dto.banks.QuestionBankUpdateDTO;
-import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.QuestionService;
 import jakarta.validation.Valid;
@@ -28,61 +27,47 @@ public class QuestionBankController {
 
     @GetMapping("/public")
     public ResponseEntity<List<QuestionBankDTO>> getPublicQuestionBanks() {
-        List<QuestionBank> publicQuestionBanks = questionService.getPublicQuestionBanks();
-        List<QuestionBankDTO> body = publicQuestionBanks
-                .stream()
-                .map(QuestionBankDTO::new)
-                .toList();
+        List<QuestionBankDTO> body = questionService.getPublicQuestionBanks();
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @GetMapping()
     public ResponseEntity<List<QuestionBankDTO>> getUserQuestionBanks(@AuthenticationPrincipal User user) {
-        List<QuestionBank> questionBanks = questionService.getQuestionBankByUser();
-        if (user.getRole().equals("ROLE_ADMIN")) questionBanks.addAll(questionService.getAdminBank());
-        List<QuestionBankDTO> body = questionBanks
-                .stream()
-                .map(QuestionBankDTO::new)
-                .toList();
+        List<QuestionBankDTO> body = questionService.getQuestionBankByUser();
+        if (user.getRole().equals("ROLE_ADMIN")) {
+            body.addAll(questionService.getAdminBank());
+        }
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @GetMapping("/single/{id}")
     public ResponseEntity<QuestionBankDTO> getSingleQuestionBank(@PathVariable String id) {
-        QuestionBank bank = questionService.getQuestionBankById(id);
-        QuestionBankDTO body = new QuestionBankDTO(bank).appendQuestions();
+        QuestionBankDTO body = questionService.getQuestionBankById(id).appendQuestions();
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @PostMapping("/public")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Object> createPublicQuestionBank(@RequestBody @Valid QuestionBankCreationDTO creationDTO) {
-        QuestionBank bank = creationDTO.toQuestionBank(null);
-        questionService.saveQuestionBank(bank);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        QuestionBankDTO body = questionService.savePublicQuestionBank(creationDTO);
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
     @PostMapping
-    public ResponseEntity<QuestionBankDTO> createQuestionBank(@AuthenticationPrincipal User user, @RequestBody @Valid QuestionBankCreationDTO creationDTO) {
-        QuestionBank bank = creationDTO.toQuestionBank(user);
-        questionService.saveQuestionBank(bank);
-        QuestionBankDTO body = new QuestionBankDTO(bank);
+    public ResponseEntity<QuestionBankDTO> createQuestionBank(@RequestBody @Valid QuestionBankCreationDTO creationDTO) {
+        QuestionBankDTO body = questionService.saveQuestionBank(creationDTO);
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
     @PutMapping("/single/{id}")
     public ResponseEntity<QuestionBankDTO> updateSingleQuestionBank(@PathVariable String id, @RequestBody @Valid QuestionBankUpdateDTO payload) {
-        QuestionBank bank = questionService.getQuestionBankById(id);
-        payload.updateQuestionBank(bank);
-        questionService.saveQuestionBank(bank);
-        QuestionBankDTO body = new QuestionBankDTO(bank).appendQuestions();
+        QuestionBankDTO body = questionService.updateQuestionBank(id, payload);
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @DeleteMapping("/single/{id}")
     public ResponseEntity<Object> deleteSingleQuestionBank(@PathVariable String id) {
-        QuestionBank bank = questionService.getQuestionBankById(id);
-        questionService.deleteQuestionBank(bank);
+        questionService.deleteQuestionBank(id);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }
