@@ -1,7 +1,9 @@
 package com.quizspark.quizsparkserver.services;
 
-import com.quizspark.quizsparkserver.dto.questions.QuestionCommentCreationDTO;
-import com.quizspark.quizsparkserver.dto.questions.QuestionCommentDTO;
+import com.quizspark.quizsparkserver.dto.banks.QuestionBankCreationDTO;
+import com.quizspark.quizsparkserver.dto.banks.QuestionBankDTO;
+import com.quizspark.quizsparkserver.dto.banks.QuestionBankUpdateDTO;
+import com.quizspark.quizsparkserver.dto.questions.*;
 import com.quizspark.quizsparkserver.models.*;
 import com.quizspark.quizsparkserver.repositories.QuestionBankRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionCommentRepository;
@@ -31,28 +33,35 @@ public class QuestionService {
         this.questionCommentRepository = questionCommentRepository;
     }
 
-    public List<QuestionBank> getPublicQuestionBanks() {
+    public List<QuestionBankDTO> getPublicQuestionBanks() {
         return bankRepository.findAllByAccess(QuestionBank.Access.PUBLIC)
                 .stream()
                 .filter(bank -> bank.getStatus() == QuestionBank.Status.PUBLISHED)
+                .map(QuestionBankDTO::new)
                 .toList();
     }
 
-    public List<QuestionBank> getQuestionBankByUser() {
+    public List<QuestionBankDTO> getQuestionBankByUser() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return bankRepository.findQuestionBankByUser(user);
+        return bankRepository.findQuestionBankByUser(user)
+                .stream()
+                .map(QuestionBankDTO::new)
+                .toList();
     }
 
-    public List<QuestionBank> getAdminBank() {
+    public List<QuestionBankDTO> getAdminBank() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if(user.getRole().equals("ROLE_ADMIN")) {
-            return bankRepository.findAdminQuestionBank();
+            return bankRepository.findAdminQuestionBank()
+                    .stream()
+                    .map(QuestionBankDTO::new)
+                    .toList();
         } else {
             return List.of();
         }
     }
 
-    public QuestionBank getQuestionBankById(String bankId) {
+    public QuestionBank getQuestionBankEntityById(String bankId) {
         Optional<QuestionBank> bankOptional = bankRepository.findById(UUID.fromString(bankId));
         if (bankOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found");
         QuestionBank bank = bankOptional.get();
@@ -63,16 +72,54 @@ public class QuestionService {
         return bank;
     }
 
-    public void saveQuestionBank(QuestionBank questionBank) {
-        bankRepository.save(questionBank);
+    public QuestionBankDTO getQuestionBankById(String bankId) {
+        return new QuestionBankDTO(getQuestionBankEntityById(bankId));
     }
 
-    public void deleteQuestionBank(QuestionBank questionBank) {
+    private boolean canBeEdited(QuestionBank questionBank){
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (questionBank.getUser()==null && !user.getRole().equals("ROLE_ADMIN"))
+            return false;
+        if (questionBank.getUser()!=null && questionBank.getUser().equals(user))
+            return false;
+        return true;
+    }
+
+    public QuestionBankDTO saveQuestionBank(QuestionBankCreationDTO bankCreationDTO) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        QuestionBank questionBank = bankCreationDTO.toQuestionBank(user);
+        if (!canBeEdited(questionBank))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to save this question bank");
+        questionBank = bankRepository.save(questionBank);
+        return new QuestionBankDTO(questionBank);
+    }
+
+    public QuestionBankDTO savePublicQuestionBank(QuestionBankCreationDTO bankCreationDTO) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!user.getRole().equals("ROLE_ADMIN"))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to save this question bank");
+        QuestionBank questionBank = bankCreationDTO.toQuestionBank(null);
+        questionBank = bankRepository.save(questionBank);
+        return new QuestionBankDTO(questionBank);
+    }
+
+    public QuestionBankDTO updateQuestionBank(String bankId, QuestionBankUpdateDTO questionBankUpdateDTO) {
+        QuestionBank questionBank = getQuestionBankEntityById(bankId);
+        if (!canBeEdited(questionBank))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to update this question bank");
+        questionBankUpdateDTO.updateQuestionBank(questionBank);
+        questionBank = bankRepository.save(questionBank);
+        return new QuestionBankDTO(questionBank);
+    }
+
+    public void deleteQuestionBank(String bankId) {
+        QuestionBank questionBank = getQuestionBankEntityById(bankId);
+        if (!canBeEdited(questionBank))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete this question bank");
         bankRepository.delete(questionBank);
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
     }
 
-    public Question getQuestionById(String questionId) {
+    public Question getQuestionEntityById(String questionId) {
         Optional<Question> questionOptional = questionRepository.findById(UUID.fromString(questionId));
         if (questionOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found");
         Question question = questionOptional.get();
@@ -84,12 +131,38 @@ public class QuestionService {
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
     }
 
-    public void saveQuestion(Question question) {
-        questionRepository.save(question);
+    private boolean canBeEdited(Question question){
+        QuestionBank questionBank = question.getQuestionBank();
+        return canBeEdited(questionBank);
+    }
+
+    public QuestionDTO saveQuestion(String bankId, QuestionCreationDTO questionCreationDTO) {
+        QuestionBank questionBank = getQuestionBankEntityById(bankId);
+        Question question = questionCreationDTO.toQuestion();
+        if (!canBeEdited(question))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to save this question");
+        question.setQuestionBank(questionBank);
+        question = questionRepository.save(question);
+        return new QuestionDTO(question);
+    }
+
+    public QuestionDTO updateQuestion(String questionId, QuestionUpdateDTO questionUpdateDTO) {
+        Question question = getQuestionEntityById(questionId);
+        if (!canBeEdited(question))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to update this question");
+        questionUpdateDTO.updateQuestion(question);
+        question = questionRepository.save(question);
+        return new QuestionDTO(question);
     }
 
     @Transactional
-    public void overwriteQuestions(QuestionBank bank, List<Question> questions){
+    public List<QuestionDTO> overwriteQuestions(String bankId, List<QuestionCreationDTO> questionCreationDTOS){
+        QuestionBank bank = getQuestionBankEntityById(bankId);
+        if (!canBeEdited(bank))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to overwrite questions in this bank");
+        List<Question> questions = questionCreationDTOS.stream()
+                .map(QuestionCreationDTO::toQuestion)
+                .toList();
         Map<String, Tag> newTagsMap = questions.stream()
                 .flatMap(question -> question.getTags().stream())
                 .collect(Collectors.toMap(Tag::getName, tag -> tag, (tag1, tag2) -> tag1));
@@ -106,14 +179,23 @@ public class QuestionService {
         bank.getTags().clear();
         bank.getQuestions().addAll(questions);
         bank.getTags().addAll(newTags);
+
+        QuestionBank savedBank = bankRepository.save(bank);
+        return savedBank.getQuestions()
+                .stream()
+                .map(QuestionDTO::new)
+                .toList();
     }
 
-    public void deleteQuestion(Question question) {
+    public void deleteQuestion(String questionId) {
+        Question question = getQuestionEntityById(questionId);
+        if (!canBeEdited(question))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete this question");
         questionRepository.delete(question);
     }
 
     public List<QuestionCommentDTO> getComments(String questionId) {
-        Question question = getQuestionById(questionId);
+        Question question = getQuestionEntityById(questionId);
         List<QuestionComment> comments = question.getComments();
         return comments.stream()
                 .map(QuestionCommentDTO::new)
@@ -122,7 +204,7 @@ public class QuestionService {
 
     public QuestionCommentDTO addComment(String questionId, QuestionCommentCreationDTO commentCreationDTO) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Question question = getQuestionById(questionId);
+        Question question = getQuestionEntityById(questionId);
         QuestionComment comment = commentCreationDTO.toComment(user, question);
         comment = questionCommentRepository.save(comment);
         return new QuestionCommentDTO(comment);
