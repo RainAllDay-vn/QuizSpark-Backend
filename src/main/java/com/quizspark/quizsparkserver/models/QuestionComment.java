@@ -33,8 +33,11 @@ public class QuestionComment{
     @Column(name = "comment", nullable = false, columnDefinition = "TEXT")
     private String comment;
 
-    @Column(name = "date", nullable = false)
-    private Date date;
+    @Column(name = "created_date", nullable = false)
+    private Date createdDate;
+
+    @Column(name = "edited_date")
+    private Date editedDate;
 
     @Column(name = "is_answer", nullable = false)
     private boolean isAnswer;

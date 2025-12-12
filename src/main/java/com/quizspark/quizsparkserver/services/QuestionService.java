@@ -194,6 +194,15 @@ public class QuestionService {
         questionRepository.delete(question);
     }
 
+    public QuestionComment getCommentEntityById(String commentId) {
+        Optional<QuestionComment> commentOptional = questionCommentRepository.findById(UUID.fromString(commentId));
+        if (commentOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
+        QuestionComment comment = commentOptional.get();
+        if (getQuestionEntityById(comment.getQuestion().getId().toString())==null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can not view this comment");
+        return comment;
+    }
+
     public List<QuestionCommentDTO> getComments(String questionId) {
         Question question = getQuestionEntityById(questionId);
         List<QuestionComment> comments = question.getComments();
@@ -208,5 +217,12 @@ public class QuestionService {
         QuestionComment comment = commentCreationDTO.toComment(user, question);
         comment = questionCommentRepository.save(comment);
         return new QuestionCommentDTO(comment);
+    }
+
+    public QuestionCommentDTO updateComment(String commentId, QuestionCommentUpdateDTO commentUpdateDTO) {
+        QuestionComment questionComment = getCommentEntityById(commentId);
+        commentUpdateDTO.updateComment(questionComment);
+        questionComment = questionCommentRepository.save(questionComment);
+        return new QuestionCommentDTO(questionComment);
     }
 }

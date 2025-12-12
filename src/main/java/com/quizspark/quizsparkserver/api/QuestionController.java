@@ -46,16 +46,4 @@ public class QuestionController {
         questionService.deleteQuestion(questionId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
-
-    @GetMapping("single/{questionId}/comments")
-    public ResponseEntity<List<QuestionCommentDTO>> getComments(@PathVariable String questionId) {
-        List<QuestionCommentDTO> body = questionService.getComments(questionId);
-        return new ResponseEntity<>(body, HttpStatus.OK);
-    }
-
-    @PostMapping("/single/{questionId}/comments")
-    public ResponseEntity<QuestionCommentDTO> addComment(@PathVariable String questionId, @RequestBody @Valid QuestionCommentCreationDTO payload) {
-        QuestionCommentDTO body = questionService.addComment(questionId, payload);
-        return new ResponseEntity<>(body, HttpStatus.CREATED);
-    }
 }

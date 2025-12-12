@@ -14,15 +14,17 @@ import java.util.Date;
 public class QuestionCommentCreationDTO {
     @NotBlank
     private String comment;
+    private Boolean isAnswer;
+    private Boolean isAI;
 
     public QuestionComment toComment(User user, Question question) {
         QuestionComment comment = new QuestionComment();
         comment.setUser(user);
         comment.setQuestion(question);
         comment.setComment(this.comment);
-        comment.setDate(new Date());
-        comment.setAI(false);
-        comment.setAnswer(false);
+        comment.setCreatedDate(new Date());
+        comment.setAnswer(isAnswer != null && isAnswer);
+        comment.setAI(isAI != null && isAI);
         return comment;
     }
 }
