@@ -12,7 +12,8 @@ import java.util.Date;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class QuestionCommentDTO {
     private String id;
-    private String user;
+    private String ownerUsername;
+    private String ownerId;
     private String comment;
     private Date createdDate;
     private Date editedDate;
@@ -21,7 +22,8 @@ public class QuestionCommentDTO {
 
     public QuestionCommentDTO(QuestionComment comment) {
         this.id = comment.getId().toString();
-        this.user = comment.getUser().getUsername();
+        this.ownerUsername = comment.getUser().getUsername();
+        this.ownerId = comment.getUser().getId().toString();
         this.comment = comment.getComment();
         this.createdDate = comment.getCreatedDate();
         this.editedDate = comment.getEditedDate();

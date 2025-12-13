@@ -4,6 +4,7 @@ import com.quizspark.quizsparkserver.dto.practice.PracticeAnswerResponseDTO;
 import com.quizspark.quizsparkserver.dto.repositories.PageResponseDTO;
 import com.quizspark.quizsparkserver.dto.practice.PracticeAnswerDTO;
 import com.quizspark.quizsparkserver.dto.practice.PracticeDTO;
+import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.PracticeService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -62,8 +64,9 @@ public class PracticeController {
 
     @GetMapping("/id/{practiceId}")
     public ResponseEntity<PracticeDTO> getPractice(@PathVariable String practiceId){
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         PracticeDTO body = practiceService.getPractice(practiceId)
-                .appendQuestions();
+                .appendQuestions(user);
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 

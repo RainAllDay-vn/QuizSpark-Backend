@@ -6,6 +6,7 @@ import com.quizspark.quizsparkserver.dto.questions.QuestionCommentDTO;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.Tag;
+import com.quizspark.quizsparkserver.models.User;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,6 +20,8 @@ public class PracticeQuestionDTO {
     @JsonIgnore
     private PracticeQuestion practiceQuestion;
     private int index;
+    private String baseQuestionId;
+    private String ownerId;
     private String type;
     private List<String> tags;
     private String description;
@@ -28,9 +31,11 @@ public class PracticeQuestionDTO {
     private int secondsToAnswer;
     private List<QuestionCommentDTO> comments;
 
-    public PracticeQuestionDTO(PracticeQuestion practiceQuestion) {
+    public PracticeQuestionDTO(PracticeQuestion practiceQuestion, User user) {
         this.practiceQuestion = practiceQuestion;
         this.index = practiceQuestion.getId().getIndex();
+        this.baseQuestionId = practiceQuestion.getQuestion().getId().toString();
+        this.ownerId = practiceQuestion.getQuestion().getQuestionBank().getUser().getId().toString();
         this.type = practiceQuestion.getQuestion().getQuestionType().toString();
         this.tags = practiceQuestion.getQuestion().getTags().stream().map(Tag::getName).toList();
         this.description = practiceQuestion.getQuestion().getDescription();

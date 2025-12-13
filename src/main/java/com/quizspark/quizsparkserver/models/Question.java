@@ -61,6 +61,7 @@ public class Question {
     private List<String> choices;
 
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdDate DESC")
     private List<QuestionComment> comments;
 
     @Override
