@@ -6,7 +6,6 @@ import com.quizspark.quizsparkserver.dto.questions.QuestionCommentDTO;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.Tag;
-import com.quizspark.quizsparkserver.models.User;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,7 +30,7 @@ public class PracticeQuestionDTO {
     private int secondsToAnswer;
     private List<QuestionCommentDTO> comments;
 
-    public PracticeQuestionDTO(PracticeQuestion practiceQuestion, User user) {
+    public PracticeQuestionDTO(PracticeQuestion practiceQuestion) {
         this.practiceQuestion = practiceQuestion;
         this.index = practiceQuestion.getId().getIndex();
         this.baseQuestionId = practiceQuestion.getQuestion().getId().toString();

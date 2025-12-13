@@ -30,6 +30,7 @@ public class UserController {
         if (user.getRole().equals("ROLE_NEW")) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         Map<String,String> response = new HashMap<>();
         response.put("username", user.getUsername());
+        response.put("id", user.getId().toString());
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

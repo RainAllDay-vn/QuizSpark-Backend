@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.quizspark.quizsparkserver.models.Practice;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
-import com.quizspark.quizsparkserver.models.User;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -43,10 +42,10 @@ public class PracticeDTO {
         this.date = practice.getDate();
     }
 
-    public PracticeDTO appendQuestions(User user) {
+    public PracticeDTO appendQuestions() {
         this.questions = practice.getPracticeQuestion()
                 .stream()
-                .map(pq -> new PracticeQuestionDTO(pq, user))
+                .map(PracticeQuestionDTO::new)
                 .toList();
         for (PracticeQuestionDTO questionDTO: questions) {
             if(questionDTO.getUserAnswer()!=null && practice.isRevealAnswer()) {

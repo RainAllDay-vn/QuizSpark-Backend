@@ -12,7 +12,7 @@ import java.util.UUID;
 @Table(indexes = {
     @Index(name = "idx_question_comment_question", columnList = "question_id"),
     @Index(name = "idx_question_comment_user", columnList = "user_id"),
-    @Index(name = "idx_question_comment_date", columnList = "date")
+    @Index(name = "idx_question_comment_date", columnList = "created_date")
 })
 @Getter
 @Setter
