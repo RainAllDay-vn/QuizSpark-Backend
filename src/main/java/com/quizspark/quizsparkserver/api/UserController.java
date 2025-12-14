@@ -31,6 +31,7 @@ public class UserController {
         Map<String,String> response = new HashMap<>();
         response.put("username", user.getUsername());
         response.put("id", user.getId().toString());
+        response.put("role", user.getRole());
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
