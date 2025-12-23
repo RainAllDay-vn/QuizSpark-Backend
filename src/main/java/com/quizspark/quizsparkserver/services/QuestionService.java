@@ -80,7 +80,7 @@ public class QuestionService {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (questionBank.getUser()==null && !user.getRole().equals("ROLE_ADMIN"))
             return false;
-        if (questionBank.getUser()!=null && questionBank.getUser().equals(user))
+        if (questionBank.getUser()!=null && !questionBank.getUser().equals(user))
             return false;
         return true;
     }

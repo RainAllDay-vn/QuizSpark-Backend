@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -33,7 +34,7 @@ public class QuestionBankController {
 
     @GetMapping()
     public ResponseEntity<List<QuestionBankDTO>> getUserQuestionBanks(@AuthenticationPrincipal User user) {
-        List<QuestionBankDTO> body = questionService.getQuestionBankByUser();
+        List<QuestionBankDTO> body = new ArrayList<>(questionService.getQuestionBankByUser());
         if (user.getRole().equals("ROLE_ADMIN")) {
             body.addAll(questionService.getAdminBank());
         }
