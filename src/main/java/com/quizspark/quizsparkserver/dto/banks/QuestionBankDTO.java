@@ -2,6 +2,7 @@ package com.quizspark.quizsparkserver.dto.banks;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.quizspark.quizsparkserver.dto.File;
 import com.quizspark.quizsparkserver.dto.questions.QuestionDTO;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.QuestionBank;
@@ -31,6 +32,7 @@ public class QuestionBankDTO {
     private int numberOfQuestions;
     private String username; // Owner's username
     private List<String> tags; // List of tags in the question bank
+    private List<File> files; // List of files attached to the question bank
     private List<QuestionDTO> questions; // List of questions in the question bank
 
     public QuestionBankDTO(QuestionBank questionBank) {
@@ -46,11 +48,12 @@ public class QuestionBankDTO {
         User owner = questionBank.getUser();
         this.username = owner != null ? owner.getUsername() : null;
         this.tags = questionBank.getTags().stream().map(Tag::getName).toList();
+        this.files = questionBank.getFiles().stream().map(File::new).toList();
     }
 
     public QuestionBankDTO appendQuestions() {
         questions = new LinkedList<>();
-        for (Question question: questionBank.getQuestions()) {
+        for (Question question : questionBank.getQuestions()) {
             questions.add(new QuestionDTO(question));
         }
         return this;

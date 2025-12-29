@@ -12,16 +12,21 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "question_bank", indexes = {
-    @Index(name = "idx_question_bank_user_id", columnList = "user_id"),
-    @Index(name = "idx_question_bank_status", columnList = "status"),
-    @Index(name = "idx_question_bank_access", columnList = "access")
+        @Index(name = "idx_question_bank_user_id", columnList = "user_id"),
+        @Index(name = "idx_question_bank_status", columnList = "status"),
+        @Index(name = "idx_question_bank_access", columnList = "access")
 })
 @Getter
 @Setter
 @NoArgsConstructor
 public class QuestionBank {
-    public enum Status {DRAFT, PUBLISHED}
-    public enum Access {PUBLIC, PRIVATE}
+    public enum Status {
+        DRAFT, PUBLISHED
+    }
+
+    public enum Access {
+        PUBLIC, PRIVATE
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -53,4 +58,7 @@ public class QuestionBank {
 
     @OneToMany(mappedBy = "bank", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Tag> tags = new ArrayList<>();
+
+    @OneToMany(mappedBy = "questionBank", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DbFile> files = new ArrayList<>();
 }

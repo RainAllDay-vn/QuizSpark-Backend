@@ -1,0 +1,6 @@
+@echo off
+echo Starting H2 Database Server...
+start "H2 Database" java -cp "D:/QuizSpark/server/build/resources/main;C:/Users/vulon/.gradle/caches/modules-2/files-2.1/com.h2database/h2/2.3.232/4fcc05d966ccdb2812ae8b9a718f69226c0cf4e2/h2-2.3.232.jar" org.h2.tools.Server -tcp -tcpPort 9092 -web -webPort 8083 -baseDir D:/QuizSpark/server/data
+
+echo Starting Spring Boot with auto-reload...
+call gradlew bootRun --continuous
