@@ -1,4 +1,51 @@
 package com.quizspark.quizsparkserver.services;
 
+import com.quizspark.quizsparkserver.dto.FileDTO;
+import com.quizspark.quizsparkserver.models.DbFile;
+import com.quizspark.quizsparkserver.models.QuestionBank;
+import com.quizspark.quizsparkserver.repositories.FileRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+
+import java.io.IOException;
+import java.util.Objects;
+
+@Service
 public class FileService {
+
+    private final FileRepository fileRepository;
+    private final QuestionService questionService;
+
+    @Autowired
+    public FileService(FileRepository fileRepository, QuestionService questionService) {
+        this.fileRepository = fileRepository;
+        this.questionService = questionService;
+    }
+
+    public FileDTO storeFile(String bankId, MultipartFile file) {
+        QuestionBank bank = questionService.getQuestionBankEntityById(bankId);
+
+        // Normalize file name
+        String fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
+
+        try {
+            // Check if the file's name contains invalid characters
+            if (fileName.contains("..")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Sorry! Filename contains invalid path sequence " + fileName);
+            }
+
+            DbFile dbFile = new DbFile(fileName, file.getContentType(), file.getBytes());
+            dbFile.setQuestionBank(bank);
+
+            return new FileDTO(fileRepository.save(dbFile));
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Could not store file " + fileName + ". Please try again!", ex);
+        }
+    }
 }

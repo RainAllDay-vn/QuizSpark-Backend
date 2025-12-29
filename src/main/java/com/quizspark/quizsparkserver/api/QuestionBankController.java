@@ -4,7 +4,10 @@ import com.quizspark.quizsparkserver.dto.banks.QuestionBankCreationDTO;
 import com.quizspark.quizsparkserver.dto.banks.QuestionBankDTO;
 import com.quizspark.quizsparkserver.dto.banks.QuestionBankUpdateDTO;
 import com.quizspark.quizsparkserver.models.User;
+import com.quizspark.quizsparkserver.services.FileService;
 import com.quizspark.quizsparkserver.services.QuestionService;
+import com.quizspark.quizsparkserver.dto.FileDTO;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,10 +23,12 @@ import java.util.List;
 @RequestMapping("/api/v1/banks")
 public class QuestionBankController {
     private final QuestionService questionService;
+    private final FileService fileService;
 
     @Autowired
-    public QuestionBankController(QuestionService questionService) {
+    public QuestionBankController(QuestionService questionService, FileService fileService) {
         this.questionService = questionService;
+        this.fileService = fileService;
     }
 
     @GetMapping("/public")
@@ -61,7 +66,8 @@ public class QuestionBankController {
     }
 
     @PutMapping("/single/{id}")
-    public ResponseEntity<QuestionBankDTO> updateSingleQuestionBank(@PathVariable String id, @RequestBody @Valid QuestionBankUpdateDTO payload) {
+    public ResponseEntity<QuestionBankDTO> updateSingleQuestionBank(@PathVariable String id,
+            @RequestBody @Valid QuestionBankUpdateDTO payload) {
         QuestionBankDTO body = questionService.updateQuestionBank(id, payload);
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
@@ -70,5 +76,12 @@ public class QuestionBankController {
     public ResponseEntity<Object> deleteSingleQuestionBank(@PathVariable String id) {
         questionService.deleteQuestionBank(id);
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/single/{id}/files")
+    public ResponseEntity<FileDTO> uploadFile(@PathVariable String id,
+            @RequestParam("file") MultipartFile file) {
+        FileDTO fileDto = fileService.storeFile(id, file);
+        return new ResponseEntity<>(fileDto, HttpStatus.OK);
     }
 }

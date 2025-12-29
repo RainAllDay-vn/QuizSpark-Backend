@@ -9,13 +9,13 @@ import java.util.UUID;
 
 @Getter
 @Setter
-public class File {
+public class FileDTO {
     private UUID id;
     private String fileName;
     private String fileType;
     private LocalDateTime uploadDate;
 
-    public File(DbFile dbFile) {
+    public FileDTO(DbFile dbFile) {
         this.id = dbFile.getId();
         this.fileName = dbFile.getFileName();
         this.fileType = dbFile.getFileType();
