@@ -27,7 +27,7 @@ public class FileService {
         this.questionService = questionService;
     }
 
-    public DbFile getFile(String fileId) {
+    public DbFile getFileEntity(String fileId) {
         return fileRepository.findById(UUID.fromString(fileId))
                 .orElseThrow(
                         () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found with id " + fileId));
@@ -57,7 +57,7 @@ public class FileService {
     }
 
     public void deleteFile(String bankId, String fileId) {
-        DbFile file = getFile(fileId);
+        DbFile file = getFileEntity(fileId);
         if (!file.getQuestionBank().getId().toString().equals(bankId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "File does not belong to the specified question bank");
