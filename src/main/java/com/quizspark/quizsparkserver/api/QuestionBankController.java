@@ -84,4 +84,10 @@ public class QuestionBankController {
         FileDTO fileDto = fileService.storeFile(id, file);
         return new ResponseEntity<>(fileDto, HttpStatus.OK);
     }
+
+    @DeleteMapping("/single/{id}/files/{fileId}")
+    public ResponseEntity<Object> deleteFile(@PathVariable String id, @PathVariable String fileId) {
+        fileService.deleteFile(id, fileId);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
 }
