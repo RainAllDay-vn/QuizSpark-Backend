@@ -31,7 +31,8 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource)
+            throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -44,8 +45,8 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/v1/questions").permitAll()
                         .requestMatchers("/api/v1/practice/new/anonymous").permitAll()
                         .requestMatchers("/api/v1/users/register").hasRole("NEW")
-                        .anyRequest().hasAnyRole("STUDENT", "TEACHER", "ADMIN")
-                )
+                        .requestMatchers("/api/ai/**").permitAll()
+                        .anyRequest().hasAnyRole("STUDENT", "TEACHER", "ADMIN"))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
         return http.build();
