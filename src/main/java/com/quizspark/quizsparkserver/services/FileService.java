@@ -4,7 +4,6 @@ import com.quizspark.quizsparkserver.dto.FileDTO;
 import com.quizspark.quizsparkserver.models.DbFile;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.repositories.FileRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,7 +20,6 @@ public class FileService {
     private final FileRepository fileRepository;
     private final QuestionService questionService;
 
-    @Autowired
     public FileService(FileRepository fileRepository, QuestionService questionService) {
         this.fileRepository = fileRepository;
         this.questionService = questionService;

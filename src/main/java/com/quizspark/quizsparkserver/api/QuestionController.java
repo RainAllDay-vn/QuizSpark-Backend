@@ -3,7 +3,6 @@ package com.quizspark.quizsparkserver.api;
 import com.quizspark.quizsparkserver.dto.questions.*;
 import com.quizspark.quizsparkserver.services.QuestionService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,13 +14,13 @@ import java.util.List;
 public class QuestionController {
     private final QuestionService questionService;
 
-    @Autowired
     public QuestionController(QuestionService questionService) {
         this.questionService = questionService;
     }
 
     @PostMapping
-    public ResponseEntity<QuestionDTO> addQuestion(@RequestParam String bankId, @RequestBody @Valid QuestionCreationDTO payload) {
+    public ResponseEntity<QuestionDTO> addQuestion(@RequestParam String bankId,
+            @RequestBody @Valid QuestionCreationDTO payload) {
         QuestionDTO body = questionService.saveQuestion(bankId, payload);
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
@@ -29,14 +28,14 @@ public class QuestionController {
     @PostMapping("/all")
     public ResponseEntity<Object> overwriteAllQuestions(
             @RequestParam String bankId,
-            @RequestBody @Valid List<QuestionCreationDTO> payload
-    ){
+            @RequestBody @Valid List<QuestionCreationDTO> payload) {
         List<QuestionDTO> body = questionService.overwriteQuestions(bankId, payload);
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
     @PutMapping("single/{questionId}")
-    public ResponseEntity<QuestionDTO> updateQuestion(@PathVariable String questionId, @RequestBody @Valid QuestionUpdateDTO payload) {
+    public ResponseEntity<QuestionDTO> updateQuestion(@PathVariable String questionId,
+            @RequestBody @Valid QuestionUpdateDTO payload) {
         QuestionDTO body = questionService.updateQuestion(questionId, payload);
         return new ResponseEntity<>(body, HttpStatus.OK);
     }

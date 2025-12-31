@@ -10,7 +10,6 @@ import com.quizspark.quizsparkserver.dto.FileDTO;
 import com.quizspark.quizsparkserver.models.DbFile;
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,7 +27,6 @@ public class QuestionBankController {
     private final QuestionService questionService;
     private final FileService fileService;
 
-    @Autowired
     public QuestionBankController(QuestionService questionService, FileService fileService) {
         this.questionService = questionService;
         this.fileService = fileService;

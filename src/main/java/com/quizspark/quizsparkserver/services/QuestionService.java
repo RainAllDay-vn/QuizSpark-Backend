@@ -8,7 +8,6 @@ import com.quizspark.quizsparkserver.models.*;
 import com.quizspark.quizsparkserver.repositories.QuestionBankRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionCommentRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -24,7 +23,6 @@ public class QuestionService {
     private final QuestionRepository questionRepository;
     private final QuestionCommentRepository questionCommentRepository;
 
-    @Autowired
     public QuestionService(
             QuestionBankRepository bankRepository,
             QuestionRepository questionRepository, QuestionCommentRepository questionCommentRepository) {
@@ -51,7 +49,7 @@ public class QuestionService {
 
     public List<QuestionBankDTO> getAdminBank() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(user.getRole().equals("ROLE_ADMIN")) {
+        if (user.getRole().equals("ROLE_ADMIN")) {
             return bankRepository.findAdminQuestionBank()
                     .stream()
                     .map(QuestionBankDTO::new)
@@ -63,12 +61,16 @@ public class QuestionService {
 
     public QuestionBank getQuestionBankEntityById(String bankId) {
         Optional<QuestionBank> bankOptional = bankRepository.findById(UUID.fromString(bankId));
-        if (bankOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found");
+        if (bankOptional.isEmpty())
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found");
         QuestionBank bank = bankOptional.get();
-        if (bank.getAccess() == QuestionBank.Access.PUBLIC) return bank;
+        if (bank.getAccess() == QuestionBank.Access.PUBLIC)
+            return bank;
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(user.getRole().equals("ROLE_ADMIN")) return bank;
-        if(!bank.getUser().equals(user)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
+        if (user.getRole().equals("ROLE_ADMIN"))
+            return bank;
+        if (!bank.getUser().equals(user))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
         return bank;
     }
 
@@ -76,11 +78,11 @@ public class QuestionService {
         return new QuestionBankDTO(getQuestionBankEntityById(bankId));
     }
 
-    private boolean canBeEdited(QuestionBank questionBank){
+    private boolean canBeEdited(QuestionBank questionBank) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (questionBank.getUser()==null && !user.getRole().equals("ROLE_ADMIN"))
+        if (questionBank.getUser() == null && !user.getRole().equals("ROLE_ADMIN"))
             return false;
-        if (questionBank.getUser()!=null && !questionBank.getUser().equals(user))
+        if (questionBank.getUser() != null && !questionBank.getUser().equals(user))
             return false;
         return true;
     }
@@ -89,7 +91,8 @@ public class QuestionService {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         QuestionBank questionBank = bankCreationDTO.toQuestionBank(user);
         if (!canBeEdited(questionBank))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to save this question bank");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to save this question bank");
         questionBank = bankRepository.save(questionBank);
         return new QuestionBankDTO(questionBank);
     }
@@ -97,7 +100,8 @@ public class QuestionService {
     public QuestionBankDTO savePublicQuestionBank(QuestionBankCreationDTO bankCreationDTO) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (!user.getRole().equals("ROLE_ADMIN"))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to save this question bank");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to save this question bank");
         QuestionBank questionBank = bankCreationDTO.toQuestionBank(null);
         questionBank = bankRepository.save(questionBank);
         return new QuestionBankDTO(questionBank);
@@ -106,7 +110,8 @@ public class QuestionService {
     public QuestionBankDTO updateQuestionBank(String bankId, QuestionBankUpdateDTO questionBankUpdateDTO) {
         QuestionBank questionBank = getQuestionBankEntityById(bankId);
         if (!canBeEdited(questionBank))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to update this question bank");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to update this question bank");
         questionBankUpdateDTO.updateQuestionBank(questionBank);
         questionBank = bankRepository.save(questionBank);
         return new QuestionBankDTO(questionBank);
@@ -115,23 +120,28 @@ public class QuestionService {
     public void deleteQuestionBank(String bankId) {
         QuestionBank questionBank = getQuestionBankEntityById(bankId);
         if (!canBeEdited(questionBank))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete this question bank");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to delete this question bank");
         bankRepository.delete(questionBank);
     }
 
     public Question getQuestionEntityById(String questionId) {
         Optional<Question> questionOptional = questionRepository.findById(UUID.fromString(questionId));
-        if (questionOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found");
+        if (questionOptional.isEmpty())
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found");
         Question question = questionOptional.get();
-        if (question.getQuestionBank().getAccess()==QuestionBank.Access.PUBLIC) return question;
+        if (question.getQuestionBank().getAccess() == QuestionBank.Access.PUBLIC)
+            return question;
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (user.getRole().equals("ROLE_ADMIN")) return question;
+        if (user.getRole().equals("ROLE_ADMIN"))
+            return question;
         QuestionBank bank = question.getQuestionBank();
-        if (bank.getUser().getId().equals(user.getId())) return question;
+        if (bank.getUser().getId().equals(user.getId()))
+            return question;
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this question bank");
     }
 
-    private boolean canBeEdited(Question question){
+    private boolean canBeEdited(Question question) {
         QuestionBank questionBank = question.getQuestionBank();
         return canBeEdited(questionBank);
     }
@@ -149,24 +159,26 @@ public class QuestionService {
     public QuestionDTO updateQuestion(String questionId, QuestionUpdateDTO questionUpdateDTO) {
         Question question = getQuestionEntityById(questionId);
         if (!canBeEdited(question))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to update this question");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to update this question");
         questionUpdateDTO.updateQuestion(question);
         question = questionRepository.save(question);
         return new QuestionDTO(question);
     }
 
     @Transactional
-    public List<QuestionDTO> overwriteQuestions(String bankId, List<QuestionCreationDTO> questionCreationDTOS){
+    public List<QuestionDTO> overwriteQuestions(String bankId, List<QuestionCreationDTO> questionCreationDTOS) {
         QuestionBank bank = getQuestionBankEntityById(bankId);
         if (!canBeEdited(bank))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to overwrite questions in this bank");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to overwrite questions in this bank");
         List<Question> questions = questionCreationDTOS.stream()
                 .map(QuestionCreationDTO::toQuestion)
                 .toList();
         Map<String, Tag> newTagsMap = questions.stream()
                 .flatMap(question -> question.getTags().stream())
                 .collect(Collectors.toMap(Tag::getName, tag -> tag, (tag1, tag2) -> tag1));
-        for (Question question: questions) {
+        for (Question question : questions) {
             List<Tag> tags = question.getTags();
             tags = tags.stream().map(tag -> newTagsMap.get(tag.getName())).toList();
             question.setTags(tags);
@@ -190,15 +202,17 @@ public class QuestionService {
     public void deleteQuestion(String questionId) {
         Question question = getQuestionEntityById(questionId);
         if (!canBeEdited(question))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete this question");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to delete this question");
         questionRepository.delete(question);
     }
 
     public QuestionComment getCommentEntityById(String commentId) {
         Optional<QuestionComment> commentOptional = questionCommentRepository.findById(UUID.fromString(commentId));
-        if (commentOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
+        if (commentOptional.isEmpty())
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
         QuestionComment comment = commentOptional.get();
-        if (getQuestionEntityById(comment.getQuestion().getId().toString())==null)
+        if (getQuestionEntityById(comment.getQuestion().getId().toString()) == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can not view this comment");
         return comment;
     }
