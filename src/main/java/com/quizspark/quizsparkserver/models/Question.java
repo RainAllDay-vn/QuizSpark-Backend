@@ -13,13 +13,13 @@ import java.util.UUID;
 
 @Entity
 @Table(indexes = {
-    @Index(name = "idx_question_bank_id", columnList = "bank_id")
+        @Index(name = "idx_question_bank_id", columnList = "bank_id")
 })
 @Getter
 @Setter
 @NoArgsConstructor
 public class Question {
-    public enum QuestionType{
+    public enum QuestionType {
         SINGLE_ANSWER,
         MULTIPLE_ANSWER,
         FILL_THE_BLANK,
@@ -38,16 +38,11 @@ public class Question {
     @Enumerated(EnumType.STRING)
     private QuestionType questionType;
 
-    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-            name = "question_tag",
-            joinColumns = @JoinColumn(name = "question_id"),
-            inverseJoinColumns = @JoinColumn(name = "tag_id"),
-            indexes = {
-                @Index(name = "idx_question_tag_question_id", columnList = "question_id"),
-                @Index(name = "idx_question_tag_tag_id", columnList = "tag_id")
-            }
-    )
+    @ManyToMany(fetch = FetchType.EAGER, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @JoinTable(name = "question_tag", joinColumns = @JoinColumn(name = "question_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"), indexes = {
+            @Index(name = "idx_question_tag_question_id", columnList = "question_id"),
+            @Index(name = "idx_question_tag_tag_id", columnList = "tag_id")
+    })
     private List<Tag> tags = new ArrayList<>();
 
     @Column(nullable = false)
@@ -66,7 +61,8 @@ public class Question {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj.getClass()!=this.getClass()) return false;
+        if (obj.getClass() != this.getClass())
+            return false;
         Question question = (Question) obj;
         return this.getId().equals(question.getId());
     }

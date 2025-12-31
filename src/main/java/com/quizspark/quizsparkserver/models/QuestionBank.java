@@ -8,6 +8,7 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Entity
@@ -61,4 +62,8 @@ public class QuestionBank {
 
     @OneToMany(mappedBy = "questionBank", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DbFile> files = new ArrayList<>();
+
+    public Optional<Tag> getTagByName(String name) {
+        return tags.stream().filter(tag -> tag.getName().equals(name)).findFirst();
+    }
 }

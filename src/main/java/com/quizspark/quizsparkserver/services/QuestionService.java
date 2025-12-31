@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class QuestionService {
@@ -148,12 +147,20 @@ public class QuestionService {
 
     public QuestionDTO saveQuestion(String bankId, QuestionCreationDTO questionCreationDTO) {
         QuestionBank questionBank = getQuestionBankEntityById(bankId);
-        Question question = questionCreationDTO.toQuestion();
+        Question question = questionCreationDTO.toQuestion(questionBank);
         if (!canBeEdited(question))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to save this question");
-        question.setQuestionBank(questionBank);
         question = questionRepository.save(question);
         return new QuestionDTO(question);
+    }
+
+    public List<QuestionDTO> saveAllQuestions(String bankId, List<QuestionCreationDTO> questionCreationDTOs) {
+        QuestionBank questionBank = getQuestionBankEntityById(bankId);
+        List<Question> questions = questionCreationDTOs.stream()
+                .map(item -> item.toQuestion(questionBank))
+                .toList();
+        questions = questionRepository.saveAll(questions);
+        return questions.stream().map(QuestionDTO::new).toList();
     }
 
     public QuestionDTO updateQuestion(String questionId, QuestionUpdateDTO questionUpdateDTO) {
@@ -173,24 +180,12 @@ public class QuestionService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You don't have permission to overwrite questions in this bank");
         List<Question> questions = questionCreationDTOS.stream()
-                .map(QuestionCreationDTO::toQuestion)
+                .map(item -> item.toQuestion(bank))
                 .toList();
-        Map<String, Tag> newTagsMap = questions.stream()
-                .flatMap(question -> question.getTags().stream())
-                .collect(Collectors.toMap(Tag::getName, tag -> tag, (tag1, tag2) -> tag1));
-        for (Question question : questions) {
-            List<Tag> tags = question.getTags();
-            tags = tags.stream().map(tag -> newTagsMap.get(tag.getName())).toList();
-            question.setTags(tags);
-        }
-        List<Tag> newTags = new ArrayList<>(newTagsMap.values());
-        newTags.forEach(tag -> tag.setBank(bank));
         questions.forEach(question -> question.setQuestionBank(bank));
 
         bank.getQuestions().clear();
-        bank.getTags().clear();
         bank.getQuestions().addAll(questions);
-        bank.getTags().addAll(newTags);
 
         QuestionBank savedBank = bankRepository.save(bank);
         return savedBank.getQuestions()

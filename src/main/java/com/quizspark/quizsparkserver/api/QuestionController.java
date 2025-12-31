@@ -25,11 +25,19 @@ public class QuestionController {
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
-    @PostMapping("/all")
+    @PostMapping("/all/overwrite")
     public ResponseEntity<Object> overwriteAllQuestions(
             @RequestParam String bankId,
             @RequestBody @Valid List<QuestionCreationDTO> payload) {
         List<QuestionDTO> body = questionService.overwriteQuestions(bankId, payload);
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
+    }
+
+    @PostMapping("all")
+    public ResponseEntity<Object> addAllQuestions(
+            @RequestParam String bankId,
+            @RequestBody @Valid List<QuestionCreationDTO> payload) {
+        List<QuestionDTO> body = questionService.saveAllQuestions(bankId, payload);
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
