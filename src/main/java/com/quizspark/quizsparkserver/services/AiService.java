@@ -11,16 +11,33 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.model.Media;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
+import java.util.ArrayList;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.quizspark.quizsparkserver.dto.ProcessedPageDTO;
+import com.quizspark.quizsparkserver.dto.TextDensityResponseDTO;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 
 @Service
 public class AiService {
+    private static class ParsingState {
+        StringBuilder buffer = new StringBuilder();
+        List<String> lastEmitted = new java.util.ArrayList<>();
+        int balance = 0;
+        boolean insideString = false;
+        boolean escape = false;
+        int startIndex = -1;
+        int scanOffset = 0;
+    }
+
     private final FileService fileService;
     private final PdfProcessorService pdfProcessorService;
     private final ChatModel chatModel;
@@ -221,6 +238,42 @@ public class AiService {
             5. **Answer Check**: If the answer is missing, is "NO ANSWER" in the tags?
             6. **Validity**: JSON syntax is valid.
             """;
+    private static final String IMAGE_SORTER_INSTRUCTIONS = """
+            Role: Academic Document Density Classifier
+            Task: Analyze images to determine transcription token cost.
+
+            CONTEXT: The user is processing academic materials (slides, exams, notebooks, papers).
+
+            Classification Criteria:
+            1. HIGH (Dense Text | >800 tokens):
+            - Typed academic papers (single-spaced, 2-column).
+            - Textbook pages or dense reading comprehension passages.
+            - Reference lists or bibliographies.
+            - (Visual: Small printed font, minimal margins, wall of text).
+
+            2. MEDIUM (Standard Text | 300-800 tokens):
+            - Handwritten Notebooks (Full page of writing).
+            - Scanned Exam Papers (Questions mixed with answer space).
+            - Syllabus documents or detailed handouts.
+            - Dense Lecture Slides (Slides containing full paragraphs of text).
+            - (Visual: Large handwriting, or typed text with significant spacing/formatting).
+
+            3. LOW (Sparse Text | <300 tokens):
+            - Standard Lecture Slides (Bullet points, headers, diagrams).
+            - Whiteboard photos.
+            - Flashcards or sticky notes.
+            - Sparse handwriting or math equations.
+            - (Visual: Mostly background, images, or large font sizes).
+
+            Input: A sequence of images.
+            Output: A strict JSON list of objects representing the input order.
+            Format: [{"index": 0, "density": "HIGH"}, {"index": 1, "density": "LOW"}, ...]
+
+            Constraints:
+            - Do NOT transcribe text.
+            - Treat "Handwriting" as MEDIUM or LOW, never HIGH (handwriting has low token density).
+            - Output ONLY the JSON.
+            """;
 
     public AiService(FileService fileService, PdfProcessorService pdfProcessorService, ChatModel chatModel) {
         this.fileService = fileService;
@@ -235,11 +288,31 @@ public class AiService {
         if (fileType.equals("text/plain") || fileType.equals("application/json") || fileType.equals("text/markdown")) {
             return parseText(file);
         } else if (fileType.equals("application/pdf")) {
-            pdfProcessorService.processPdf(fileId);
-            return Flux.just(AiResponseDTO.builder().status("finish").build());
+            return parsePdf(file);
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported file type " + fileType);
         }
+    }
+
+    private Flux<AiResponseDTO> parsePdf(DbFile file) {
+        return Flux.<AiResponseDTO>create(sink -> {
+            try {
+                sink.next(AiResponseDTO.builder().status("analyze").build());
+                DbFile parseFile;
+                try {
+                    parseFile = fileService.getParseFileEntity(file);
+                } catch (Exception e) {
+                    List<ProcessedPageDTO> pages = pdfProcessorService.splitePages(file);
+                    pages = classifyTextDensity(pages);
+                    sink.next(AiResponseDTO.builder().status("thinking").build());
+                }
+                sink.next(AiResponseDTO.builder().status("finish").build());
+                sink.complete();
+            } catch (Exception e) {
+                sink.error(e);
+            }
+        })
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     private Flux<AiResponseDTO> parseText(DbFile file) {
@@ -310,126 +383,63 @@ public class AiService {
                 })
                 .flatMapIterable(state -> state.lastEmitted)
                 .map(json -> AiResponseDTO.builder().status("data").data(json).build())
-                .startWith(AiResponseDTO.builder().status("start").build())
+                .startWith(AiResponseDTO.builder().status("thinking").build())
                 .concatWith(Flux.just(AiResponseDTO.builder().status("finish").build()));
     }
 
-    public record ImageAnalysisDTO(int index, String type, String density) {
-    }
+    public List<ProcessedPageDTO> classifyTextDensity(List<ProcessedPageDTO> pages) {
+        List<ProcessedPageDTO> imagePages = new ArrayList<>();
+        List<Integer> imageIndices = new ArrayList<>();
+        List<Media> mediaList = new ArrayList<>();
 
-    public Flux<ImageAnalysisDTO> sortImages(List<String> fileIds) {
-        if (fileIds.size() > 50) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Batch size must not exceed 50 images");
+        for (int i = 0; i < pages.size(); i++) {
+            ProcessedPageDTO page = pages.get(i);
+            if (page.getImage() != null) {
+                imagePages.add(page);
+                imageIndices.add(i);
+                mediaList.add(new Media(MimeTypeUtils.IMAGE_PNG, new ByteArrayResource(page.getImage())));
+            }
+        }
+        if (mediaList.isEmpty()) {
+            return pages;
         }
 
-        List<Media> mediaList = new java.util.ArrayList<>();
-        for (String fileId : fileIds) {
-            DbFile file = fileService.getFileEntity(fileId);
-            // Assuming PNG for now, or detect from fileType
-            // The file.getData() returns byte[]
-            // MimeType is needed
-            org.springframework.util.MimeType mimeType = MimeTypeUtils.parseMimeType(file.getFileType());
-            mediaList.add(new Media(mimeType, new ByteArrayResource(file.getData())));
-        }
-
-        String instructions = """
-                Analyze these images. For each, identify the document type and classify text density as 'High' (dense text), 'Medium' (forms/letters), or 'Low' (receipts/cards).
-                Return ONLY a JSON list: [{"index": 0, "type": "contract", "density": "High"}, ...].
-                Use the index 0, 1, 2... corresponding to the order of images provided.
-                """;
-
-        UserMessage userMessage = new UserMessage(instructions, mediaList);
-
+        UserMessage userMessage = new UserMessage(IMAGE_SORTER_INSTRUCTIONS, mediaList); // Using static final constant
         Prompt prompt = new Prompt(userMessage,
                 OpenAiChatOptions.builder().model(IMAGE_MODEL).build());
+        System.out.println("Sending request to OpenAI");
+        ChatResponse response = chatModel.call(prompt);
 
-        return chatModel.stream(prompt)
-                .map(response -> {
-                    if (response.getResult() == null || response.getResult().getOutput() == null) {
-                        return "";
-                    }
-                    String content = response.getResult().getOutput().getContent();
-                    return content == null ? "" : content;
-                })
-                .scan(new ParsingState(), (state, chunk) -> {
-                    // Reuse the same parsing logic as parseText since it parses a JSON list
-                    state.buffer.append(chunk);
-                    List<String> newObjects = new java.util.ArrayList<>();
+        if (response != null && response.getResult() != null) {
+            Generation generation = response.getResult();
+            String content = generation.getOutput().getContent()
+                    .replace("<|begin_of_box|>", "")
+                    .replace("<|end_of_box|>", "");
+            System.out.println(content);
+            // Parse JSON
+            ObjectMapper mapper = new ObjectMapper();
+            try {
+                List<TextDensityResponseDTO> results = mapper.readValue(content,
+                        new TypeReference<List<TextDensityResponseDTO>>() {
+                        });
+                for (TextDensityResponseDTO res : results) {
+                    if (res.index() >= 0 && res.index() < imagePages.size()) {
+                        ProcessedPageDTO p = imagePages.get(res.index());
 
-                    int lastEndIndex = -1;
-
-                    for (int i = state.scanOffset; i < state.buffer.length(); i++) {
-                        char c = state.buffer.charAt(i);
-
-                        if (state.escape) {
-                            state.escape = false;
-                            continue;
-                        }
-                        if (c == '\\') {
-                            state.escape = true;
-                            continue;
-                        }
-                        if (c == '"') {
-                            state.insideString = !state.insideString;
-                            continue;
-                        }
-
-                        if (!state.insideString) {
-                            if (c == '{') {
-                                if (state.balance == 0)
-                                    state.startIndex = i;
-                                state.balance++;
-                            } else if (c == '}') {
-                                state.balance--;
-                                if (state.balance == 0 && state.startIndex != -1) {
-                                    newObjects.add(state.buffer.substring(state.startIndex, i + 1));
-                                    lastEndIndex = i;
-                                    state.startIndex = -1;
-                                }
-                            }
+                        try {
+                            p.setTextDensity(ProcessedPageDTO.TextDensity.valueOf(res.density().toUpperCase()));
+                        } catch (IllegalArgumentException e) {
+                            p.setTextDensity(ProcessedPageDTO.TextDensity.MEDIUM); // Fallback
                         }
                     }
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to parse AI response: " + content);
+                e.printStackTrace();
+                // Fallback to defaults if parsing fails
+            }
+        }
 
-                    state.scanOffset = state.buffer.length();
-
-                    if (lastEndIndex != -1) {
-                        state.buffer.delete(0, lastEndIndex + 1);
-                        int removedCount = lastEndIndex + 1;
-                        state.scanOffset -= removedCount;
-                        if (state.startIndex != -1) {
-                            state.startIndex -= removedCount;
-                        }
-                    }
-                    state.lastEmitted = newObjects;
-                    return state;
-                })
-                .flatMapIterable(state -> state.lastEmitted)
-                .map(jsonString -> {
-                    // Manual simple parsing or use Jackson
-                    // Since specific dependencies aren't visible, I'll use a simple regex or assume
-                    // Jackson is available but not injected here.
-                    // Given the project uses Spring, Jackson is likely available.
-                    // But to avoid adding ObjectMapper dependency just for this method if not
-                    // already present (it's not fields),
-                    // I will do a quick manual parse or new ObjectMapper.
-                    // Actually, I can use a simpler approach or just try to use ObjectMapper.
-                    // Let's create a local ObjectMapper for now.
-                    try {
-                        return new com.fasterxml.jackson.databind.ObjectMapper().readValue(jsonString,
-                                ImageAnalysisDTO.class);
-                    } catch (Exception e) {
-                        throw new RuntimeException("Failed to parse JSON: " + jsonString, e);
-                    }
-                });
-    }
-
-    private static class ParsingState {
-        StringBuilder buffer = new StringBuilder();
-        List<String> lastEmitted = new java.util.ArrayList<>();
-        int balance = 0;
-        boolean insideString = false;
-        boolean escape = false;
-        int startIndex = -1;
-        int scanOffset = 0;
+        return pages;
     }
 }

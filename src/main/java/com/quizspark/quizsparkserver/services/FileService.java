@@ -38,6 +38,12 @@ public class FileService {
                                 "File not found with name " + fileName));
     }
 
+    public DbFile getParseFileEntity(DbFile originalFile) {
+        String parseFileName = originalFile.getFileName() + "_PARSE";
+        DbFile parseFile = getFileEntityByName(parseFileName);
+        return parseFile;
+    }
+
     public FileDTO storeFile(String bankId, MultipartFile file) {
         QuestionBank bank = questionService.getQuestionBankEntityById(bankId);
         // Normalize file name

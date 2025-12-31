@@ -18,6 +18,14 @@ public class ProcessedPageDTO {
 
     private String text;
     private byte[] image;
-    private boolean isImage;
     private TextDensity textDensity;
+
+    @Override
+    public String toString() {
+        return "ProcessedPageDTO{" +
+                "text=" + (text == null ? "null" : text.length()) +
+                ", image=" + (image == null ? "null" : image.length) +
+                ", textDensity=" + textDensity +
+                '}';
+    }
 }

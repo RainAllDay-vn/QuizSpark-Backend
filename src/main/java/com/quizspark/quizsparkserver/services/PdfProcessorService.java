@@ -26,26 +26,7 @@ import javax.imageio.ImageIO;
 
 @Service
 public class PdfProcessorService {
-
-    private final FileService fileService;
-
-    public PdfProcessorService(FileService fileService) {
-        this.fileService = fileService;
-    }
-
-    public DbFile getParseFile(String fileId) {
-        DbFile originFile = fileService.getFileEntity(fileId);
-        String parseFileName = originFile.getFileName() + "_PARSE";
-        DbFile parseFile = fileService.getFileEntityByName(parseFileName);
-        return parseFile;
-    }
-
-    public List<ProcessedPageDTO> processPdf(String fileId) {
-        DbFile dbFile = fileService.getFileEntity(fileId);
-        return splitePages(dbFile);
-    }
-
-    private List<ProcessedPageDTO> splitePages(DbFile dbFile) {
+    public List<ProcessedPageDTO> splitePages(DbFile dbFile) {
         List<ProcessedPageDTO> pages = new ArrayList<>();
 
         try (PDDocument document = PDDocument.load(dbFile.getData())) {
@@ -95,10 +76,10 @@ public class PdfProcessorService {
                     BufferedImage bim = pdfRenderer.renderImageWithDPI(pageNum - 1, 300, ImageType.RGB);
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     ImageIO.write(bim, "png", baos);
-                    pages.add(new ProcessedPageDTO(null, baos.toByteArray(), true, null));
+                    pages.add(new ProcessedPageDTO(null, baos.toByteArray(), null));
                 } else {
                     // TEXT Strategy
-                    pages.add(new ProcessedPageDTO(text, null, false, null));
+                    pages.add(new ProcessedPageDTO(text, null, null));
                 }
             }
         } catch (IOException e) {
