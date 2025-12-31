@@ -48,7 +48,10 @@ public class QuestionBankDTO {
         User owner = questionBank.getUser();
         this.username = owner != null ? owner.getUsername() : null;
         this.tags = questionBank.getTags().stream().map(Tag::getName).toList();
-        this.files = questionBank.getFiles().stream().map(FileDTO::new).toList();
+        this.files = questionBank.getFiles().stream()
+                .filter(file -> file.getOriginFile() == null)
+                .map(FileDTO::new)
+                .toList();
     }
 
     public QuestionBankDTO appendQuestions() {

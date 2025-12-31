@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -31,6 +33,13 @@ public class DbFile {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "question_bank_id")
     private QuestionBank questionBank;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "origin_file_id")
+    private DbFile originFile;
+
+    @OneToMany(mappedBy = "originFile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DbFile> derivedFiles = new ArrayList<>();
 
     // Default constructor
     public DbFile() {

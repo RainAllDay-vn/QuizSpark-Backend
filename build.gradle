@@ -18,6 +18,9 @@ configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
+    all {
+        exclude group: 'commons-logging', module: 'commons-logging'
+    }
 }
 
 repositories {
@@ -50,6 +53,9 @@ dependencies {
 
     // Dotenv
     implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+    
+    // PDFBox
+    implementation 'org.apache.pdfbox:pdfbox:2.0.30'
 }
 
 dependencyManagement {

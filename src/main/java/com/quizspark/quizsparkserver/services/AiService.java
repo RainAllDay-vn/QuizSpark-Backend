@@ -11,16 +11,21 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.model.Media;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
 
 @Service
 public class AiService {
-
     private final FileService fileService;
+    private final PdfProcessorService pdfProcessorService;
     private final ChatModel chatModel;
     private static final String TEXT_MODEL = "deepseek-ai/DeepSeek-V3.2-TEE";
+    private static final String IMAGE_MODEL = "zai-org/GLM-4.6V";
     private static final String PARSE_TEXT_PROMPT = """
             ### Primary Objective
 
@@ -217,8 +222,9 @@ public class AiService {
             6. **Validity**: JSON syntax is valid.
             """;
 
-    public AiService(FileService fileService, ChatModel chatModel) {
+    public AiService(FileService fileService, PdfProcessorService pdfProcessorService, ChatModel chatModel) {
         this.fileService = fileService;
+        this.pdfProcessorService = pdfProcessorService;
         this.chatModel = chatModel;
     }
 
@@ -228,6 +234,9 @@ public class AiService {
 
         if (fileType.equals("text/plain") || fileType.equals("application/json") || fileType.equals("text/markdown")) {
             return parseText(file);
+        } else if (fileType.equals("application/pdf")) {
+            pdfProcessorService.processPdf(fileId);
+            return Flux.just(AiResponseDTO.builder().status("finish").build());
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported file type " + fileType);
         }
@@ -303,6 +312,115 @@ public class AiService {
                 .map(json -> AiResponseDTO.builder().status("data").data(json).build())
                 .startWith(AiResponseDTO.builder().status("start").build())
                 .concatWith(Flux.just(AiResponseDTO.builder().status("finish").build()));
+    }
+
+    public record ImageAnalysisDTO(int index, String type, String density) {
+    }
+
+    public Flux<ImageAnalysisDTO> sortImages(List<String> fileIds) {
+        if (fileIds.size() > 50) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Batch size must not exceed 50 images");
+        }
+
+        List<Media> mediaList = new java.util.ArrayList<>();
+        for (String fileId : fileIds) {
+            DbFile file = fileService.getFileEntity(fileId);
+            // Assuming PNG for now, or detect from fileType
+            // The file.getData() returns byte[]
+            // MimeType is needed
+            org.springframework.util.MimeType mimeType = MimeTypeUtils.parseMimeType(file.getFileType());
+            mediaList.add(new Media(mimeType, new ByteArrayResource(file.getData())));
+        }
+
+        String instructions = """
+                Analyze these images. For each, identify the document type and classify text density as 'High' (dense text), 'Medium' (forms/letters), or 'Low' (receipts/cards).
+                Return ONLY a JSON list: [{"index": 0, "type": "contract", "density": "High"}, ...].
+                Use the index 0, 1, 2... corresponding to the order of images provided.
+                """;
+
+        UserMessage userMessage = new UserMessage(instructions, mediaList);
+
+        Prompt prompt = new Prompt(userMessage,
+                OpenAiChatOptions.builder().model(IMAGE_MODEL).build());
+
+        return chatModel.stream(prompt)
+                .map(response -> {
+                    if (response.getResult() == null || response.getResult().getOutput() == null) {
+                        return "";
+                    }
+                    String content = response.getResult().getOutput().getContent();
+                    return content == null ? "" : content;
+                })
+                .scan(new ParsingState(), (state, chunk) -> {
+                    // Reuse the same parsing logic as parseText since it parses a JSON list
+                    state.buffer.append(chunk);
+                    List<String> newObjects = new java.util.ArrayList<>();
+
+                    int lastEndIndex = -1;
+
+                    for (int i = state.scanOffset; i < state.buffer.length(); i++) {
+                        char c = state.buffer.charAt(i);
+
+                        if (state.escape) {
+                            state.escape = false;
+                            continue;
+                        }
+                        if (c == '\\') {
+                            state.escape = true;
+                            continue;
+                        }
+                        if (c == '"') {
+                            state.insideString = !state.insideString;
+                            continue;
+                        }
+
+                        if (!state.insideString) {
+                            if (c == '{') {
+                                if (state.balance == 0)
+                                    state.startIndex = i;
+                                state.balance++;
+                            } else if (c == '}') {
+                                state.balance--;
+                                if (state.balance == 0 && state.startIndex != -1) {
+                                    newObjects.add(state.buffer.substring(state.startIndex, i + 1));
+                                    lastEndIndex = i;
+                                    state.startIndex = -1;
+                                }
+                            }
+                        }
+                    }
+
+                    state.scanOffset = state.buffer.length();
+
+                    if (lastEndIndex != -1) {
+                        state.buffer.delete(0, lastEndIndex + 1);
+                        int removedCount = lastEndIndex + 1;
+                        state.scanOffset -= removedCount;
+                        if (state.startIndex != -1) {
+                            state.startIndex -= removedCount;
+                        }
+                    }
+                    state.lastEmitted = newObjects;
+                    return state;
+                })
+                .flatMapIterable(state -> state.lastEmitted)
+                .map(jsonString -> {
+                    // Manual simple parsing or use Jackson
+                    // Since specific dependencies aren't visible, I'll use a simple regex or assume
+                    // Jackson is available but not injected here.
+                    // Given the project uses Spring, Jackson is likely available.
+                    // But to avoid adding ObjectMapper dependency just for this method if not
+                    // already present (it's not fields),
+                    // I will do a quick manual parse or new ObjectMapper.
+                    // Actually, I can use a simpler approach or just try to use ObjectMapper.
+                    // Let's create a local ObjectMapper for now.
+                    try {
+                        return new com.fasterxml.jackson.databind.ObjectMapper().readValue(jsonString,
+                                ImageAnalysisDTO.class);
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to parse JSON: " + jsonString, e);
+                    }
+                });
     }
 
     private static class ParsingState {

@@ -31,6 +31,13 @@ public class FileService {
                         () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found with id " + fileId));
     }
 
+    public DbFile getFileEntityByName(String fileName) {
+        return fileRepository.findByFileName(fileName)
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "File not found with name " + fileName));
+    }
+
     public FileDTO storeFile(String bankId, MultipartFile file) {
         QuestionBank bank = questionService.getQuestionBankEntityById(bankId);
         // Normalize file name
@@ -60,6 +67,16 @@ public class FileService {
                     "File does not belong to the specified question bank");
         }
         fileRepository.delete(file);
+    }
+
+    public DbFile createMirrorFile(DbFile source, String content) {
+        DbFile mirrorFile = new DbFile(
+                source.getFileName() + ".txt",
+                "text/plain",
+                content.getBytes());
+        mirrorFile.setQuestionBank(source.getQuestionBank());
+        mirrorFile.setOriginFile(source);
+        return fileRepository.save(mirrorFile);
     }
 
     private String determineContentType(String fileName, String originalContentType) {
