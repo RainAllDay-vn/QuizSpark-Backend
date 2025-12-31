@@ -35,10 +35,8 @@ public class FileService {
 
     public FileDTO storeFile(String bankId, MultipartFile file) {
         QuestionBank bank = questionService.getQuestionBankEntityById(bankId);
-
         // Normalize file name
         String fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
-
         try {
             // Check if the file's name contains invalid characters
             if (fileName.contains("..")) {
@@ -46,7 +44,8 @@ public class FileService {
                         "Sorry! Filename contains invalid path sequence " + fileName);
             }
 
-            DbFile dbFile = new DbFile(fileName, file.getContentType(), file.getBytes());
+            String contentType = determineContentType(fileName, file.getContentType());
+            DbFile dbFile = new DbFile(fileName, contentType, file.getBytes());
             dbFile.setQuestionBank(bank);
 
             return new FileDTO(fileRepository.save(dbFile));
@@ -63,5 +62,19 @@ public class FileService {
                     "File does not belong to the specified question bank");
         }
         fileRepository.delete(file);
+    }
+
+    private String determineContentType(String fileName, String originalContentType) {
+        String lowerCaseName = fileName.toLowerCase();
+        if (lowerCaseName.endsWith(".md")) {
+            return "text/markdown";
+        } else if (lowerCaseName.endsWith(".txt")) {
+            return "text/plain";
+        } else if (lowerCaseName.endsWith(".json")) {
+            return "application/json";
+        } else if (lowerCaseName.endsWith(".pdf")) {
+            return "application/pdf";
+        }
+        return originalContentType;
     }
 }

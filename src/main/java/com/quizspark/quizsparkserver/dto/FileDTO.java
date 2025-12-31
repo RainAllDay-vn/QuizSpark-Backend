@@ -1,5 +1,6 @@
 package com.quizspark.quizsparkserver.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.quizspark.quizsparkserver.models.DbFile;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,6 +10,7 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class FileDTO {
     private UUID id;
     private String fileName;
