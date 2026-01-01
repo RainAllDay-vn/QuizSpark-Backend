@@ -1,4 +1,4 @@
-package com.quizspark.quizsparkserver.dto;
+package com.quizspark.quizsparkserver.dto.ai;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

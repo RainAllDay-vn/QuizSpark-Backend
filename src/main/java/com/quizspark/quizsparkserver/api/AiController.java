@@ -1,6 +1,6 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.quizspark.quizsparkserver.dto.AiResponseDTO;
+import com.quizspark.quizsparkserver.dto.ai.AiResponseDTO;
 import com.quizspark.quizsparkserver.services.AiService;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,8 +19,13 @@ public class AiController {
         this.aiService = aiService;
     }
 
-    @PostMapping(value = "/parse/{fileId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/parse/file/{fileId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<AiResponseDTO> parseFile(@PathVariable String fileId) {
         return aiService.extractQuestion(fileId);
+    }
+
+    @PostMapping(value = "/generate/bank/{bankId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<AiResponseDTO> generateQuestion(@PathVariable String bankId) {
+        return aiService.generateQuestion(bankId);
     }
 }

@@ -1,8 +1,7 @@
 package com.quizspark.quizsparkserver.services;
 
+import com.quizspark.quizsparkserver.dto.ai.ProcessedPageDTO;
 import com.quizspark.quizsparkserver.models.DbFile;
-
-import com.quizspark.quizsparkserver.dto.ProcessedPageDTO;
 
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;

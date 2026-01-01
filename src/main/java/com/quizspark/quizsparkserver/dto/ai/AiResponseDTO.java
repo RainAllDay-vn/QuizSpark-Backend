@@ -1,4 +1,4 @@
-package com.quizspark.quizsparkserver.dto;
+package com.quizspark.quizsparkserver.dto.ai;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 

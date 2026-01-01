@@ -1,6 +1,5 @@
 package com.quizspark.quizsparkserver.services;
 
-import com.quizspark.quizsparkserver.dto.AiResponseDTO;
 import com.quizspark.quizsparkserver.models.DbFile;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
@@ -21,8 +20,10 @@ import java.util.List;
 import java.util.ArrayList;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.quizspark.quizsparkserver.dto.ProcessedPageDTO;
-import com.quizspark.quizsparkserver.dto.TextDensityResponseDTO;
+import com.quizspark.quizsparkserver.dto.ai.AiResponseDTO;
+import com.quizspark.quizsparkserver.dto.ai.ProcessedPageDTO;
+import com.quizspark.quizsparkserver.dto.ai.TextDensityResponseDTO;
+
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 
