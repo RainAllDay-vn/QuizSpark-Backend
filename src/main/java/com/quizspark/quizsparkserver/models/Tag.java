@@ -11,7 +11,7 @@ import java.util.UUID;
 
 @Entity
 @Table(indexes = {
-    @Index(name = "idx_tag_bank_id", columnList = "bank_id")
+        @Index(name = "idx_tag_bank_id", columnList = "bank_id")
 })
 @Getter
 @Setter
@@ -27,11 +27,15 @@ public class Tag {
 
     @Column(nullable = false)
     private String name;
+    @Column(nullable = false)
+    private String description = "";
+    @Column(nullable = false)
+    private String color = "#4c1d954d";
 
     @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
     private List<Question> questions = new ArrayList<>();
 
-    public Tag(String name){
+    public Tag(String name) {
         this.name = name;
     }
 }

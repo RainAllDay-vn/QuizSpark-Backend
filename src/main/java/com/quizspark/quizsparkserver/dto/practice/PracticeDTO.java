@@ -2,8 +2,11 @@ package com.quizspark.quizsparkserver.dto.practice;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.quizspark.quizsparkserver.dto.tags.TagDTO;
 import com.quizspark.quizsparkserver.models.Practice;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
+import com.quizspark.quizsparkserver.models.Question;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,6 +20,7 @@ public class PracticeDTO {
     private Practice practice;
     private UUID id;
     private List<String> bankNames;
+    private List<TagDTO> tags;
     private int timeInSeconds;
     private int numberOfQuestion;
     private List<PracticeQuestionDTO> questions;
@@ -31,6 +35,14 @@ public class PracticeDTO {
                 .getQuestion()
                 .getQuestionBank()
                 .getName());
+        this.tags = practice.getPracticeQuestion()
+                .stream()
+                .map(PracticeQuestion::getQuestion)
+                .map(Question::getTags)
+                .flatMap(List::stream)
+                .distinct()
+                .map(TagDTO::new)
+                .toList();
         this.timeInSeconds = practice.getPracticeQuestion()
                 .stream()
                 .map(PracticeQuestion::getSecondsToAnswer)
@@ -47,8 +59,8 @@ public class PracticeDTO {
                 .stream()
                 .map(PracticeQuestionDTO::new)
                 .toList();
-        for (PracticeQuestionDTO questionDTO: questions) {
-            if(questionDTO.getUserAnswer()!=null && practice.isRevealAnswer()) {
+        for (PracticeQuestionDTO questionDTO : questions) {
+            if (questionDTO.getUserAnswer() != null && practice.isRevealAnswer()) {
                 questionDTO.appendCorrectAnswer();
                 questionDTO.appendComments();
             }

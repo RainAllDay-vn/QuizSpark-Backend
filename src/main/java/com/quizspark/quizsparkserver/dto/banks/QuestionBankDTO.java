@@ -4,10 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.quizspark.quizsparkserver.dto.FileDTO;
 import com.quizspark.quizsparkserver.dto.questions.QuestionDTO;
+import com.quizspark.quizsparkserver.dto.tags.TagDTO;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.QuestionBank;
-import com.quizspark.quizsparkserver.models.Tag;
 import com.quizspark.quizsparkserver.models.User;
 import lombok.Getter;
 import lombok.Setter;
@@ -34,7 +34,7 @@ public class QuestionBankDTO {
     private Float rating;
     private int numberOfQuestions;
     private String username; // Owner's username
-    private List<String> tags; // List of tags in the question bank
+    private List<TagDTO> tags; // List of tags in the question bank
     private List<FileDTO> files; // List of files attached to the question bank
     private List<QuestionDTO> questions; // List of questions in the question bank
 
@@ -50,7 +50,7 @@ public class QuestionBankDTO {
         this.numberOfQuestions = questionBank.getQuestions().size();
         User owner = questionBank.getUser();
         this.username = owner != null ? owner.getUsername() : null;
-        this.tags = questionBank.getTags().stream().map(Tag::getName).toList();
+        this.tags = questionBank.getTags().stream().map(TagDTO::new).toList();
         this.files = questionBank.getFiles().stream()
                 .filter(file -> file.getOriginFile() == null)
                 .map(FileDTO::new)

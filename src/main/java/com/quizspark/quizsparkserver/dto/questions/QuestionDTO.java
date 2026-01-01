@@ -1,9 +1,9 @@
 package com.quizspark.quizsparkserver.dto.questions;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.quizspark.quizsparkserver.dto.tags.TagDTO;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
 import com.quizspark.quizsparkserver.models.Question;
-import com.quizspark.quizsparkserver.models.Tag;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,7 +17,7 @@ public class QuestionDTO {
     private UUID id;
     private UUID questionBankId;
     private String questionType;
-    private List<String> tags;
+    private List<TagDTO> tags;
     private String description;
     private List<String> answer;
     private List<String> choices;
@@ -28,7 +28,7 @@ public class QuestionDTO {
         this.id = question.getId();
         this.questionBankId = question.getQuestionBank().getId();
         this.questionType = question.getQuestionType().toString();
-        this.tags = question.getTags().stream().map(Tag::getName).toList();
+        this.tags = question.getTags().stream().map(TagDTO::new).toList();
         this.description = question.getDescription();
         this.answer = question.getAnswer();
         this.choices = question.getChoices();

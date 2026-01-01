@@ -136,7 +136,7 @@ public class AiService {
             """;
     private static final String GENERATE_QUESTION_FROM_HISTORY_PROMPT = """
             # Role
-            You are an Intelligent Adaptive Learning Engine. Your goal is to analyze a user's historical performance data and dynamically generate a new curriculum of %d questions to optimize their learning path.
+            You are an Intelligent Adaptive Learning Engine. Your goal is to analyze a user's historical performance data and dynamically generate a new curriculum of %1$d questions to optimize their learning path.
 
             # Input Data Explanation
             You will receive a list of objects representing the user's history. These objects follow a specific schema called "QuestionDTO". Here is how to interpret the fields:
@@ -151,12 +151,12 @@ public class AiService {
             Before generating new content, you must analyze the "QuestionDTO" list to determine the user's proficiency level for each tag.
             1. **Calculate Mastery:** For each tag, calculate the success rate (`correctAttempts` / `totalAttempts`).
             2. **Determine Needs:**
-               - **Low Mastery (< 60%):** The user struggles here. These areas require **Reinforcement**.
-               - **High Mastery (> 85%):** The user is proficient. These areas require **Challenge/Deepening**.
-               - **Moderate Mastery (60-85%):** The user is inconsistent. These areas require **Practice**.
+               - **Low Mastery (< 60%%):** The user struggles here. These areas require **Reinforcement**.
+               - **High Mastery (> 85%%):** The user is proficient. These areas require **Challenge/Deepening**.
+               - **Moderate Mastery (60-85%%):** The user is inconsistent. These areas require **Practice**.
 
             # Generation Strategy
-            Generate exactly %d new questions. You must determine the best balance of questions based on the analysis above:
+            Generate exactly %1$d new questions. You must determine the best balance of questions based on the analysis above:
 
             1. **If the user has many Low Mastery tags:**
                - Prioritize **Reinforcement**.
@@ -174,7 +174,7 @@ public class AiService {
                - Provide a mix of reinforcement and slightly harder variations to stabilize their knowledge.
 
             # Output Requirements
-            - Generate exactly %d questions.
+            - Generate exactly %1$d questions.
             - Maintain the subject matter context provided in the input `tags`.
             - Ensure all generated questions are factually correct.
             """;

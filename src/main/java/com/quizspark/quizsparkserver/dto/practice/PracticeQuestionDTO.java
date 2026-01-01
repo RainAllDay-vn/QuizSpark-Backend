@@ -3,9 +3,9 @@ package com.quizspark.quizsparkserver.dto.practice;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.quizspark.quizsparkserver.dto.questions.QuestionCommentDTO;
+import com.quizspark.quizsparkserver.dto.tags.TagDTO;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
 import com.quizspark.quizsparkserver.models.Question;
-import com.quizspark.quizsparkserver.models.Tag;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,7 +22,7 @@ public class PracticeQuestionDTO {
     private String baseQuestionId;
     private String ownerId;
     private String type;
-    private List<String> tags;
+    private List<TagDTO> tags;
     private String description;
     private List<String> choices;
     private List<String> correctAnswer;
@@ -36,7 +36,7 @@ public class PracticeQuestionDTO {
         this.baseQuestionId = practiceQuestion.getQuestion().getId().toString();
         this.ownerId = practiceQuestion.getQuestion().getQuestionBank().getUser().getId().toString();
         this.type = practiceQuestion.getQuestion().getQuestionType().toString();
-        this.tags = practiceQuestion.getQuestion().getTags().stream().map(Tag::getName).toList();
+        this.tags = practiceQuestion.getQuestion().getTags().stream().map(TagDTO::new).toList();
         this.description = practiceQuestion.getQuestion().getDescription();
         this.userAnswer = practiceQuestion.getUserAnswer();
         this.secondsToAnswer = practiceQuestion.getSecondsToAnswer() != null ? practiceQuestion.getSecondsToAnswer()
