@@ -16,8 +16,8 @@ import static com.quizspark.quizsparkserver.models.Question.QuestionType.SINGLE_
 
 @Entity
 @Table(name = "practice_question", indexes = {
-    @Index(name = "idx_practice_question_practice_id", columnList = "practice_id"),
-    @Index(name = "idx_practice_question_question_id", columnList = "question_id")
+        @Index(name = "idx_practice_question_practice_id", columnList = "practice_id"),
+        @Index(name = "idx_practice_question_question_id", columnList = "question_id")
 })
 @Getter
 @Setter
@@ -35,8 +35,10 @@ public class PracticeQuestion {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
             PracticeQuestionId that = (PracticeQuestionId) o;
             return Objects.equals(practiceId, that.practiceId) &&
                     Objects.equals(index, that.index);
@@ -74,13 +76,12 @@ public class PracticeQuestion {
         this.id = new PracticeQuestionId(practice.getId(), index);
         this.practice = practice;
         this.question = question;
-        if (shuffleAnswer && (
-                question.getQuestionType() == SINGLE_ANSWER
-                        || question.getQuestionType() == MULTIPLE_ANSWER
-        )) {
+        if (shuffleAnswer && (question.getQuestionType() == SINGLE_ANSWER
+                || question.getQuestionType() == MULTIPLE_ANSWER)) {
             int choiceCount = question.getChoices().size();
             this.shuffleMapping = new ArrayList<>();
-            for (int i = 0; i < choiceCount; i++) this.shuffleMapping.add(i);
+            for (int i = 0; i < choiceCount; i++)
+                this.shuffleMapping.add(i);
             Collections.shuffle(this.shuffleMapping);
         } else {
             this.shuffleMapping = null;
@@ -88,22 +89,45 @@ public class PracticeQuestion {
     }
 
     public boolean isClosed() {
-        if (practice.isClosed()) return true;
+        if (practice.isClosed())
+            return true;
         return practice.isRevealAnswer() && userAnswer != null && !userAnswer.isEmpty();
     }
 
     public void updateUserAnswer(List<String> userAnswer, int secondsToAnswer) {
-        if (isClosed()) return;
-        this.userAnswer = userAnswer;
-        this.isCorrect = userAnswer.equals(getCorrectAnswer());
+        if (isClosed())
+            return;
+
+        if (shuffleMapping != null && !shuffleMapping.isEmpty() && userAnswer != null &&
+                (question.getQuestionType() == SINGLE_ANSWER || question.getQuestionType() == MULTIPLE_ANSWER)) {
+            List<String> baseUserAnswer = new ArrayList<>();
+            for (String ans : userAnswer) {
+                try {
+                    int shuffledIdx = Integer.parseInt(ans);
+                    if (shuffledIdx >= 0 && shuffledIdx < shuffleMapping.size()) {
+                        baseUserAnswer.add(String.valueOf(shuffleMapping.get(shuffledIdx)));
+                    } else {
+                        baseUserAnswer.add(ans);
+                    }
+                } catch (NumberFormatException e) {
+                    baseUserAnswer.add(ans);
+                }
+            }
+            this.userAnswer = baseUserAnswer;
+            this.isCorrect = new HashSet<>(this.userAnswer).equals(new HashSet<>(question.getAnswer()));
+        } else {
+            this.userAnswer = userAnswer;
+            this.isCorrect = userAnswer != null && userAnswer.equals(question.getAnswer());
+        }
+
         this.secondsToAnswer = secondsToAnswer;
     }
 
     public List<String> getCorrectAnswer() {
         List<String> correctAnswer = new ArrayList<>(question.getAnswer().size());
-        if (shuffleMapping!=null && shuffleMapping.size()>1){
+        if (shuffleMapping != null && shuffleMapping.size() > 1) {
             List<String> originalChoices = question.getChoices();
-            switch (question.getQuestionType()){
+            switch (question.getQuestionType()) {
                 case SINGLE_ANSWER:
                 case MULTIPLE_ANSWER:
                     List<Integer> originalAnswer = question.getAnswer()

@@ -39,11 +39,12 @@ public class PracticeQuestionDTO {
         this.tags = practiceQuestion.getQuestion().getTags().stream().map(Tag::getName).toList();
         this.description = practiceQuestion.getQuestion().getDescription();
         this.userAnswer = practiceQuestion.getUserAnswer();
-        this.secondsToAnswer = practiceQuestion.getSecondsToAnswer()!=null ? practiceQuestion.getSecondsToAnswer() : 0;
+        this.secondsToAnswer = practiceQuestion.getSecondsToAnswer() != null ? practiceQuestion.getSecondsToAnswer()
+                : 0;
         applyShuffle();
     }
 
-    private void applyShuffle(){
+    private void applyShuffle() {
         Question originalQuestion = practiceQuestion.getQuestion();
         List<Integer> shuffleMapping = practiceQuestion.getShuffleMapping();
 
@@ -55,6 +56,25 @@ public class PracticeQuestionDTO {
                 shuffledChoices.add(originalChoices.get(shuffleMapping.get(i)));
             }
             this.choices = shuffledChoices;
+
+            // Map userAnswer from base indices to shuffled indices
+            if (this.userAnswer != null) {
+                List<String> shuffledUserAnswer = new ArrayList<>();
+                for (String ans : this.userAnswer) {
+                    try {
+                        int baseIdx = Integer.parseInt(ans);
+                        int shuffledIdx = shuffleMapping.indexOf(baseIdx);
+                        if (shuffledIdx != -1) {
+                            shuffledUserAnswer.add(String.valueOf(shuffledIdx));
+                        } else {
+                            shuffledUserAnswer.add(ans);
+                        }
+                    } catch (NumberFormatException e) {
+                        shuffledUserAnswer.add(ans);
+                    }
+                }
+                this.userAnswer = shuffledUserAnswer;
+            }
         } else {
             this.choices = originalQuestion.getChoices();
         }
