@@ -49,7 +49,7 @@ public class QuestionBankController {
 
     @GetMapping("/single/{id}")
     public ResponseEntity<QuestionBankDTO> getSingleQuestionBank(@PathVariable String id) {
-        QuestionBankDTO body = questionService.getQuestionBankById(id).appendQuestions();
+        QuestionBankDTO body = questionService.getFullQuestionBankById(id);
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 

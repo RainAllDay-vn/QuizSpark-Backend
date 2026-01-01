@@ -10,17 +10,24 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface PracticeQuestionRepository extends JpaRepository<PracticeQuestion, PracticeQuestion.PracticeQuestionId> {
-    @Query("SELECT pq " +
-            "FROM PracticeQuestion pq " +
-            "WHERE pq.question IN :questions " +
-            "   AND pq.practice.user = :user")
-    List<PracticeQuestion> findByQuestionsAndUser(List<Question> questions, User user);
+public interface PracticeQuestionRepository
+                extends JpaRepository<PracticeQuestion, PracticeQuestion.PracticeQuestionId> {
+        @Query("SELECT pq " +
+                        "FROM PracticeQuestion pq " +
+                        "WHERE pq.question IN :questions " +
+                        "   AND pq.practice.user = :user")
+        List<PracticeQuestion> findByQuestionsAndUser(List<Question> questions, User user);
 
-    @Query("SELECT pq " +
-            "FROM PracticeQuestion pq " +
-            "LEFT JOIN FETCH pq.practice " +
-            "WHERE pq.practice.id = :practiceID " +
-            "   AND pq.id.index = :index")
-    Optional<PracticeQuestion> findByPracticeAndIndex(UUID practiceID, int index);
+        @Query("SELECT pq " +
+                        "FROM PracticeQuestion pq " +
+                        "LEFT JOIN FETCH pq.practice " +
+                        "WHERE pq.practice.id = :practiceID " +
+                        "   AND pq.id.index = :index")
+        Optional<PracticeQuestion> findByPracticeAndIndex(UUID practiceID, int index);
+
+        @Query("SELECT pq " +
+                        "FROM PracticeQuestion pq " +
+                        "WHERE pq.practice.user.id = :userId " +
+                        "   AND pq.practice.questionBank.id = :bankId")
+        List<PracticeQuestion> findByUserAndBank(UUID userId, UUID bankId);
 }

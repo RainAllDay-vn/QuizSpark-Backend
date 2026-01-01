@@ -1,6 +1,7 @@
 package com.quizspark.quizsparkserver.dto.questions;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.quizspark.quizsparkserver.models.PracticeQuestion;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.Tag;
 import lombok.Getter;
@@ -20,6 +21,8 @@ public class QuestionDTO {
     private String description;
     private List<String> answer;
     private List<String> choices;
+    private Integer totalAttempts;
+    private Integer correctAttempts;
 
     public QuestionDTO(Question question) {
         this.id = question.getId();
@@ -29,5 +32,14 @@ public class QuestionDTO {
         this.description = question.getDescription();
         this.answer = question.getAnswer();
         this.choices = question.getChoices();
+    }
+
+    public QuestionDTO appendStatistics(List<PracticeQuestion> practiceQuestions) {
+        this.totalAttempts = practiceQuestions.size();
+        this.correctAttempts = (int) practiceQuestions.stream()
+                .map(PracticeQuestion::getIsCorrect)
+                .filter(isCorrect -> isCorrect == true)
+                .count();
+        return this;
     }
 }

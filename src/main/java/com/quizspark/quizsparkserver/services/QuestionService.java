@@ -5,6 +5,7 @@ import com.quizspark.quizsparkserver.dto.banks.QuestionBankDTO;
 import com.quizspark.quizsparkserver.dto.banks.QuestionBankUpdateDTO;
 import com.quizspark.quizsparkserver.dto.questions.*;
 import com.quizspark.quizsparkserver.models.*;
+import com.quizspark.quizsparkserver.repositories.PracticeQuestionRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionBankRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionCommentRepository;
 import com.quizspark.quizsparkserver.repositories.QuestionRepository;
@@ -20,13 +21,17 @@ import java.util.*;
 public class QuestionService {
     private final QuestionBankRepository bankRepository;
     private final QuestionRepository questionRepository;
+    private final PracticeQuestionRepository practiceQuestionRepository;
     private final QuestionCommentRepository questionCommentRepository;
 
     public QuestionService(
             QuestionBankRepository bankRepository,
-            QuestionRepository questionRepository, QuestionCommentRepository questionCommentRepository) {
+            QuestionRepository questionRepository,
+            PracticeQuestionRepository practiceQuestionRepository,
+            QuestionCommentRepository questionCommentRepository) {
         this.bankRepository = bankRepository;
         this.questionRepository = questionRepository;
+        this.practiceQuestionRepository = practiceQuestionRepository;
         this.questionCommentRepository = questionCommentRepository;
     }
 
@@ -75,6 +80,16 @@ public class QuestionService {
 
     public QuestionBankDTO getQuestionBankById(String bankId) {
         return new QuestionBankDTO(getQuestionBankEntityById(bankId));
+    }
+
+    public QuestionBankDTO getFullQuestionBankById(String bankId) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        QuestionBank questionBank = getQuestionBankEntityById(bankId);
+        List<PracticeQuestion> practiceHistory = practiceQuestionRepository
+                .findByUserAndBank(user.getId(), questionBank.getId());
+        return new QuestionBankDTO(questionBank)
+                .appendQuestions()
+                .appendStatistics(practiceHistory);
     }
 
     private boolean canBeEdited(QuestionBank questionBank) {

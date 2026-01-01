@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.quizspark.quizsparkserver.dto.FileDTO;
 import com.quizspark.quizsparkserver.dto.questions.QuestionDTO;
+import com.quizspark.quizsparkserver.models.PracticeQuestion;
 import com.quizspark.quizsparkserver.models.Question;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.Tag;
@@ -14,7 +15,9 @@ import lombok.Setter;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -58,6 +61,18 @@ public class QuestionBankDTO {
         questions = new LinkedList<>();
         for (Question question : questionBank.getQuestions()) {
             questions.add(new QuestionDTO(question));
+        }
+        return this;
+    }
+
+    public QuestionBankDTO appendStatistics(List<PracticeQuestion> practiceQuestions) {
+        if (questions == null)
+            return this;
+        Map<UUID, List<PracticeQuestion>> practiceQuestionsMap = practiceQuestions.stream()
+                .collect(Collectors.groupingBy(pq -> pq.getQuestion().getId()));
+        for (QuestionDTO question : questions) {
+            List<PracticeQuestion> practiceHistory = practiceQuestionsMap.getOrDefault(question.getId(), List.of());
+            question.appendStatistics(practiceHistory);
         }
         return this;
     }

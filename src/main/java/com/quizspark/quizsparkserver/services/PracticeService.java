@@ -26,14 +26,13 @@ public class PracticeService {
     public PracticeService(
             QuestionService questionService,
             PracticeRepository practiceRepository,
-            PracticeQuestionRepository practiceQuestionRepository
-    ) {
+            PracticeQuestionRepository practiceQuestionRepository) {
         this.questionService = questionService;
         this.practiceRepository = practiceRepository;
         this.practiceQuestionRepository = practiceQuestionRepository;
     }
 
-    private List<Question> getSuitableQuestions(QuestionBank bank, User user, int limit, List<String> tags){
+    private List<Question> getSuitableQuestions(QuestionBank bank, User user, int limit, List<String> tags) {
         Set<String> tagSet = new HashSet<>(tags);
         List<Question> questions = bank.getQuestions()
                 .stream()
@@ -49,7 +48,8 @@ public class PracticeService {
     }
 
     @Transactional
-    public UUID startNewPractice(String questionBankId, int limit, boolean shuffleAnswer, boolean revealAnswer, List<String> tags) {
+    public UUID startNewPractice(String questionBankId, int limit, boolean shuffleAnswer, boolean revealAnswer,
+            List<String> tags) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         QuestionBank bank = questionService.getQuestionBankEntityById(questionBankId);
         List<Question> suitableQuestions = new ArrayList<>(getSuitableQuestions(bank, user, limit, tags));
@@ -59,7 +59,8 @@ public class PracticeService {
         return practice.getId();
     }
 
-    public PracticeDTO startNewAnonymPractice(String questionBankId, int limit, boolean shuffleAnswer, List<String> tags) {
+    public PracticeDTO startNewAnonymPractice(String questionBankId, int limit, boolean shuffleAnswer,
+            List<String> tags) {
         Set<String> tagSet = new HashSet<>(tags);
         QuestionBank bank = questionService.getQuestionBankEntityById(questionBankId);
         List<Question> questions = bank.getQuestions()
@@ -71,43 +72,51 @@ public class PracticeService {
         return new PracticeDTO(practice);
     }
 
-    public Page<PracticeDTO> getUserPractice(Pageable pageable, Boolean isClosed){
+    public Page<PracticeDTO> getUserPractice(Pageable pageable, Boolean isClosed) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Page<Practice> page = practiceRepository.findByUser(user, isClosed, pageable);
         return page.map(PracticeDTO::new);
     }
 
-    public PracticeDTO getPractice(String practiceId){
+    public PracticeDTO getPractice(String practiceId) {
         return new PracticeDTO(getPracticeEntity(practiceId));
     }
 
-    private Practice getPracticeEntity(String practiceId){
+    private Practice getPracticeEntity(String practiceId) {
         Optional<Practice> practiceOptional = practiceRepository.findById(UUID.fromString(practiceId));
-        if (practiceOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "There isn't a practice with such ID");
+        if (practiceOptional.isEmpty())
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "There isn't a practice with such ID");
         Practice practice = practiceOptional.get();
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (!practice.getUser().equals(user)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this practice");
+        if (!practice.getUser().equals(user))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this practice");
         practice.getPracticeQuestion().sort(Comparator.comparingInt(q -> q.getId().getIndex()));
         return practice;
     }
 
-    private PracticeQuestion getPracticeQuestionEntity(String practiceId, int index){
-        Optional<PracticeQuestion> practiceQuestionOptional = practiceQuestionRepository.findByPracticeAndIndex(UUID.fromString(practiceId), index);
-        if (practiceQuestionOptional.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "There isn't a practice question with such ID");
+    private PracticeQuestion getPracticeQuestionEntity(String practiceId, int index) {
+        Optional<PracticeQuestion> practiceQuestionOptional = practiceQuestionRepository
+                .findByPracticeAndIndex(UUID.fromString(practiceId), index);
+        if (practiceQuestionOptional.isEmpty())
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "There isn't a practice question with such ID");
         PracticeQuestion practiceQuestion = practiceQuestionOptional.get();
         Practice practice = practiceQuestion.getPractice();
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (!practice.getUser().getId().equals(user.getId())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this practice question");
+        if (!practice.getUser().getId().equals(user.getId()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this practice question");
         return practiceQuestion;
     }
 
-    public PracticeAnswerResponseDTO answerPracticeQuestion(String practiceId, int index, List<String> userAnswer, int secondsToAnswer){
+    public PracticeAnswerResponseDTO answerPracticeQuestion(String practiceId, int index, List<String> userAnswer,
+            int secondsToAnswer) {
         PracticeQuestion question = getPracticeQuestionEntity(practiceId, index);
-        if (question.isClosed()) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot answer this question");
+        if (question.isClosed())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot answer this question");
         question.updateUserAnswer(userAnswer, secondsToAnswer);
         practiceQuestionRepository.save(question);
         PracticeAnswerResponseDTO dto = new PracticeAnswerResponseDTO();
-        if (question.getPractice().isRevealAnswer()) dto.setCorrectAnswer(question.getCorrectAnswer());
+        if (question.getPractice().isRevealAnswer())
+            dto.setCorrectAnswer(question.getCorrectAnswer());
         dto.setQuestionComments(question.getQuestion().getComments().stream().map(QuestionCommentDTO::new).toList());
         return dto;
     }
