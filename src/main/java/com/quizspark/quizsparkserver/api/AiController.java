@@ -21,6 +21,6 @@ public class AiController {
 
     @PostMapping(value = "/parse/{fileId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<AiResponseDTO> parseFile(@PathVariable String fileId) {
-        return aiService.parse(fileId);
+        return aiService.extractQuestion(fileId);
     }
 }

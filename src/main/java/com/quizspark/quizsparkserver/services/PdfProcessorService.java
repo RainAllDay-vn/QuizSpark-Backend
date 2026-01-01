@@ -87,4 +87,20 @@ public class PdfProcessorService {
         }
         return pages;
     }
+
+    public List<byte[]> convertToImages(DbFile dbFile) {
+        List<byte[]> images = new ArrayList<>();
+        try (PDDocument document = PDDocument.load(dbFile.getData())) {
+            PDFRenderer pdfRenderer = new PDFRenderer(document);
+            for (int page = 0; page < document.getNumberOfPages(); ++page) {
+                BufferedImage bim = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(bim, "png", baos);
+                images.add(baos.toByteArray());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error converting PDF to images: " + e.getMessage(), e);
+        }
+        return images;
+    }
 }

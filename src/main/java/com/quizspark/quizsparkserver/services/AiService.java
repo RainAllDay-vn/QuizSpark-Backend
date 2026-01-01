@@ -42,201 +42,89 @@ public class AiService {
     private final PdfProcessorService pdfProcessorService;
     private final ChatModel chatModel;
     private static final String TEXT_MODEL = "deepseek-ai/DeepSeek-V3.2-TEE";
-    private static final String IMAGE_MODEL = "zai-org/GLM-4.6V";
-    private static final String PARSE_TEXT_PROMPT = """
-            ### Primary Objective
+    private static final String IMAGE_MODEL = "Qwen/Qwen3-VL-235B-A22B-Instruct";
+    private static final String EXTRACT_TEXT_PROMPT = """
+            ### Content Analysis & Extraction Protocol
 
-            You are an AI agent specialized in converting text-based documents (such as `.txt`, `.md`, or raw `.json` content) containing educational content, quizzes, or question sets into a structured JSON format that matches the `QuestionCreationDTO` structure. Your task is to extract questions from the text input and format them according to the specified schema.
+            **Objective**
+            Analyze the provided raw text to identify educational questions, context, and answers. The input text may be derived from `.txt`, `.md`, or parsed `.json` files. You must normalize this content into a coherent structure.
 
-            ### Input
+            **Input Characteristics**
+            * **Raw Text:** The input contains only text; visual diagrams have been removed.
+            * **Rich Text:** Expect Markdown tables, code blocks, or bold/italic markers representing emphasis.
+            * **Grouping:** Questions may be grouped by a common passage or scenario.
 
-            You will receive raw text containing questions, which may include:
-
-            * Multiple choice questions
-            * Multiple answer questions
-            * Fill-in-the-blank questions
-            * Open-ended questions
-            * Mixed content with explanations
-            * **Rich text elements** represented in text (e.g., Markdown tables, code blocks, bold/italic markers).
-            * **Context-dependent questions** (e.g., "Questions 1-3 refer to the following passage...").
-
-            **Note:** The input contains only text. All visual clues (images, diagrams) have been removed.
-
-            ### Output Format
-
-            You must output a JSON array of question objects, where each object follows the `QuestionCreationDTO` structure:
-
-            ```json
-            [
-              {
-                "questionType": "SINGLE_ANSWER|MULTIPLE_ANSWER|FILL_THE_BLANK|OPEN_ANSWER",
-                "tags": ["AI_GENERATED", "tag2"],
-                "description": "The complete question text with Markdown",
-                "answer": ["index_or_text"],
-                "choices": ["choice1", "choice2", "..."],
-                "explanation": "Optional explanation text"
-              }
-            ]
-
-            ```
-
-            ### Field Definitions and Requirements
-
-            #### questionType (Required)
-
-            * **SINGLE_ANSWER**: Questions with exactly one correct answer from multiple choices
-            * **MULTIPLE_ANSWER**: Questions with multiple correct answers from multiple choices
-            * **FILL_THE_BLANK**: Questions with blanks to be filled, where choices represent possible answers
-            * **OPEN_ANSWER**: Open-ended questions without predefined choices
-
-            #### tags (Required)
-
-            * Array of strings categorizing the question.
-            * **MANDATORY RULE**: Every single question **must** include the tag **"AI_GENERATED"**.
-            * **"NO ANSWER"**: Must be added if the correct answer is not indicated in the text.
-            * **RESTRICTION**: Do **NOT** include subject or topic tags (e.g., "math", "history"). Do **NOT** use "GRAPH" tags.
-
-            #### description (Required)
-
-            * The complete question text.
-            * **Context Propagation**: If a question is part of a set that shares a common prompt (e.g., "Read the following passage and answer questions 1-3"), you **must include the shared text/passage/table** in the description of **every** question it applies to.
-            * **Markdown Formatting**: Use Markdown to preserve formatting found in the text.
-            * **Bold/Italics**: Keep emphasis (e.g., `**bold**`, `*italic*`).
-            * **Tables**: Convert text-based tables into Markdown table syntax.
-            * **Code**: Use code blocks (```) for programming questions.
-
-
-
-            #### answer (Conditional)
-
-            * **For SINGLE_ANSWER**: Array with exactly one element containing the index (as string) of the correct choice (e.g., `["0"]` for first choice).
-            * **For MULTIPLE_ANSWER**: Array with one or more elements containing indices (as strings) of correct choices (e.g., `["0", "2"]`).
-            * **For FILL_THE_BLANK**: Array containing the actual text answers for each blank (not indices).
-            * **For OPEN_ANSWER**: Should be null or omitted.
-            * **IMPORTANT**: If no answer is found in the file, use default choice `["0"]` and add "NO ANSWER" to the tags.
-
-            #### choices (Conditional)
-
-            * **For SINGLE_ANSWER**: Array with at least 2 choices.
-            * **For MULTIPLE_ANSWER**: Array with at least 2 choices.
-            * **For FILL_THE_BLANK**: Should be null or empty array (choices are not used for fill-in-the-blank).
-            * **For OPEN_ANSWER**: Should be null or omitted.
-            * **Formatting**: Choices should support Markdown.
-
-            #### explanation (Optional)
-
-            * Text explaining the answer or providing additional context.
-            * **STRICT RULE**: Only include this if the explanation is **explicitly provided** in the source text (e.g., in an answer key section).
-            * Do **not** generate or infer your own explanations.
-
-            ### Processing Guidelines
+            **Processing Rules**
 
             #### 1. Context Propagation (CRITICAL)
+            * **Detection:** detailed scanning for phrases like "Questions 1-3 refer to the following passage," or data tables placed immediately before a series of numbered questions.
+            * **Association:** You must associate that shared context (passage/table) with **every** individual question it applies to.
+            * **Reasoning:** Extracted questions will be used independently; without the propagated context, the question is unsolvable.
 
-            Many text files group questions under a single header, passage, or data table.
+            #### 2. Rich Text Normalization
+            * **Tables:** Detect text-based table structures and convert them into standard Markdown table syntax.
+            * **Equations:** specific mathematical expressions must be wrapped in LaTeX syntax (e.g., `$x^2$`).
+            * **Code:** Detect programming segments and wrap them in code blocks (```).
+            * **Formatting:** Preserve bold/italics found in the source text.
 
-            * **Detect**: Look for indicators like "Questions 10–12 refer to the following passage," or a table/scenario placed before a series of questions.
-            * **Action**: You must **prepend** that shared context to the `description` field of **every** individual question in that group.
-            * **Reasoning**: The system treats every question as an independent entity. If you do not copy the context, the individual question will make no sense to the user.
+            #### 3. Answer Identification Logic
+            Analyze the text to determine the correct answer using the following hierarchy of cues:
+            1.  **Explicit Markers:** Look for asterisks (*), checkmarks (v or ✓), or arrows (->) placed immediately next to a specific choice.
+            2.  **Formatting Cues:** Look for choices that are bolded or italicized differently from the distractors (e.g., `*Option A*`).
+            3.  **Answer Keys:** Scan the end of the document/text stream for a separated answer key section.
 
-            #### 2. Markdown & Rich Text Formatting
+            **Missing Answer Handling:**
+            * If **none** of the above cues yield a confirmed answer, mark the question internally as "Unsolved/Missing Answer."
+            * Do **not** attempt to solve the question using your own knowledge.
+            """;
+    private static final String EXTRACT_PDF_PROMPT = """
+            ### Document Processing Protocol: PDF/Image Vision Analysis
 
-            The input text may contain formatting symbols.
+            **Objective**
+            You are a Vision-Language AI. You will be provided with a series of images representing pages from an educational PDF document. Your task is to visually scan these pages, perform OCR (Optical Character Recognition), and extract structured questions, context, and answers into a normalized format.
 
-            * **Tables**: If the question relies on a text table, render it using Markdown syntax:
-            ```markdown
-            | Column 1 | Column 2 |
-            | -------- | -------- |
-            | Data A   | Data B   |
+            **Input Characteristics**
 
-            ```
+            * **Visual Input:** You are viewing raw page images. Expect multi-column layouts, headers/footers, and varied font sizes.
+            * **Visual Artifacts:** Expect handwriting (circles around answers), watermarks, or scan noise.
+            * **Content Types:** Educational quizzes, reading passages, worksheets, and answer keys.
+
+            **Processing Rules**
+
+            #### 1. Visual Layout & Reading Order
+
+            * **Column Detection:** Analyze the page layout before reading. If the text is arranged in columns, read top-to-bottom, left-to-right. Do not read across the page line-by-line if it breaks the column structure.
+            * **Noise Filtration:** Ignore non-content elements such as:
+            * Page numbers (e.g., "Page 1 of 5").
+            * Running headers/footers.
+            * Watermarks that overlap text.
 
 
-            * **Equations**: Use LaTeX syntax wrapped in single `$` for inline math.
-            * **Line Breaks**: Ensure distinct paragraphs are separated by newlines (`\n\n`) in the string.
 
-            #### 3. Answer Extraction Rules
+            #### 2. Context Propagation (Visual Grouping)
 
-            Prioritize finding the correct answer using these text-based cues:
+            * **Visual Grouping:** Identify questions that are physically grouped under a shared text block, image, or table.
+            * **Indicators:** Look for visual cues like a box surrounding a text passage, or a large bold header stating "Read the text below and answer questions 5-10."
+            * **Action:** You must transcribe this shared context and associate it with **every** individual question in that visual group.
 
-            1. **Explicit Marking**: Asterisks (*), checkmarks (v or ✓), arrows (->) next to a choice.
-            2. **Text Formatting**: Markdown-style bold/italic markers on specific options (e.g., `*Option A*`) that differ from incorrect ones.
-            3. **Answer Keys**: Look at the end of the text stream for a key.
+            #### 3. Rich Text & Visual Transcription
 
-            #### 4. Missing Answers ("NO ANSWER" Tag)
+            * **Tables:** Visually identify grid lines or spatial alignment that indicates a table. Transcribe this into standard Markdown table syntax.
+            * **Math/Equations:** Convert visual mathematical notation (fractions, integrals, superscripts) into LaTeX format (e.g., `$\frac{1}{2}$`).
+            * **Images:** If a question relies on a diagram or image (e.g., "Look at the diagram below"), insert a placeholder description in brackets, e.g., `[Diagram showing a cell structure]`. Do not skip the question.
 
-            If—and only if—**none** of the extraction rules yield a correct answer:
+            #### 4. Answer Identification (Visual Cues)
 
-            1. Use the first choice as the default answer: `["0"]`
-            2. Add **"NO ANSWER"** to the tags array (alongside "AI_GENERATED").
-            3. Do **not** attempt to solve the question yourself.
+            Prioritize finding the correct answer using visual markers often found in scanned PDFs:
 
-            ### Examples
+            1. **Handwritten Marks:** Look for hand-drawn circles, checkmarks, or underlines indicating a selected choice.
+            2. **Visual Highlights:** Look for text with a colored background or distinct bolding compared to other options.
+            3. **Answer Keys:** Check the final images in the sequence for a dedicated "Answer Key" section. Map the numbers in the key back to the questions found on previous pages.
 
-            #### Example 1: Shared Context & Markdown Table
+            **Missing Answer Handling:**
 
-            **Input Text:**
-
-            > Questions 1-2 refer to the following table:
-            > Student | Grade
-            > --- | ---
-            > Alex | 85
-            > Sam | 92
-            > 1. Who got the highest grade?
-            > A) Alex
-            > B) Sam *
-            >
-            >
-
-            **Expected Output:**
-
-            ```json
-            {
-              "questionType": "SINGLE_ANSWER",
-              "tags": ["AI_GENERATED"],
-              "description": "**Questions 1-2 refer to the following table:**\n\n| Student | Grade |\n| --- | --- |\n| Alex | 85 |\n| Sam | 92 |\n\nWho got the highest grade?",
-              "answer": ["1"],
-              "choices": ["Alex", "Sam"],
-              "explanation": null
-            }
-
-            ```
-
-            #### Example 2: No Answer Key Present
-
-            **Input Text:**
-
-            > 5. What is the capital of France?
-            > A. Berlin
-            > B. Madrid
-            > C. Paris
-            >
-            >
-
-            **Expected Output:**
-
-            ```json
-            {
-              "questionType": "SINGLE_ANSWER",
-              "tags": ["AI_GENERATED", "NO ANSWER"],
-              "description": "What is the capital of France?",
-              "answer": ["0"],
-              "choices": ["Berlin", "Madrid", "Paris"],
-              "explanation": null
-            }
-
-            ```
-
-            ### Quality Assurance
-
-            Before finalizing your output, verify:
-
-            1. **Tag Check**: Does **every** question contain `"AI_GENERATED"` in the `tags` array?
-            2. **Context Check**: If the question refers to a passage/table, is that content included in the `description`?
-            3. **Visual Check**: Ensure no "GRAPH" tags are used.
-            4. **Format Check**: Are tables and bold text correctly formatted in Markdown?
-            5. **Answer Check**: If the answer is missing, is "NO ANSWER" in the tags?
-            6. **Validity**: JSON syntax is valid.
+            * If **none** of the extraction rules yield a correct answer, mark the question internally as "Unsolved/Missing Answer."
+            * Do **not** attempt to solve the question using your own knowledge.
             """;
     private static final String IMAGE_SORTER_INSTRUCTIONS = """
             Role: Academic Document Density Classifier
@@ -245,34 +133,165 @@ public class AiService {
             CONTEXT: The user is processing academic materials (slides, exams, notebooks, papers).
 
             Classification Criteria:
+
             1. HIGH (Dense Text | >800 tokens):
-            - Typed academic papers (single-spaced, 2-column).
-            - Textbook pages or dense reading comprehension passages.
-            - Reference lists or bibliographies.
-            - (Visual: Small printed font, minimal margins, wall of text).
+
+            * Typed academic papers (single-spaced, 2-column).
+            * Textbook pages or dense reading comprehension passages.
+            * Reference lists or bibliographies.
+            * (Visual: Small printed font, minimal margins, wall of text).
 
             2. MEDIUM (Standard Text | 300-800 tokens):
-            - Handwritten Notebooks (Full page of writing).
-            - Scanned Exam Papers (Questions mixed with answer space).
-            - Syllabus documents or detailed handouts.
-            - Dense Lecture Slides (Slides containing full paragraphs of text).
-            - (Visual: Large handwriting, or typed text with significant spacing/formatting).
+
+            * Handwritten Notebooks (Full page of writing).
+            * Scanned Exam Papers (Questions mixed with answer space).
+            * Syllabus documents or detailed handouts.
+            * Dense Lecture Slides (Slides containing full paragraphs of text).
+            * (Visual: Large handwriting, or typed text with significant spacing/formatting).
 
             3. LOW (Sparse Text | <300 tokens):
-            - Standard Lecture Slides (Bullet points, headers, diagrams).
-            - Whiteboard photos.
-            - Flashcards or sticky notes.
-            - Sparse handwriting or math equations.
-            - (Visual: Mostly background, images, or large font sizes).
+
+            * Standard Lecture Slides (Bullet points, headers, diagrams).
+            * Whiteboard photos.
+            * Flashcards or sticky notes.
+            * Sparse handwriting or math equations.
+            * (Visual: Mostly background, images, or large font sizes).
 
             Input: A sequence of images.
             Output: A strict JSON list of objects representing the input order.
-            Format: [{"index": 0, "density": "HIGH"}, {"index": 1, "density": "LOW"}, ...]
 
             Constraints:
-            - Do NOT transcribe text.
-            - Treat "Handwriting" as MEDIUM or LOW, never HIGH (handwriting has low token density).
-            - Output ONLY the JSON.
+
+            * Do NOT transcribe text.
+            * Treat "Handwriting" as MEDIUM or LOW, never HIGH (handwriting has low token density).
+            * Output ONLY the raw JSON string.
+            * Do NOT include markdown formatting, backticks (e.g., ```json), or any introductory/concluding text.
+
+            Format: [{"index": 0, "density": "HIGH"}, {"index": 1, "density": "LOW"}]
+            """;
+
+    private static final String PDF_TRANSCRIPT_PROMPT = """
+            ### Input Parsing Logic (CRITICAL)
+            You will receive a text stream containing indexed placeholders like `[[IMAGE_1]]`, `[[IMAGE_2]]`.
+            - **Mapping:** `[[IMAGE_N]]` corresponds strictly to the **Nth image attachment** provided in this request.
+            - **Execution:** When you encounter `[[IMAGE_N]]` in the text, immediately stop reading the text, process the corresponding image using the "Image Input Handling" rules below, insert the result, and then resume reading the text.
+
+            ### Processing Logic
+            Process the input stream sequentially. Do not summarize. Do not skip content.
+
+            #### 1. Page Delimiting (STRICT REQUIREMENT)
+            - **Mandatory Split:** You **MUST** append the exact token `<|PAGE_SPLIT_TOKEN|>` at the very end of the content for every single input page processed (whether it was a Text chunk or an Image).
+            - **Empty Pages:** If an input page/image is blank, output **nothing but** `<|PAGE_SPLIT_TOKEN|>`.
+
+            #### 2. Visual Annotation Handling (Handwriting & Markups)
+            Interpret human markings (red pen, highlighters, pencil) on images using these rules:
+            - **Circled Text (Focus):** Treat as High Importance. Format as **Bold** or place in a Blockquote (`>`).
+              - *Example:* `> **The core formula is...**`
+            - **Underline (Emphasis):** Format as *Italics* or **Bold**.
+              - *Example:* `The *velocity* is constant.`
+            - **Cross-out / Strike (Correction):** Use Strikethrough (`~~`) and follow with the correction if present.
+              - *Example:* `~~The initial value~~ The final value`
+            - **Arrow + Note (Marginalia):** Insert inline as `[Note: ...]` near the referenced text.
+              - *Example:* `Energy [Note: Check units!] is conserved.`
+            - **Checkmark (✓) (Verification):** Append `[✓]` to the verified item.
+              - *Example:* `Answer: 42 [✓]`
+
+            #### 3. Text Input Handling
+            - **Formatting:** Clean up raw text by fixing spacing, indentation, and broken line breaks caused by PDF extraction.
+            - **Structure:** Apply semantic Markdown (e.g., convert "Chapter 1" to `## Chapter 1`, bold key terms).
+            - **Continuity:** If text immediately before `[[IMAGE_N]]` ends mid-sentence, hold the context and merge it seamlessly with the transcription of `[[IMAGE_N]]` without inserting a new line.
+
+            #### 4. Image Input Handling
+            Analyze the visual content of the referenced image to determine the processing mode:
+
+            * **Mode A: Text-Heavy (Slides, Pages, Exam Questions)**
+                * **Action:** Perform **Verbatim Transcription**, applying the "Annotation Handling" rules above.
+                * **Math:** Convert all equations to LaTeX format (surrounded by `$$` for display or `$` for inline).
+                * **Tables:** Reconstruct tables using Markdown table syntax.
+
+            * **Mode B: Visual-Heavy (Charts, Diagrams)**
+                * **Action:** Provide a structured description.
+                * **Format:** `> **[Visual Description]:** A [chart/diagram] showing... [Capture all axis labels, data points, and key insights].`
+
+            * **Mode C: Hybrid (Text wrapping an image)**
+                * **Action:** Transcribe the text verbatim and insert the visual description in its logical position within the flow.
+
+            ### Formatting Rules
+            1.  **Unified Style:** Ensure font styles in the OCR'd text match the raw text style.
+            2.  **No Filler:** Output **strictly** the Markdown content. Do not output "Here is the text", "Sure", or code block fences (```markdown).
+
+            ### Edge Case Handling
+            - **Illegible Text:** Mark as `[?]`.
+            - **Split Sentences:** If Text Input ends with "The coefficient of" and the subsequent Image starts with "friction is...", output "The coefficient of friction is..." on one line.
+            """;
+    private static final String QUESTION_FORMAT_PROMPT = """
+            This prompt focuses strictly on the **JSON structure, data types, and validation constraints**. It is designed to be appended to the processing prompt or used as a function definition.
+
+            ```markdown
+            ### JSON Output Schema & Formatting Rules
+
+            **Task**
+            Map the extracted content into a JSON array of `QuestionCreationDTO` objects.
+
+            **Target Schema**
+            ```json
+            [
+              {
+                "questionType": "ENUM_VALUE",
+                "tags": ["AI_GENERATED", "TAG_2"],
+                "description": "Full question text with context",
+                "answer": ["index_string" or "text_value"],
+                "choices": ["choice_1", "choice_2"],
+                "explanation": "Extracted explanation or null"
+              }
+            ]
+
+            ```
+
+            **Field Definitions & Constraints**
+
+            #### 1. questionType (Enum)
+
+            * `SINGLE_ANSWER`: One correct option. `answer` array contains one index string.
+            * `MULTIPLE_ANSWER`: Multiple correct options. `answer` array contains multiple index strings.
+            * `FILL_THE_BLANK`: User inputs text. `choices` must be null/empty. `answer` contains the text strings.
+            * `OPEN_ANSWER`: Free text response. `answer` and `choices` must be null.
+
+            #### 2. tags (Array<String>)
+
+            * **Mandatory:** Must always include `"AI_GENERATED"`.
+            * **Conditional:** Must include `"NO ANSWER"` if the answer could not be identified in the source text.
+            * **Prohibited:** Do NOT include subject tags (e.g., "Math", "History") or "GRAPH" tags.
+
+            #### 3. description (String)
+
+            * Contains the full question stem.
+            * **Context Inclusion:** Must start with any shared passages/tables identified during processing.
+            * **Format:** Must be valid Markdown string (e.g., `**bold**`, `| Table |`).
+
+            #### 4. answer (Array<String>)
+
+            * **Index-Based:** For Single/Multiple choice, use string indices (e.g., `["0"]` for A, `["1"]` for B).
+            * **Text-Based:** For Fill-the-blank, use the exact text string.
+            * **Defaulting Rule:** If tags include `"NO ANSWER"`, set this to `["0"]`.
+
+            #### 5. choices (Array<String>)
+
+            * Required for Single/Multiple choice (min 2 items).
+            * Must be `null` or empty for Fill-the-blank/Open-ended.
+
+            #### 6. explanation (String | Null)
+
+            * Include **only** if explicitly found in the source text.
+            * Otherwise, set to `null`. Do not generate explanations.
+
+            **Quality Assurance Checklist**
+            Before returning the JSON, verify:
+
+            1. Is the JSON syntax valid?
+            2. Does every object have the `"AI_GENERATED"` tag?
+            3. Are all tables/code blocks in `description` formatted as Markdown?
+            4. If the extracted answer was missing, is the `"NO ANSWER"` tag applied and the answer index set to default `["0"]`?
             """;
 
     public AiService(FileService fileService, PdfProcessorService pdfProcessorService, ChatModel chatModel) {
@@ -281,45 +300,25 @@ public class AiService {
         this.chatModel = chatModel;
     }
 
-    public Flux<AiResponseDTO> parse(String fileId) {
+    public Flux<AiResponseDTO> extractQuestion(String fileId) {
         DbFile file = fileService.getFileEntity(fileId);
         String fileType = file.getFileType();
 
         if (fileType.equals("text/plain") || fileType.equals("application/json") || fileType.equals("text/markdown")) {
-            return parseText(file);
+            return extractQuestionFromText(file);
         } else if (fileType.equals("application/pdf")) {
-            return parsePdf(file);
+            return extractQuestionFromPdf(file);
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported file type " + fileType);
         }
     }
 
-    private Flux<AiResponseDTO> parsePdf(DbFile file) {
-        return Flux.<AiResponseDTO>create(sink -> {
-            try {
-                sink.next(AiResponseDTO.builder().status("analyze").build());
-                DbFile parseFile;
-                try {
-                    parseFile = fileService.getParseFileEntity(file);
-                } catch (Exception e) {
-                    List<ProcessedPageDTO> pages = pdfProcessorService.splitePages(file);
-                    pages = classifyTextDensity(pages);
-                    sink.next(AiResponseDTO.builder().status("thinking").build());
-                }
-                sink.next(AiResponseDTO.builder().status("finish").build());
-                sink.complete();
-            } catch (Exception e) {
-                sink.error(e);
-            }
-        })
-                .subscribeOn(Schedulers.boundedElastic());
-    }
-
-    private Flux<AiResponseDTO> parseText(DbFile file) {
+    private Flux<AiResponseDTO> extractQuestionFromText(DbFile file) {
         String fileContent = new String(file.getData());
+        String systemMessage = EXTRACT_TEXT_PROMPT + QUESTION_FORMAT_PROMPT;
         String userMessage = "Here is the file content:\n\n" + fileContent;
         Prompt prompt = new Prompt(
-                List.of(new SystemMessage(PARSE_TEXT_PROMPT), new UserMessage(userMessage)),
+                List.of(new SystemMessage(systemMessage), new UserMessage(userMessage)),
                 OpenAiChatOptions.builder().model(TEXT_MODEL).build());
 
         return chatModel.stream(prompt)
@@ -387,6 +386,109 @@ public class AiService {
                 .concatWith(Flux.just(AiResponseDTO.builder().status("finish").build()));
     }
 
+    private Flux<AiResponseDTO> extractQuestionFromPdf(DbFile file) {
+        List<byte[]> images = pdfProcessorService.convertToImages(file);
+        List<Media> mediaList = new ArrayList<>();
+        for (byte[] imageBytes : images) {
+            mediaList.add(new Media(MimeTypeUtils.IMAGE_PNG, new ByteArrayResource(imageBytes)));
+        }
+
+        String systemMessage = EXTRACT_PDF_PROMPT + QUESTION_FORMAT_PROMPT;
+        UserMessage userMessage = new UserMessage("Process these images:", mediaList);
+        Prompt prompt = new Prompt(
+                List.of(new SystemMessage(systemMessage), userMessage),
+                OpenAiChatOptions.builder().model(IMAGE_MODEL).build());
+
+        return chatModel.stream(prompt)
+                .map(response -> {
+                    if (response.getResult() == null || response.getResult().getOutput() == null) {
+                        return "";
+                    }
+                    String content = response.getResult().getOutput().getContent();
+                    return content == null ? "" : content;
+                })
+                .scan(new ParsingState(), (state, chunk) -> {
+                    state.buffer.append(chunk);
+                    List<String> newObjects = new java.util.ArrayList<>();
+
+                    int lastEndIndex = -1;
+
+                    for (int i = state.scanOffset; i < state.buffer.length(); i++) {
+                        char c = state.buffer.charAt(i);
+
+                        if (state.escape) {
+                            state.escape = false;
+                            continue;
+                        }
+                        if (c == '\\') {
+                            state.escape = true;
+                            continue;
+                        }
+                        if (c == '"') {
+                            state.insideString = !state.insideString;
+                            continue;
+                        }
+
+                        if (!state.insideString) {
+                            if (c == '{') {
+                                if (state.balance == 0)
+                                    state.startIndex = i;
+                                state.balance++;
+                            } else if (c == '}') {
+                                state.balance--;
+                                if (state.balance == 0 && state.startIndex != -1) {
+                                    newObjects.add(state.buffer.substring(state.startIndex, i + 1));
+                                    lastEndIndex = i;
+                                    state.startIndex = -1;
+                                }
+                            }
+                        }
+                    }
+
+                    state.scanOffset = state.buffer.length();
+
+                    if (lastEndIndex != -1) {
+                        state.buffer.delete(0, lastEndIndex + 1);
+                        int removedCount = lastEndIndex + 1;
+                        state.scanOffset -= removedCount;
+                        if (state.startIndex != -1) {
+                            state.startIndex -= removedCount;
+                        }
+                    }
+                    state.lastEmitted = newObjects;
+                    return state;
+                })
+                .flatMapIterable(state -> state.lastEmitted)
+                .map(json -> AiResponseDTO.builder().status("data").data(json).build())
+                .startWith(AiResponseDTO.builder().status("thinking").build())
+                .concatWith(Flux.just(AiResponseDTO.builder().status("finish").build()));
+    }
+
+    private Flux<AiResponseDTO> extractContentFromPdf(DbFile file) {
+        return Flux.<AiResponseDTO>create(sink -> {
+            try {
+                sink.next(AiResponseDTO.builder().status("analyze").build());
+                DbFile parseFile;
+                try {
+                    parseFile = fileService.getParseFileEntity(file);
+                } catch (Exception e) {
+                    List<ProcessedPageDTO> pages = pdfProcessorService.splitePages(file);
+                    pages.forEach(page -> System.out.println(page));
+                    pages = classifyTextDensity(pages);
+                    pages.forEach(page -> System.out.println(page));
+                    pages = extractContent(pages);
+                    pages.forEach(page -> System.out.println(page));
+                    sink.next(AiResponseDTO.builder().status("thinking").build());
+                }
+                sink.next(AiResponseDTO.builder().status("finish").build());
+                sink.complete();
+            } catch (Exception e) {
+                sink.error(e);
+            }
+        })
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
     public List<ProcessedPageDTO> classifyTextDensity(List<ProcessedPageDTO> pages) {
         List<ProcessedPageDTO> imagePages = new ArrayList<>();
         List<Integer> imageIndices = new ArrayList<>();
@@ -407,16 +509,14 @@ public class AiService {
         UserMessage userMessage = new UserMessage(IMAGE_SORTER_INSTRUCTIONS, mediaList); // Using static final constant
         Prompt prompt = new Prompt(userMessage,
                 OpenAiChatOptions.builder().model(IMAGE_MODEL).build());
-        System.out.println("Sending request to OpenAI");
+        System.out.println("Start Classification");
         ChatResponse response = chatModel.call(prompt);
 
         if (response != null && response.getResult() != null) {
             Generation generation = response.getResult();
-            String content = generation.getOutput().getContent()
-                    .replace("<|begin_of_box|>", "")
-                    .replace("<|end_of_box|>", "");
+            String content = generation.getOutput().getContent();
+            System.out.println("Classification Response: ");
             System.out.println(content);
-            // Parse JSON
             ObjectMapper mapper = new ObjectMapper();
             try {
                 List<TextDensityResponseDTO> results = mapper.readValue(content,
@@ -441,5 +541,105 @@ public class AiService {
         }
 
         return pages;
+    }
+
+    public List<ProcessedPageDTO> extractContent(List<ProcessedPageDTO> pages) {
+        StringBuilder textBuffer = new StringBuilder();
+        List<Media> mediaBuffer = new ArrayList<>();
+        List<ProcessedPageDTO> currentBatchPages = new ArrayList<>();
+        double currentBatchCost = 0;
+        int imageIndex = 0; // Track image index within the current batch
+        final double BUCKET_LIMIT = 4000.0;
+
+        for (ProcessedPageDTO page : pages) {
+            double itemCost = calculateCost(page);
+            if (currentBatchCost + itemCost > BUCKET_LIMIT) {
+                if (currentBatchCost > 0) {
+                    processBatch(textBuffer, mediaBuffer, currentBatchPages);
+                }
+                textBuffer.setLength(0);
+                mediaBuffer.clear();
+                currentBatchPages.clear();
+                currentBatchCost = 0;
+                imageIndex = 0; // Reset image index for the new batch
+            }
+            currentBatchCost += itemCost;
+            currentBatchPages.add(page);
+            if (page.getImage() != null) {
+                imageIndex++;
+                textBuffer.append("\n[[IMAGE_").append(imageIndex).append("]]\n");
+                mediaBuffer.add(new Media(MimeTypeUtils.IMAGE_PNG, new ByteArrayResource(page.getImage())));
+            } else if (page.getText() != null) {
+                textBuffer.append(page.getText()).append("\n");
+            }
+        }
+
+        if (currentBatchCost > 0) {
+            processBatch(textBuffer, mediaBuffer, currentBatchPages);
+        }
+        return pages;
+    }
+
+    private double calculateCost(ProcessedPageDTO page) {
+        if (page.getImage() != null) {
+            ProcessedPageDTO.TextDensity density = page.getTextDensity();
+            if (density == null)
+                density = ProcessedPageDTO.TextDensity.MEDIUM; // Default
+
+            return switch (density) {
+                case HIGH -> 1200.0;
+                case MEDIUM -> 500.0;
+                case LOW -> 150.0;
+            };
+        } else {
+            String text = page.getText();
+            int length = (text != null) ? text.length() : 0;
+            if (length < 50) {
+                return 20.0;
+            } else {
+                return length * 0.4;
+            }
+        }
+    }
+
+    private void processBatch(StringBuilder textBuffer, List<Media> mediaBuffer, List<ProcessedPageDTO> batchPages) {
+        if (batchPages.isEmpty())
+            return;
+        try {
+            UserMessage userMessage = new UserMessage(textBuffer.toString(), new ArrayList<>(mediaBuffer));
+            Prompt prompt = new Prompt(
+                    List.of(new SystemMessage(PDF_TRANSCRIPT_PROMPT), userMessage),
+                    OpenAiChatOptions.builder().model(IMAGE_MODEL).build());
+
+            System.out.println("Start Batch Extraction");
+            ChatResponse response = chatModel.call(prompt);
+            String content = null;
+            if (response != null && response.getResult() != null) {
+                content = response.getResult().getOutput().getContent();
+                System.out.println("Batch Extraction Response: ");
+                System.out.println(content);
+            }
+
+            if (content != null && !content.isEmpty()) {
+                String[] pageParts = content.split("<\\|PAGE_SPLIT_TOKEN\\|>");
+                for (int i = 0; i < batchPages.size(); i++) {
+                    if (i < pageParts.length) {
+                        batchPages.get(i).setText(pageParts[i].trim());
+                    } else {
+                        batchPages.get(i).setText("[AI ERROR: No Content Generated]");
+                    }
+                }
+            } else {
+                for (int i = 0; i < batchPages.size(); i++) {
+                    batchPages.get(i).setText("[AI ERROR: No Content Generated]");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error processing batch: " + e.getMessage());
+            e.printStackTrace();
+            for (int i = 0; i < batchPages.size(); i++) {
+                batchPages.get(i).setText("[AI ERROR: " + e.getMessage() + "]");
+            }
+        }
     }
 }
