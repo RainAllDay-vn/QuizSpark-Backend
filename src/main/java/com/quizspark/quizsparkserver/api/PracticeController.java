@@ -32,7 +32,7 @@ public class PracticeController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "true") boolean shuffle,
             @RequestParam(defaultValue = "true") boolean revealAnswer,
-            @RequestParam(defaultValue = "") List<String> tags){
+            @RequestParam(defaultValue = "") List<String> tags) {
         UUID practiceId = practiceService.startNewPractice(bankId, size, shuffle, revealAnswer, tags);
         HashMap<Object, Object> body = new HashMap<>();
         body.put("id", practiceId.toString());
@@ -44,8 +44,7 @@ public class PracticeController {
             @RequestParam String bankId,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "true") boolean shuffle,
-            @RequestParam(defaultValue = "") List<String> tags
-    ){
+            @RequestParam(defaultValue = "") List<String> tags) {
         PracticeDTO body = practiceService.startNewAnonymPractice(bankId, size, shuffle, tags);
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
@@ -53,22 +52,22 @@ public class PracticeController {
     @GetMapping("/me")
     public ResponseEntity<Object> getPractice(
             @PageableDefault(sort = "date", direction = Sort.Direction.DESC) Pageable pageable,
-            @RequestParam(required = false) Boolean isClosed
-    ){
+            @RequestParam(required = false) Boolean isClosed) {
         Page<PracticeDTO> page = practiceService.getUserPractice(pageable, isClosed);
         PageResponseDTO<PracticeDTO> body = new PageResponseDTO<>(page);
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @GetMapping("/id/{practiceId}")
-    public ResponseEntity<PracticeDTO> getPractice(@PathVariable String practiceId){
+    public ResponseEntity<PracticeDTO> getPractice(@PathVariable String practiceId) {
         PracticeDTO body = practiceService.getPractice(practiceId)
                 .appendQuestions();
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @PostMapping("/id/{practiceId}/answer")
-    public ResponseEntity<Object> answerQuestion(@PathVariable String practiceId, @RequestBody PracticeAnswerDTO answer){
+    public ResponseEntity<Object> answerQuestion(@PathVariable String practiceId,
+            @RequestBody PracticeAnswerDTO answer) {
         PracticeAnswerResponseDTO body = practiceService.answerPracticeQuestion(
                 practiceId,
                 answer.getIndex(),
@@ -79,7 +78,8 @@ public class PracticeController {
 
     @PostMapping("/id/{practiceId}/finish")
     public ResponseEntity<Object> finishPractice(@PathVariable String practiceId) {
-        PracticeDTO body = practiceService.finishPractice(practiceId);
+        PracticeDTO body = practiceService.finishPractice(practiceId)
+                .appendQuestions();
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
 }

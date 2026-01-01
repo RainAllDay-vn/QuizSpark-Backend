@@ -28,6 +28,6 @@ public interface PracticeQuestionRepository
         @Query("SELECT pq " +
                         "FROM PracticeQuestion pq " +
                         "WHERE pq.practice.user.id = :userId " +
-                        "   AND pq.practice.questionBank.id = :bankId")
+                        "   AND pq.question.questionBank.id = :bankId")
         List<PracticeQuestion> findByUserAndBank(UUID userId, UUID bankId);
 }

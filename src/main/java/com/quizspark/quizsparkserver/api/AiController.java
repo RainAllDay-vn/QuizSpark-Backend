@@ -1,5 +1,6 @@
 package com.quizspark.quizsparkserver.api;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.quizspark.quizsparkserver.dto.ai.AiResponseDTO;
 import com.quizspark.quizsparkserver.services.AiService;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,7 +26,7 @@ public class AiController {
     }
 
     @PostMapping(value = "/generate/bank/{bankId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<AiResponseDTO> generateQuestion(@PathVariable String bankId) {
-        return aiService.generateQuestion(bankId);
+    public Flux<AiResponseDTO> generateQuestion(@PathVariable String bankId) throws JsonProcessingException {
+        return aiService.generateQuestionFromPracticeHistory(bankId);
     }
 }

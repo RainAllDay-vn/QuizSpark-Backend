@@ -17,12 +17,17 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.ArrayList;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quizspark.quizsparkserver.dto.ai.AiResponseDTO;
 import com.quizspark.quizsparkserver.dto.ai.ProcessedPageDTO;
 import com.quizspark.quizsparkserver.dto.ai.TextDensityResponseDTO;
+import com.quizspark.quizsparkserver.dto.banks.QuestionBankDTO;
+import com.quizspark.quizsparkserver.dto.questions.QuestionDTO;
 
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
@@ -39,8 +44,10 @@ public class AiService {
         int scanOffset = 0;
     }
 
+    private final QuestionService questionService;
     private final FileService fileService;
     private final PdfProcessorService pdfProcessorService;
+    private final ObjectMapper mapper;
     private final ChatModel chatModel;
     private static final String TEXT_MODEL = "deepseek-ai/DeepSeek-V3.2-TEE";
     private static final String IMAGE_MODEL = "Qwen/Qwen3-VL-235B-A22B-Instruct";
@@ -64,7 +71,7 @@ public class AiService {
 
             #### 2. Rich Text Normalization
             * **Tables:** Detect text-based table structures and convert them into standard Markdown table syntax.
-            * **Equations:** specific mathematical expressions must be wrapped in LaTeX syntax (e.g., `$x^2$`).
+            * **Equations:** specific mathematical expressions must be wrapped in LaTeX syntax (e.g., `^2$`).
             * **Code:** Detect programming segments and wrap them in code blocks (```).
             * **Formatting:** Preserve bold/italics found in the source text.
 
@@ -126,6 +133,50 @@ public class AiService {
 
             * If **none** of the extraction rules yield a correct answer, mark the question internally as "Unsolved/Missing Answer."
             * Do **not** attempt to solve the question using your own knowledge.
+            """;
+    private static final String GENERATE_QUESTION_FROM_HISTORY_PROMPT = """
+            # Role
+            You are an Intelligent Adaptive Learning Engine. Your goal is to analyze a user's historical performance data and dynamically generate a new curriculum of %d questions to optimize their learning path.
+
+            # Input Data Explanation
+            You will receive a list of objects representing the user's history. These objects follow a specific schema called "QuestionDTO". Here is how to interpret the fields:
+            - `tags` (List<String>): The specific topics or concepts covered by the question.
+            - `description` (String): The actual question text the user answered.
+            - `answer` (List<String>): The correct solution.
+            - `choices` (List<String>): The options provided to the user (including the correct answer).
+            - `totalAttempts` (Integer): The number of times the user has tried this specific question.
+            - `correctAttempts` (Integer): The number of times the user answered correctly.
+
+            # Analytical Process
+            Before generating new content, you must analyze the "QuestionDTO" list to determine the user's proficiency level for each tag.
+            1. **Calculate Mastery:** For each tag, calculate the success rate (`correctAttempts` / `totalAttempts`).
+            2. **Determine Needs:**
+               - **Low Mastery (< 60%):** The user struggles here. These areas require **Reinforcement**.
+               - **High Mastery (> 85%):** The user is proficient. These areas require **Challenge/Deepening**.
+               - **Moderate Mastery (60-85%):** The user is inconsistent. These areas require **Practice**.
+
+            # Generation Strategy
+            Generate exactly %d new questions. You must determine the best balance of questions based on the analysis above:
+
+            1. **If the user has many Low Mastery tags:**
+               - Prioritize **Reinforcement**.
+               - Create variations of the failed concepts but simplify the context.
+               - Focus on "What" and "Why" questions (Lower Bloom's Taxonomy) to build a solid foundation.
+               - Ensure distractors (wrong choices) specifically target the misconceptions implied by their previous failures.
+
+            2. **If the user has mostly High Mastery tags:**
+               - Prioritize **Challenge**.
+               - Create questions that combine multiple tags or introduce edge cases.
+               - Focus on "How", "Analyze", and "Evaluate" questions (Higher Bloom's Taxonomy).
+               - If possible, introduce adjacent topics (topics related to the tags but not explicitly present) to widen their knowledge.
+
+            3. **If the user is balanced or inconsistent:**
+               - Provide a mix of reinforcement and slightly harder variations to stabilize their knowledge.
+
+            # Output Requirements
+            - Generate exactly %d questions.
+            - Maintain the subject matter context provided in the input `tags`.
+            - Ensure all generated questions are factually correct.
             """;
     private static final String IMAGE_SORTER_INSTRUCTIONS = """
             Role: Academic Document Density Classifier
@@ -295,10 +346,16 @@ public class AiService {
             4. If the extracted answer was missing, is the `"NO ANSWER"` tag applied and the answer index set to default `["0"]`?
             """;
 
-    public AiService(FileService fileService, PdfProcessorService pdfProcessorService, ChatModel chatModel) {
+    public AiService(FileService fileService,
+            QuestionService questionService,
+            PdfProcessorService pdfProcessorService,
+            ChatModel chatModel,
+            ObjectMapper mapper) {
         this.fileService = fileService;
+        this.questionService = questionService;
         this.pdfProcessorService = pdfProcessorService;
         this.chatModel = chatModel;
+        this.mapper = mapper;
     }
 
     public Flux<AiResponseDTO> extractQuestion(String fileId) {
@@ -321,148 +378,59 @@ public class AiService {
         Prompt prompt = new Prompt(
                 List.of(new SystemMessage(systemMessage), new UserMessage(userMessage)),
                 OpenAiChatOptions.builder().model(TEXT_MODEL).build());
+        Flux<AiResponseDTO> start = Flux.just(AiResponseDTO.builder().status("start").build());
+        Flux<AiResponseDTO> thinking = Flux.just(AiResponseDTO.builder().status("thinking").build());
+        Flux<AiResponseDTO> aiStream = streamAndParseJson(prompt);
+        Flux<AiResponseDTO> finish = Flux.just(AiResponseDTO.builder().status("finish").build());
 
-        return chatModel.stream(prompt)
-                .map(response -> {
-                    if (response.getResult() == null || response.getResult().getOutput() == null) {
-                        return "";
-                    }
-                    String content = response.getResult().getOutput().getContent();
-                    return content == null ? "" : content;
-                })
-                .scan(new ParsingState(), (state, chunk) -> {
-                    state.buffer.append(chunk);
-                    List<String> newObjects = new java.util.ArrayList<>();
-
-                    int lastEndIndex = -1;
-
-                    for (int i = state.scanOffset; i < state.buffer.length(); i++) {
-                        char c = state.buffer.charAt(i);
-
-                        if (state.escape) {
-                            state.escape = false;
-                            continue;
-                        }
-                        if (c == '\\') {
-                            state.escape = true;
-                            continue;
-                        }
-                        if (c == '"') {
-                            state.insideString = !state.insideString;
-                            continue;
-                        }
-
-                        if (!state.insideString) {
-                            if (c == '{') {
-                                if (state.balance == 0)
-                                    state.startIndex = i;
-                                state.balance++;
-                            } else if (c == '}') {
-                                state.balance--;
-                                if (state.balance == 0 && state.startIndex != -1) {
-                                    newObjects.add(state.buffer.substring(state.startIndex, i + 1));
-                                    lastEndIndex = i;
-                                    state.startIndex = -1;
-                                }
-                            }
-                        }
-                    }
-
-                    state.scanOffset = state.buffer.length();
-
-                    if (lastEndIndex != -1) {
-                        state.buffer.delete(0, lastEndIndex + 1);
-                        int removedCount = lastEndIndex + 1;
-                        state.scanOffset -= removedCount;
-                        if (state.startIndex != -1) {
-                            state.startIndex -= removedCount;
-                        }
-                    }
-                    state.lastEmitted = newObjects;
-                    return state;
-                })
-                .flatMapIterable(state -> state.lastEmitted)
-                .map(json -> AiResponseDTO.builder().status("data").data(json).build())
-                .startWith(AiResponseDTO.builder().status("thinking").build())
-                .concatWith(Flux.just(AiResponseDTO.builder().status("finish").build()));
+        return Flux.concat(start, thinking, aiStream, finish);
     }
 
     private Flux<AiResponseDTO> extractQuestionFromPdf(DbFile file) {
-        List<byte[]> images = pdfProcessorService.convertToImages(file);
-        List<Media> mediaList = new ArrayList<>();
-        for (byte[] imageBytes : images) {
-            mediaList.add(new Media(MimeTypeUtils.IMAGE_PNG, new ByteArrayResource(imageBytes)));
-        }
+        return Flux.just("start")
+                .map(status -> AiResponseDTO.builder().status(status).build())
+                .flatMap(startNode -> {
+                    List<byte[]> images = pdfProcessorService.convertToImages(file);
+                    List<Media> mediaList = images.stream()
+                            .map(bytes -> new Media(MimeTypeUtils.IMAGE_PNG, new ByteArrayResource(bytes)))
+                            .toList();
+                    Prompt generatedPrompt = new Prompt(
+                            List.of(new SystemMessage(EXTRACT_PDF_PROMPT + QUESTION_FORMAT_PROMPT),
+                                    new UserMessage("Process these images:", mediaList)),
+                            OpenAiChatOptions.builder().model(IMAGE_MODEL).build());
 
-        String systemMessage = EXTRACT_PDF_PROMPT + QUESTION_FORMAT_PROMPT;
-        UserMessage userMessage = new UserMessage("Process these images:", mediaList);
+                    Flux<AiResponseDTO> thinking = Flux.just(AiResponseDTO.builder().status("thinking").build());
+                    Flux<AiResponseDTO> aiStream = streamAndParseJson(generatedPrompt);
+                    Flux<AiResponseDTO> finish = Flux.just(AiResponseDTO.builder().status("finish").build());
+                    return Flux.concat(Flux.just(startNode), thinking, aiStream, finish);
+                });
+
+    }
+
+    public Flux<AiResponseDTO> generateQuestionFromPracticeHistory(String bankId) throws JsonProcessingException {
+        QuestionBankDTO questionBank = questionService.getFullQuestionBankById(bankId);
+        List<QuestionDTO> questions = questionBank.getQuestions()
+                .stream()
+                .map(question -> {
+                    question.setId(null);
+                    question.setQuestionBankId(null);
+                    return question;
+                })
+                .collect(Collectors.toList());
+        String questionsJson = mapper.writeValueAsString(questions);
+        String systemMessage = GENERATE_QUESTION_FROM_HISTORY_PROMPT.formatted(10)
+                + "\n\n" + QUESTION_FORMAT_PROMPT;
+        String userMessage = "Here is the practice history:\n\n" + questionsJson;
         Prompt prompt = new Prompt(
-                List.of(new SystemMessage(systemMessage), userMessage),
-                OpenAiChatOptions.builder().model(IMAGE_MODEL).build());
+                List.of(new SystemMessage(systemMessage), new UserMessage(userMessage)),
+                OpenAiChatOptions.builder().model(TEXT_MODEL).build());
 
-        return chatModel.stream(prompt)
-                .map(response -> {
-                    if (response.getResult() == null || response.getResult().getOutput() == null) {
-                        return "";
-                    }
-                    String content = response.getResult().getOutput().getContent();
-                    return content == null ? "" : content;
-                })
-                .scan(new ParsingState(), (state, chunk) -> {
-                    state.buffer.append(chunk);
-                    List<String> newObjects = new java.util.ArrayList<>();
+        Flux<AiResponseDTO> start = Flux.just(AiResponseDTO.builder().status("start").build());
+        Flux<AiResponseDTO> thinking = Flux.just(AiResponseDTO.builder().status("thinking").build());
+        Flux<AiResponseDTO> aiStream = streamAndParseJson(prompt);
+        Flux<AiResponseDTO> finish = Flux.just(AiResponseDTO.builder().status("finish").build());
 
-                    int lastEndIndex = -1;
-
-                    for (int i = state.scanOffset; i < state.buffer.length(); i++) {
-                        char c = state.buffer.charAt(i);
-
-                        if (state.escape) {
-                            state.escape = false;
-                            continue;
-                        }
-                        if (c == '\\') {
-                            state.escape = true;
-                            continue;
-                        }
-                        if (c == '"') {
-                            state.insideString = !state.insideString;
-                            continue;
-                        }
-
-                        if (!state.insideString) {
-                            if (c == '{') {
-                                if (state.balance == 0)
-                                    state.startIndex = i;
-                                state.balance++;
-                            } else if (c == '}') {
-                                state.balance--;
-                                if (state.balance == 0 && state.startIndex != -1) {
-                                    newObjects.add(state.buffer.substring(state.startIndex, i + 1));
-                                    lastEndIndex = i;
-                                    state.startIndex = -1;
-                                }
-                            }
-                        }
-                    }
-
-                    state.scanOffset = state.buffer.length();
-
-                    if (lastEndIndex != -1) {
-                        state.buffer.delete(0, lastEndIndex + 1);
-                        int removedCount = lastEndIndex + 1;
-                        state.scanOffset -= removedCount;
-                        if (state.startIndex != -1) {
-                            state.startIndex -= removedCount;
-                        }
-                    }
-                    state.lastEmitted = newObjects;
-                    return state;
-                })
-                .flatMapIterable(state -> state.lastEmitted)
-                .map(json -> AiResponseDTO.builder().status("data").data(json).build())
-                .startWith(AiResponseDTO.builder().status("thinking").build())
-                .concatWith(Flux.just(AiResponseDTO.builder().status("finish").build()));
+        return Flux.concat(start, thinking, aiStream, finish);
     }
 
     private Flux<AiResponseDTO> extractContentFromPdf(DbFile file) {
@@ -642,5 +610,69 @@ public class AiService {
                 batchPages.get(i).setText("[AI ERROR: " + e.getMessage() + "]");
             }
         }
+    }
+
+    private Flux<AiResponseDTO> streamAndParseJson(Prompt prompt) {
+        return chatModel.stream(prompt)
+                .map(response -> {
+                    if (response.getResult() == null || response.getResult().getOutput() == null) {
+                        return "";
+                    }
+                    String content = response.getResult().getOutput().getContent();
+                    return content == null ? "" : content;
+                })
+                .scan(new ParsingState(), (state, chunk) -> {
+                    state.buffer.append(chunk);
+                    List<String> newObjects = new java.util.ArrayList<>();
+
+                    int lastEndIndex = -1;
+
+                    for (int i = state.scanOffset; i < state.buffer.length(); i++) {
+                        char c = state.buffer.charAt(i);
+
+                        if (state.escape) {
+                            state.escape = false;
+                            continue;
+                        }
+                        if (c == '\\') {
+                            state.escape = true;
+                            continue;
+                        }
+                        if (c == '"') {
+                            state.insideString = !state.insideString;
+                            continue;
+                        }
+
+                        if (!state.insideString) {
+                            if (c == '{') {
+                                if (state.balance == 0)
+                                    state.startIndex = i;
+                                state.balance++;
+                            } else if (c == '}') {
+                                state.balance--;
+                                if (state.balance == 0 && state.startIndex != -1) {
+                                    newObjects.add(state.buffer.substring(state.startIndex, i + 1));
+                                    lastEndIndex = i;
+                                    state.startIndex = -1;
+                                }
+                            }
+                        }
+                    }
+
+                    state.scanOffset = state.buffer.length();
+
+                    if (lastEndIndex != -1) {
+                        state.buffer.delete(0, lastEndIndex + 1);
+                        int removedCount = lastEndIndex + 1;
+                        state.scanOffset -= removedCount;
+                        if (state.startIndex != -1) {
+                            state.startIndex -= removedCount;
+                        }
+                    }
+                    state.lastEmitted = newObjects;
+                    return state;
+                })
+                .flatMapIterable(state -> state.lastEmitted)
+                .map(json -> AiResponseDTO.builder().status("data").data(json).build());
     }
 }
