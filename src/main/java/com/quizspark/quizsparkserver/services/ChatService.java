@@ -38,6 +38,7 @@ public class ChatService {
         private final ChatSessionRepository chatSessionRepository;
         private final ChatMessageRepository chatMessageRepository;
         private final FileService fileService;
+        private final UserService userService;
         private final ChatModel chatModel;
 
         private static final List<ModelDTO> AVAILABLE_MODELS = List.of(
@@ -77,6 +78,7 @@ public class ChatService {
         @Transactional
         public Flux<ChatResponseDTO> streamChat(ChatRequestDTO request) {
                 User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+                user = userService.getUserById(user.getId());
                 ChatSession session = getOrCreateSession(request, user);
                 handleMessageTruncation(session, request.getIndex());
                 int nextIndex = chatMessageRepository.countBySession(session).intValue();
@@ -188,18 +190,22 @@ public class ChatService {
 
         public List<ChatSessionDTO> getSessions() {
                 User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+                return getSessions(user);
+        }
+
+        public List<ChatSessionDTO> getSessions(User user) {
                 return chatSessionRepository.findByUserOrderByCreatedAtDesc(user)
                                 .stream()
                                 .map(ChatSessionDTO::new)
                                 .collect(Collectors.toList());
         }
 
-        public List<ChatMessageDTO> getMessagesBySession(UUID sessionId) {
-                User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        public List<ChatMessageDTO> getMessagesBySession(UUID sessionId, User user) {
+                User freshUser = userService.getUserById(user.getId());
                 ChatSession session = chatSessionRepository.findById(sessionId)
                                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                                 "Session not found"));
-                if (!session.getUser().getId().equals(user.getId())) {
+                if (!session.getUser().getId().equals(freshUser.getId())) {
                         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
                 }
                 return chatMessageRepository.findBySessionOrderByMessageIndexAsc(session)
