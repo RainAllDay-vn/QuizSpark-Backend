@@ -1,13 +1,14 @@
 package com.quizspark.quizsparkserver.dto.questions;
 
 import com.quizspark.quizsparkserver.models.Question;
+import com.quizspark.quizsparkserver.models.Tag;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.UUID;
 
 import static com.quizspark.quizsparkserver.dto.questions.ChoicesAndAnswerProcessor.*;
-import static com.quizspark.quizsparkserver.dto.questions.ChoicesAndAnswerProcessor.processOpenAnswerQuestion;
 
 @Setter
 @Getter
@@ -32,6 +33,15 @@ public class QuestionUpdateDTO {
                 case MULTIPLE_ANSWER -> processMultipleAnswerQuestion(question, choices, answer);
                 case FILL_THE_BLANK -> processFillTheBlankQuestion(question, answer);
                 case OPEN_ANSWER -> processOpenAnswerQuestion(question);
+            }
+        }
+        if (tagIds != null) {
+            question.getTags().clear();
+            for (String tagId : tagIds) {
+                Tag tag = question.getQuestionBank().getTagById(UUID.fromString(tagId))
+                        .orElseThrow(
+                                () -> new IllegalArgumentException("Tag with ID " + tagId + " not found in the bank"));
+                question.getTags().add(tag);
             }
         }
         if (description != null)

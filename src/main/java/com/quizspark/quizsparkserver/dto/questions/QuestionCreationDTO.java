@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static com.quizspark.quizsparkserver.dto.questions.ChoicesAndAnswerProcessor.*;
 
@@ -41,15 +42,12 @@ public class QuestionCreationDTO {
             case OPEN_ANSWER -> processOpenAnswerQuestion(question);
         }
         question.setTags(new ArrayList<>());
-        for (String tagName : tags) {
-            Tag tag = questionBank.getTagByName(tagName)
-                    .orElseGet(() -> {
-                        Tag newTag = new Tag(tagName);
-                        newTag.setBank(questionBank);
-                        questionBank.getTags().add(newTag);
-                        return newTag;
-                    });
-            question.getTags().add(tag);
+        if (tags != null) {
+            for (String tagId : tags) {
+                Tag tag = questionBank.getTagById(UUID.fromString(tagId))
+                        .orElse(new Tag(tagId));
+                question.getTags().add(tag);
+            }
         }
         question.setDescription(description);
         return question;

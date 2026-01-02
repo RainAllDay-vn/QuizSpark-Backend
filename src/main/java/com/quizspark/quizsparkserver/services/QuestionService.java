@@ -92,7 +92,7 @@ public class QuestionService {
                 .appendStatistics(practiceHistory);
     }
 
-    private boolean canBeEdited(QuestionBank questionBank) {
+    public boolean canBeEdited(QuestionBank questionBank) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (questionBank.getUser() == null && !user.getRole().equals("ROLE_ADMIN"))
             return false;

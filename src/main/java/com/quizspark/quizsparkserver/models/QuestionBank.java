@@ -66,4 +66,8 @@ public class QuestionBank {
     public Optional<Tag> getTagByName(String name) {
         return tags.stream().filter(tag -> tag.getName().equals(name)).findFirst();
     }
+
+    public Optional<Tag> getTagById(UUID id) {
+        return tags.stream().filter(tag -> tag.getId().equals(id)).findFirst();
+    }
 }
