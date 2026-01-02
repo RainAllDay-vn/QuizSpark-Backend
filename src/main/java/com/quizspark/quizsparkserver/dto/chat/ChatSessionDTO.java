@@ -1,5 +1,6 @@
 package com.quizspark.quizsparkserver.dto.chat;
 
+import com.quizspark.quizsparkserver.models.ChatSession;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,4 +17,10 @@ public class ChatSessionDTO {
     private UUID id;
     private String title;
     private LocalDateTime createdAt;
+
+    public ChatSessionDTO(ChatSession session) {
+        this.id = session.getId();
+        this.title = session.getTitle();
+        this.createdAt = session.getCreatedAt();
+    }
 }
