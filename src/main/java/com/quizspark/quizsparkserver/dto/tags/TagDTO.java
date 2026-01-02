@@ -16,7 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class TagDTO {
+public class TagDTO implements Comparable<TagDTO> {
     private UUID id;
     private String name;
     private String description;
@@ -27,5 +27,10 @@ public class TagDTO {
         this.name = tag.getName();
         this.description = tag.getDescription();
         this.color = tag.getColor();
+    }
+
+    @Override
+    public int compareTo(TagDTO o) {
+        return this.name.compareTo(o.getName());
     }
 }

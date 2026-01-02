@@ -36,7 +36,7 @@ public class PracticeQuestionDTO {
         this.baseQuestionId = practiceQuestion.getQuestion().getId().toString();
         this.ownerId = practiceQuestion.getQuestion().getQuestionBank().getUser().getId().toString();
         this.type = practiceQuestion.getQuestion().getQuestionType().toString();
-        this.tags = practiceQuestion.getQuestion().getTags().stream().map(TagDTO::new).toList();
+        this.tags = practiceQuestion.getQuestion().getTags().stream().map(TagDTO::new).sorted().toList();
         this.description = practiceQuestion.getQuestion().getDescription();
         this.userAnswer = practiceQuestion.getUserAnswer();
         this.secondsToAnswer = practiceQuestion.getSecondsToAnswer() != null ? practiceQuestion.getSecondsToAnswer()

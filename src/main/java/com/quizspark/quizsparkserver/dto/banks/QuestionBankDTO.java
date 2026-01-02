@@ -50,7 +50,7 @@ public class QuestionBankDTO {
         this.numberOfQuestions = questionBank.getQuestions().size();
         User owner = questionBank.getUser();
         this.username = owner != null ? owner.getUsername() : null;
-        this.tags = questionBank.getTags().stream().map(TagDTO::new).toList();
+        this.tags = questionBank.getTags().stream().map(TagDTO::new).sorted().toList();
         this.files = questionBank.getFiles().stream()
                 .filter(file -> file.getOriginFile() == null)
                 .map(FileDTO::new)

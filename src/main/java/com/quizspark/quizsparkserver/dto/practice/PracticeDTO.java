@@ -42,6 +42,7 @@ public class PracticeDTO {
                 .flatMap(List::stream)
                 .distinct()
                 .map(TagDTO::new)
+                .sorted()
                 .toList();
         this.timeInSeconds = practice.getPracticeQuestion()
                 .stream()

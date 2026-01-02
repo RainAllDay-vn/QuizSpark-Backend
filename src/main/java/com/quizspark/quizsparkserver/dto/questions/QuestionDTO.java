@@ -28,7 +28,7 @@ public class QuestionDTO {
         this.id = question.getId();
         this.questionBankId = question.getQuestionBank().getId();
         this.questionType = question.getQuestionType().toString();
-        this.tags = question.getTags().stream().map(TagDTO::new).toList();
+        this.tags = question.getTags().stream().map(TagDTO::new).sorted().toList();
         this.description = question.getDescription();
         this.answer = question.getAnswer();
         this.choices = question.getChoices();
