@@ -34,9 +34,8 @@ public class DbFile {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_bank_id")
-    private QuestionBank questionBank;
+    @ManyToMany(mappedBy = "files")
+    private List<QuestionBank> questionBanks = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "origin_file_id")

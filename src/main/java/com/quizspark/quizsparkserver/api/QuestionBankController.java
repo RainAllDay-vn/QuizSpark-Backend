@@ -7,12 +7,9 @@ import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.FileService;
 import com.quizspark.quizsparkserver.services.QuestionService;
 import com.quizspark.quizsparkserver.dto.FileDTO;
-import com.quizspark.quizsparkserver.models.DbFile;
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -95,40 +92,7 @@ public class QuestionBankController {
 
     @DeleteMapping("/single/{id}/files/{fileId}")
     public ResponseEntity<Object> unassignFile(@PathVariable String id, @PathVariable String fileId) {
-        fileService.unassignFile(fileId);
+        fileService.unassignFile(fileId, id);
         return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @GetMapping("/single/{id}/files/{fileId}/view")
-    public ResponseEntity<byte[]> viewFile(@PathVariable String id, @PathVariable String fileId) {
-        DbFile dbFile = fileService.getFileEntity(fileId);
-
-        if (!dbFile.getQuestionBank().getId().toString().equals(id)) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-
-        String fileType = dbFile.getFileType();
-        if (!fileType.equals("application/pdf")) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(dbFile.getFileType()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + dbFile.getFileName() + "\"")
-                .body(dbFile.getData());
-    }
-
-    @GetMapping("/single/{id}/files/{fileId}/download")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable String id, @PathVariable String fileId) {
-        DbFile dbFile = fileService.getFileEntity(fileId);
-
-        if (!dbFile.getQuestionBank().getId().toString().equals(id)) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(dbFile.getFileType()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + dbFile.getFileName() + "\"")
-                .body(dbFile.getData());
     }
 }

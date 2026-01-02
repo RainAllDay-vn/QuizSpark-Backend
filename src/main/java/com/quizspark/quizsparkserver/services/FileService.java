@@ -30,22 +30,34 @@ public class FileService {
     }
 
     public DbFile getFileEntity(String fileId) {
-        return fileRepository.findById(UUID.fromString(fileId))
+        DbFile file = fileRepository.findById(UUID.fromString(fileId))
                 .orElseThrow(
                         () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found with id " + fileId));
+        verifyOwnership(file);
+        return file;
     }
 
     public DbFile getFileEntityByName(String fileName) {
-        return fileRepository.findByFileName(fileName)
+        DbFile file = fileRepository.findByFileName(fileName)
                 .orElseThrow(
                         () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "File not found with name " + fileName));
+        verifyOwnership(file);
+        return file;
     }
 
     public DbFile getParseFileEntity(DbFile originalFile) {
         String parseFileName = originalFile.getFileName() + "_PARSE";
         DbFile parseFile = getFileEntityByName(parseFileName);
+        verifyOwnership(parseFile);
         return parseFile;
+    }
+
+    private void verifyOwnership(DbFile file) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!file.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this file");
+        }
     }
 
     public FileDTO storeFile(MultipartFile file) {
@@ -70,36 +82,24 @@ public class FileService {
     }
 
     public FileDTO assignFileToBank(String fileId, String bankId) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         DbFile file = getFileEntity(fileId);
-        if (!file.getUser().getId().equals(user.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this file");
-        }
         QuestionBank bank = questionService.getQuestionBankEntityById(bankId);
 
-        // Remove from current bank if any to maintain consistency
-        if (file.getQuestionBank() != null) {
-            file.getQuestionBank().getFiles().remove(file);
+        if (!bank.getFiles().contains(file)) {
+            bank.getFiles().add(file);
+            file.getQuestionBanks().add(bank);
         }
-
-        file.setQuestionBank(bank);
-        bank.getFiles().add(file);
 
         return new FileDTO(fileRepository.save(file));
     }
 
-    public void unassignFile(String fileId) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public void unassignFile(String fileId, String bankId) {
         DbFile file = getFileEntity(fileId);
-        if (!file.getUser().getId().equals(user.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this file");
-        }
+        QuestionBank bank = questionService.getQuestionBankEntityById(bankId);
 
-        if (file.getQuestionBank() != null) {
-            file.getQuestionBank().getFiles().remove(file);
-            file.setQuestionBank(null);
-            fileRepository.save(file);
-        }
+        bank.getFiles().remove(file);
+        file.getQuestionBanks().remove(bank);
+        fileRepository.save(file);
     }
 
     public List<FileDTO> getUserFiles() {
@@ -112,27 +112,22 @@ public class FileService {
     public void deleteFile(String fileId) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         DbFile file = getFileEntity(fileId);
-        if (!file.getUser().getId().equals(user.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this file");
+        for (QuestionBank bank : file.getQuestionBanks()) {
+            bank.getFiles().remove(file);
         }
-        if (file.getQuestionBank() != null) {
-            file.getQuestionBank().getFiles().remove(file);
-        }
+        file.getQuestionBanks().clear();
         user.getFiles().remove(file);
-        file.setQuestionBank(null);
         file.setUser(null);
 
         fileRepository.delete(file);
     }
 
     public DbFile createMirrorFile(DbFile source, String content) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         DbFile mirrorFile = new DbFile(
                 source.getFileName() + ".txt",
                 "text/plain",
                 content.getBytes(),
-                user);
-        mirrorFile.setQuestionBank(source.getQuestionBank());
+                source.getUser());
         mirrorFile.setOriginFile(source);
         return fileRepository.save(mirrorFile);
     }

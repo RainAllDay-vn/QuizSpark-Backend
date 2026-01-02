@@ -1,11 +1,15 @@
 package com.quizspark.quizsparkserver.api;
 
 import com.quizspark.quizsparkserver.dto.FileDTO;
+import com.quizspark.quizsparkserver.models.DbFile;
 import com.quizspark.quizsparkserver.services.FileService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -35,5 +39,29 @@ public class FileController {
     public ResponseEntity<Object> deleteFile(@PathVariable String id) {
         fileService.deleteFile(id);
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}/view")
+    public ResponseEntity<byte[]> viewFile(@PathVariable String id) {
+        DbFile dbFile = fileService.getFileEntity(id);
+        String fileType = dbFile.getFileType();
+        if (!fileType.equals("application/pdf")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PDF files can be viewed inline");
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(dbFile.getFileType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + dbFile.getFileName() + "\"")
+                .body(dbFile.getData());
+    }
+
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> downloadFile(@PathVariable String id) {
+        DbFile dbFile = fileService.getFileEntity(id);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(dbFile.getFileType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + dbFile.getFileName() + "\"")
+                .body(dbFile.getData());
     }
 }
