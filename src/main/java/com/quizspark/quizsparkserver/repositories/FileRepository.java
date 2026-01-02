@@ -12,4 +12,6 @@ public interface FileRepository extends JpaRepository<DbFile, UUID> {
     Optional<DbFile> findByFileName(String fileName);
 
     List<DbFile> findByUser(User user);
+
+    List<DbFile> findByUserId(UUID userId);
 }

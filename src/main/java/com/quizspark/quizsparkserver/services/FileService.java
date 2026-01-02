@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
@@ -81,6 +82,7 @@ public class FileService {
         }
     }
 
+    @Transactional
     public FileDTO assignFileToBank(String fileId, String bankId) {
         DbFile file = getFileEntity(fileId);
         QuestionBank bank = questionService.getQuestionBankEntityById(bankId);
@@ -93,6 +95,7 @@ public class FileService {
         return new FileDTO(fileRepository.save(file));
     }
 
+    @Transactional
     public void unassignFile(String fileId, String bankId) {
         DbFile file = getFileEntity(fileId);
         QuestionBank bank = questionService.getQuestionBankEntityById(bankId);
@@ -104,21 +107,19 @@ public class FileService {
 
     public List<FileDTO> getUserFiles() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return fileRepository.findByUser(user).stream()
+        return fileRepository.findByUserId(user.getId()).stream()
                 .map(FileDTO::new)
                 .toList();
     }
 
+    @Transactional
     public void deleteFile(String fileId) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         DbFile file = getFileEntity(fileId);
+        verifyOwnership(file);
         for (QuestionBank bank : file.getQuestionBanks()) {
             bank.getFiles().remove(file);
         }
         file.getQuestionBanks().clear();
-        user.getFiles().remove(file);
-        file.setUser(null);
-
         fileRepository.delete(file);
     }
 
