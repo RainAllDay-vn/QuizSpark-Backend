@@ -9,7 +9,9 @@ import com.quizspark.quizsparkserver.repositories.TagRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 @Service
@@ -43,11 +45,16 @@ public class TagService {
         return new TagDTO(tag);
     }
 
+    @Transactional
     public void deleteTag(String tagId) {
         Tag tag = getTagEntityById(tagId);
         if (!questionService.canBeEdited(tag.getBank())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete this tag");
         }
+        for (com.quizspark.quizsparkserver.models.Question question : new ArrayList<>(tag.getQuestions())) {
+            question.getTags().remove(tag);
+        }
+
         tagRepository.delete(tag);
     }
 
