@@ -606,6 +606,24 @@ public class AiService {
         }
     }
 
+    public Flux<String> streamChat(String message, List<Media> media, String model) {
+        UserMessage userMessage = (media == null || media.isEmpty()) ? new UserMessage(message)
+                : new UserMessage(message, media);
+
+        Prompt prompt = new Prompt(userMessage,
+                OpenAiChatOptions.builder().model(model == null ? TEXT_MODEL : model).build());
+
+        return chatModel.stream(prompt)
+                .map(response -> {
+                    if (response.getResult() == null || response.getResult().getOutput() == null) {
+                        return "";
+                    }
+                    String content = response.getResult().getOutput().getContent();
+                    return content == null ? "" : content;
+                })
+                .filter(content -> !content.isEmpty());
+    }
+
     private Flux<AiResponseDTO> streamAndParseJson(Prompt prompt) {
         return chatModel.stream(prompt)
                 .map(response -> {
