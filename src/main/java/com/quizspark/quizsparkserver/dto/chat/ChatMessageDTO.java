@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -20,7 +21,7 @@ public class ChatMessageDTO {
     private String content;
     private String model;
     private Integer messageIndex;
-    private UUID fileId;
+    private List<UUID> fileIds;
     private LocalDateTime createdAt;
 
     public ChatMessageDTO(ChatMessage message) {
@@ -29,7 +30,10 @@ public class ChatMessageDTO {
         this.content = message.getContent();
         this.model = message.getModel();
         this.messageIndex = message.getMessageIndex();
-        this.fileId = message.getFile() != null ? message.getFile().getId() : null;
+        this.fileIds = message.getFiles() != null
+                ? message.getFiles().stream().map(com.quizspark.quizsparkserver.models.DbFile::getId)
+                        .collect(java.util.stream.Collectors.toList())
+                : new java.util.ArrayList<>();
         this.createdAt = message.getCreatedAt();
     }
 }

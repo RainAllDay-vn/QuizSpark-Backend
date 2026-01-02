@@ -5,6 +5,7 @@ import com.quizspark.quizsparkserver.dto.chat.ModelDTO.ModelCharacteristic;
 import com.quizspark.quizsparkserver.models.*;
 import com.quizspark.quizsparkserver.repositories.ChatMessageRepository;
 import com.quizspark.quizsparkserver.repositories.ChatSessionRepository;
+import com.quizspark.quizsparkserver.repositories.FileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,6 +39,7 @@ public class ChatService {
         private final ChatSessionRepository chatSessionRepository;
         private final ChatMessageRepository chatMessageRepository;
         private final FileService fileService;
+        private final FileRepository fileRepository;
         private final UserService userService;
         private final ChatModel chatModel;
 
@@ -102,16 +104,66 @@ public class ChatService {
 
         private void handleMessageTruncation(ChatSession session, Integer index) {
                 if (index != null) {
-                        chatMessageRepository.deleteBySessionAndMessageIndexGreaterThanEqual(session, index);
+                        List<ChatMessage> messagesToDelete = chatMessageRepository
+                                        .findBySessionAndMessageIndexGreaterThanEqual(session, index);
+                        if (!messagesToDelete.isEmpty()) {
+                                List<DbFile> filesToDelete = messagesToDelete.stream()
+                                                .flatMap(m -> m.getFiles().stream())
+                                                .filter(f -> f.getUser() == null)
+                                                .distinct()
+                                                .collect(Collectors.toList());
+
+                                chatMessageRepository.deleteAll(messagesToDelete);
+
+                                for (DbFile file : filesToDelete) {
+                                        fileService.deleteFile(file.getId().toString());
+                                }
+                        }
                 }
         }
 
         private void saveUserMessage(ChatRequestDTO request, ChatSession session, int index) {
-                DbFile file = request.getFileId() != null ? fileService.getFileEntity(request.getFileId().toString())
-                                : null;
+                List<DbFile> files = new ArrayList<>();
+                if (request.getFiles() != null) {
+                        for (ChatFileDTO fileDto : request.getFiles()) {
+                                if (fileDto.getId() != null) {
+                                        files.add(fileService.getFileEntity(fileDto.getId().toString()));
+                                } else if (fileDto.getData() != null) {
+                                        DbFile newFile = new DbFile(fileDto.getFileName(), fileDto.getFileType(),
+                                                        fileDto.getData(), null);
+                                        files.add(fileRepository.save(newFile));
+                                }
+                        }
+                }
                 ChatMessage userMessage = new ChatMessage(session, ChatMessage.MessageRole.USER, request.getMessage(),
-                                request.getModel(), file, index);
+                                request.getModel(), files, index);
                 chatMessageRepository.save(userMessage);
+        }
+
+        @Transactional
+        public void deleteSession(UUID sessionId) {
+                ChatSession session = chatSessionRepository.findById(sessionId)
+                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                                "Session not found"));
+
+                User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+                if (!session.getUser().getId().equals(user.getId())) {
+                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+                }
+
+                List<ChatMessage> messages = chatMessageRepository.findBySessionOrderByMessageIndexAsc(session);
+                List<DbFile> filesToDelete = messages.stream()
+                                .flatMap(m -> m.getFiles().stream())
+                                .filter(f -> f.getUser() == null)
+                                .distinct()
+                                .collect(Collectors.toList());
+
+                chatMessageRepository.deleteAll(messages);
+                chatSessionRepository.delete(session);
+
+                for (DbFile file : filesToDelete) {
+                        fileService.deleteFile(file.getId().toString());
+                }
         }
 
         private Flux<ChatResponseDTO> executeChatStream(ChatSession session, String modelName, int assistantIndex) {
@@ -154,11 +206,13 @@ public class ChatService {
 
         private Message convertToAiMessage(ChatMessage msg) {
                 if (msg.getRole() == ChatMessage.MessageRole.USER) {
-                        if (msg.getFile() != null) {
-                                Media media = new Media(
-                                                MimeTypeUtils.parseMimeType(msg.getFile().getFileType()),
-                                                new ByteArrayResource(msg.getFile().getData()));
-                                return new UserMessage(msg.getContent(), List.of(media));
+                        if (msg.getFiles() != null && !msg.getFiles().isEmpty()) {
+                                List<Media> medias = msg.getFiles().stream()
+                                                .map(file -> new Media(
+                                                                MimeTypeUtils.parseMimeType(file.getFileType()),
+                                                                new ByteArrayResource(file.getData())))
+                                                .collect(Collectors.toList());
+                                return new UserMessage(msg.getContent(), medias);
                         }
                         return new UserMessage(msg.getContent());
                 }
@@ -167,7 +221,7 @@ public class ChatService {
 
         private void saveAssistantMessage(ChatSession session, String content, String model, int index) {
                 ChatMessage assistantMsg = new ChatMessage(session, ChatMessage.MessageRole.ASSISTANT,
-                                content, model, null, index);
+                                content, model, new ArrayList<>(), index);
                 chatMessageRepository.save(assistantMsg);
         }
 

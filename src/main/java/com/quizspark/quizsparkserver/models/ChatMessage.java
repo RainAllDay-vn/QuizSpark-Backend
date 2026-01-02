@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -40,20 +41,20 @@ public class ChatMessage {
 
     private String model;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "file_id")
-    private DbFile file;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "chat_message_files", joinColumns = @JoinColumn(name = "message_id"), inverseJoinColumns = @JoinColumn(name = "file_id"))
+    private List<DbFile> files = new java.util.ArrayList<>();
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    public ChatMessage(ChatSession session, MessageRole role, String content, String model, DbFile file,
+    public ChatMessage(ChatSession session, MessageRole role, String content, String model, List<DbFile> files,
             Integer messageIndex) {
         this.session = session;
         this.role = role;
         this.content = content;
         this.model = model;
-        this.file = file;
+        this.files = files;
         this.messageIndex = messageIndex;
         this.createdAt = LocalDateTime.now();
     }

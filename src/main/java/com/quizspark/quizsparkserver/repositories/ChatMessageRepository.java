@@ -16,5 +16,5 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
 
     Long countBySession(ChatSession session);
 
-    void deleteBySessionAndMessageIndexGreaterThanEqual(ChatSession session, Integer index);
+    List<ChatMessage> findBySessionAndMessageIndexGreaterThanEqual(ChatSession session, Integer index);
 }
