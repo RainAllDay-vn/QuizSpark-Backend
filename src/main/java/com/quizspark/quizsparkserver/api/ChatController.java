@@ -1,9 +1,6 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.quizspark.quizsparkserver.dto.chat.ChatMessageDTO;
-import com.quizspark.quizsparkserver.dto.chat.ChatRequestDTO;
-import com.quizspark.quizsparkserver.dto.chat.ChatResponseDTO;
-import com.quizspark.quizsparkserver.dto.chat.ChatSessionDTO;
+import com.quizspark.quizsparkserver.dto.chat.*;
 import com.quizspark.quizsparkserver.models.DbFile;
 import com.quizspark.quizsparkserver.repositories.FileRepository;
 import com.quizspark.quizsparkserver.services.ChatService;
@@ -51,5 +48,10 @@ public class ChatController {
         DbFile dbFile = new DbFile(file.getOriginalFilename(), contentType, file.getBytes(), null);
         dbFile = fileRepository.save(dbFile);
         return new ResponseEntity<>(dbFile.getId(), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/models")
+    public ResponseEntity<List<ModelDTO>> getModels() {
+        return new ResponseEntity<>(chatService.getAvailableModels(), HttpStatus.OK);
     }
 }

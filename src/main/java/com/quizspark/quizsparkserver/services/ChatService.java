@@ -1,13 +1,8 @@
 package com.quizspark.quizsparkserver.services;
 
-import com.quizspark.quizsparkserver.dto.chat.ChatMessageDTO;
-import com.quizspark.quizsparkserver.dto.chat.ChatRequestDTO;
-import com.quizspark.quizsparkserver.dto.chat.ChatResponseDTO;
-import com.quizspark.quizsparkserver.dto.chat.ChatSessionDTO;
-import com.quizspark.quizsparkserver.models.ChatMessage;
-import com.quizspark.quizsparkserver.models.ChatSession;
-import com.quizspark.quizsparkserver.models.DbFile;
-import com.quizspark.quizsparkserver.models.User;
+import com.quizspark.quizsparkserver.dto.chat.*;
+import com.quizspark.quizsparkserver.dto.chat.ModelDTO.ModelCharacteristic;
+import com.quizspark.quizsparkserver.models.*;
 import com.quizspark.quizsparkserver.repositories.ChatMessageRepository;
 import com.quizspark.quizsparkserver.repositories.ChatSessionRepository;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +35,37 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final FileService fileService;
     private final ChatModel chatModel;
+
+    private static final List<ModelDTO> AVAILABLE_MODELS = List.of(
+            // DeepSeek V3.2 (Released Dec 2025) - Supports Reasoning/Thinking Mode
+            new ModelDTO("deepseek-v3.2", "deepseek-ai/DeepSeek-V3.2-TEE", "DeepSeek V3.2 TEE",
+                    List.of(ModelCharacteristic.REASONING)),
+            // Qwen 3 235B (Released July 2025) - Features "Thinking Mode" and dual-mode
+            // switching
+            new ModelDTO("qwen-3-235b", "Qwen/Qwen3-235B-A22B-Instruct-2507-TEE", "Qwen 3 235B TEE",
+                    List.of(ModelCharacteristic.REASONING)),
+            // GLM 4.7 (Released late 2025) - Features "Interleaved Thinking"
+            new ModelDTO("glm-4.7", "zai-org/GLM-4.7-TEE", "GLM 4.7 TEE",
+                    List.of(ModelCharacteristic.REASONING)),
+            // Kimi K2 Thinking (Released Nov 2025) - Native Thinking Agent
+            new ModelDTO("kimi-k2", "moonshotai/Kimi-K2-Thinking-TEE", "Kimi K2 Thinking TEE",
+                    List.of(ModelCharacteristic.REASONING)),
+            // Hermes 4 405B (Released late 2025) - Hybrid Reasoning capabilities
+            new ModelDTO("hermes-4", "NousResearch/Hermes-4-405B-FP8-TEE", "Hermes 4 405B TEE",
+                    List.of(ModelCharacteristic.REASONING)),
+            // MiniMax M2.1 (Released Dec 2025) - "Advanced Interleaved Thinking"
+            new ModelDTO("minimax-m2.1", "MiniMaxAI/MiniMax-M2.1-TEE", "MiniMax M2.1 TEE",
+                    List.of(ModelCharacteristic.REASONING)),
+            // Qwen 3 VL - Vision Language Model
+            new ModelDTO("qwen-3-vl", "Qwen/Qwen3-VL-235B-A22B-Instruct", "Qwen 3 VL",
+                    List.of(ModelCharacteristic.VISION)),
+            // GLM 4.6V - Vision Model (Predecessor to 4.7 text)
+            new ModelDTO("glm-4.6v", "zai-org/GLM-4.6V", "GLM 4.6V",
+                    List.of(ModelCharacteristic.VISION)),
+            // DeepSeek V3.2 Speciale - "Maxed-out reasoning capabilities"
+            new ModelDTO("deepseek-v3.2-speciale", "deepseek-ai/DeepSeek-V3.2-Speciale-TEE",
+                    "DeepSeek V3.2 Speciale TEE",
+                    List.of(ModelCharacteristic.REASONING)));
 
     @Transactional
     public Flux<ChatResponseDTO> streamChat(ChatRequestDTO request) {
@@ -141,6 +167,10 @@ public class ChatService {
                 .stream()
                 .map(this::mapToChatMessageDTO)
                 .collect(Collectors.toList());
+    }
+
+    public List<ModelDTO> getAvailableModels() {
+        return AVAILABLE_MODELS;
     }
 
     private ChatSessionDTO mapToChatSessionDTO(ChatSession session) {
