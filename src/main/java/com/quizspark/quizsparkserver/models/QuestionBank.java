@@ -60,7 +60,7 @@ public class QuestionBank {
     @OneToMany(mappedBy = "bank", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Tag> tags = new ArrayList<>();
 
-    @OneToMany(mappedBy = "questionBank", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "questionBank", cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH })
     private List<DbFile> files = new ArrayList<>();
 
     public Optional<Tag> getTagByName(String name) {

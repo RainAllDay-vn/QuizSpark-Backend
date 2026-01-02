@@ -82,13 +82,20 @@ public class QuestionBankController {
     @PostMapping("/single/{id}/files")
     public ResponseEntity<FileDTO> uploadFile(@PathVariable String id,
             @RequestParam("file") MultipartFile file) {
-        FileDTO fileDto = fileService.storeFile(id, file);
+        FileDTO fileDto = fileService.storeFile(file);
+        fileDto = fileService.assignFileToBank(fileDto.getId().toString(), id);
+        return new ResponseEntity<>(fileDto, HttpStatus.OK);
+    }
+
+    @PostMapping("/single/{id}/files/{fileId}")
+    public ResponseEntity<FileDTO> assignFile(@PathVariable String id, @PathVariable String fileId) {
+        FileDTO fileDto = fileService.assignFileToBank(fileId, id);
         return new ResponseEntity<>(fileDto, HttpStatus.OK);
     }
 
     @DeleteMapping("/single/{id}/files/{fileId}")
-    public ResponseEntity<Object> deleteFile(@PathVariable String id, @PathVariable String fileId) {
-        fileService.deleteFile(id, fileId);
+    public ResponseEntity<Object> unassignFile(@PathVariable String id, @PathVariable String fileId) {
+        fileService.unassignFile(fileId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

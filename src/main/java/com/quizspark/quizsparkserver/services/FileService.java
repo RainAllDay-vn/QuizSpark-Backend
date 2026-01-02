@@ -3,6 +3,7 @@ package com.quizspark.quizsparkserver.services;
 import com.quizspark.quizsparkserver.dto.FileDTO;
 import com.quizspark.quizsparkserver.models.DbFile;
 import com.quizspark.quizsparkserver.models.QuestionBank;
+import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.repositories.FileRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -10,7 +11,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -44,8 +48,8 @@ public class FileService {
         return parseFile;
     }
 
-    public FileDTO storeFile(String bankId, MultipartFile file) {
-        QuestionBank bank = questionService.getQuestionBankEntityById(bankId);
+    public FileDTO storeFile(MultipartFile file) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         // Normalize file name
         String fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
         try {
@@ -56,8 +60,7 @@ public class FileService {
             }
 
             String contentType = determineContentType(fileName, file.getContentType());
-            DbFile dbFile = new DbFile(fileName, contentType, file.getBytes());
-            dbFile.setQuestionBank(bank);
+            DbFile dbFile = new DbFile(fileName, contentType, file.getBytes(), user);
 
             return new FileDTO(fileRepository.save(dbFile));
         } catch (IOException ex) {
@@ -66,20 +69,69 @@ public class FileService {
         }
     }
 
-    public void deleteFile(String bankId, String fileId) {
+    public FileDTO assignFileToBank(String fileId, String bankId) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         DbFile file = getFileEntity(fileId);
-        if (!file.getQuestionBank().getId().toString().equals(bankId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "File does not belong to the specified question bank");
+        if (!file.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this file");
         }
+        QuestionBank bank = questionService.getQuestionBankEntityById(bankId);
+
+        // Remove from current bank if any to maintain consistency
+        if (file.getQuestionBank() != null) {
+            file.getQuestionBank().getFiles().remove(file);
+        }
+
+        file.setQuestionBank(bank);
+        bank.getFiles().add(file);
+
+        return new FileDTO(fileRepository.save(file));
+    }
+
+    public void unassignFile(String fileId) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        DbFile file = getFileEntity(fileId);
+        if (!file.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this file");
+        }
+
+        if (file.getQuestionBank() != null) {
+            file.getQuestionBank().getFiles().remove(file);
+            file.setQuestionBank(null);
+            fileRepository.save(file);
+        }
+    }
+
+    public List<FileDTO> getUserFiles() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return fileRepository.findByUser(user).stream()
+                .map(FileDTO::new)
+                .toList();
+    }
+
+    public void deleteFile(String fileId) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        DbFile file = getFileEntity(fileId);
+        if (!file.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this file");
+        }
+        if (file.getQuestionBank() != null) {
+            file.getQuestionBank().getFiles().remove(file);
+        }
+        user.getFiles().remove(file);
+        file.setQuestionBank(null);
+        file.setUser(null);
+
         fileRepository.delete(file);
     }
 
     public DbFile createMirrorFile(DbFile source, String content) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         DbFile mirrorFile = new DbFile(
                 source.getFileName() + ".txt",
                 "text/plain",
-                content.getBytes());
+                content.getBytes(),
+                user);
         mirrorFile.setQuestionBank(source.getQuestionBank());
         mirrorFile.setOriginFile(source);
         return fileRepository.save(mirrorFile);

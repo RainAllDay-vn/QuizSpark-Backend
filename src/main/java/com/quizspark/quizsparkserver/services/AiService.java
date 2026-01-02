@@ -293,8 +293,7 @@ public class AiService {
                 "tags": ["AI_GENERATED", "TAG_2"],
                 "description": "Full question text with context",
                 "answer": ["index_string" or "text_value"],
-                "choices": ["choice_1", "choice_2"],
-                "explanation": "Extracted explanation or null"
+                "choices": ["choice_1", "choice_2"]
               }
             ]
 
@@ -331,11 +330,6 @@ public class AiService {
 
             * Required for Single/Multiple choice (min 2 items).
             * Must be `null` or empty for Fill-the-blank/Open-ended.
-
-            #### 6. explanation (String | Null)
-
-            * Include **only** if explicitly found in the source text.
-            * Otherwise, set to `null`. Do not generate explanations.
 
             **Quality Assurance Checklist**
             Before returning the JSON, verify:

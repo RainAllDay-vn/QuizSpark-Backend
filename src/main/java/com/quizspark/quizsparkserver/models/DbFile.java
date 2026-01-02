@@ -31,6 +31,10 @@ public class DbFile {
     private LocalDateTime uploadDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "question_bank_id")
     private QuestionBank questionBank;
 
@@ -47,10 +51,11 @@ public class DbFile {
     }
 
     // Parameterized constructor
-    public DbFile(String fileName, String fileType, byte[] data) {
+    public DbFile(String fileName, String fileType, byte[] data, User user) {
         this.fileName = fileName;
         this.fileType = fileType;
         this.data = data;
+        this.user = user;
         this.uploadDate = LocalDateTime.now();
     }
 }
