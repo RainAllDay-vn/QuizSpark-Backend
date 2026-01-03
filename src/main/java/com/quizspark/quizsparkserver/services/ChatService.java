@@ -196,23 +196,37 @@ public class ChatService {
         }
 
         private Prompt createPrompt(ChatSession session, String model) {
+                boolean supportsVision = AVAILABLE_MODELS.stream()
+                                .filter(m -> m.getName().equals(model))
+                                .findFirst()
+                                .map(m -> m.getCharacteristics().contains(ModelCharacteristic.VISION))
+                                .orElse(false);
+
                 List<Message> messages = new ArrayList<>();
                 messages.add(new SystemMessage(SYSTEM_PROMPT));
-                chatMessageRepository.findBySessionOrderByMessageIndexAsc(session).stream()
-                                .map(this::convertToAiMessage)
-                                .forEach(messages::add);
+
+                List<ChatMessage> chatMessages = chatMessageRepository.findBySessionOrderByMessageIndexAsc(session);
+                for (int i = 0; i < chatMessages.size(); i++) {
+                        ChatMessage msg = chatMessages.get(i);
+                        boolean isLatest = (i == chatMessages.size() - 1);
+                        messages.add(convertToAiMessage(msg, isLatest && supportsVision));
+                }
+
                 return new Prompt(messages, OpenAiChatOptions.builder().model(model).build());
         }
 
-        private Message convertToAiMessage(ChatMessage msg) {
+        private Message convertToAiMessage(ChatMessage msg, boolean includeFiles) {
                 if (msg.getRole() == ChatMessage.MessageRole.USER) {
-                        if (msg.getFiles() != null && !msg.getFiles().isEmpty()) {
+                        if (includeFiles && msg.getFiles() != null && !msg.getFiles().isEmpty()) {
                                 List<Media> medias = msg.getFiles().stream()
+                                                .filter(file -> file.getFileType().startsWith("image/"))
                                                 .map(file -> new Media(
                                                                 MimeTypeUtils.parseMimeType(file.getFileType()),
                                                                 new ByteArrayResource(file.getData())))
                                                 .collect(Collectors.toList());
-                                return new UserMessage(msg.getContent(), medias);
+                                if (!medias.isEmpty()) {
+                                        return new UserMessage(msg.getContent(), medias);
+                                }
                         }
                         return new UserMessage(msg.getContent());
                 }
