@@ -9,7 +9,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -44,11 +43,6 @@ public class FileController {
     @GetMapping("/{id}/view")
     public ResponseEntity<byte[]> viewFile(@PathVariable String id) {
         DbFile dbFile = fileService.getFileEntity(id);
-        String fileType = dbFile.getFileType();
-        if (!fileType.equals("application/pdf")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PDF files can be viewed inline");
-        }
-
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(dbFile.getFileType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + dbFile.getFileName() + "\"")

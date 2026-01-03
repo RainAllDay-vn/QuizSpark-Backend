@@ -34,7 +34,8 @@ public class FileService {
         DbFile file = fileRepository.findById(UUID.fromString(fileId))
                 .orElseThrow(
                         () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found with id " + fileId));
-        verifyOwnership(file);
+        if (!canView(file))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to view this file");
         return file;
     }
 
@@ -43,22 +44,33 @@ public class FileService {
                 .orElseThrow(
                         () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "File not found with name " + fileName));
-        verifyOwnership(file);
+        if (!canView(file))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to view this file");
         return file;
     }
 
     public DbFile getParseFileEntity(DbFile originalFile) {
         String parseFileName = originalFile.getFileName() + "_PARSE";
         DbFile parseFile = getFileEntityByName(parseFileName);
-        verifyOwnership(parseFile);
+        if (!canView(parseFile))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to view this file");
         return parseFile;
     }
 
-    private void verifyOwnership(DbFile file) {
+    private boolean canView(DbFile file) {
+        if (file.getUser() == null)
+            return true;
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (!file.getUser().getId().equals(user.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this file");
-        }
+        if (file.getUser().getId().equals(user.getId()))
+            return true;
+        return false;
+    }
+
+    private boolean canEdit(DbFile file) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (file.getUser().getId().equals(user.getId()))
+            return true;
+        return false;
     }
 
     public FileDTO storeFile(MultipartFile file) {
@@ -115,7 +127,8 @@ public class FileService {
     @Transactional
     public void deleteFile(String fileId) {
         DbFile file = getFileEntity(fileId);
-        verifyOwnership(file);
+        if (!canEdit(file))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to delete this file");
         for (QuestionBank bank : file.getQuestionBanks()) {
             bank.getFiles().remove(file);
         }
