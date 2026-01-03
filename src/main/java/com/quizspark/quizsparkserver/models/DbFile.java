@@ -44,6 +44,9 @@ public class DbFile {
     @OneToMany(mappedBy = "originFile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DbFile> derivedFiles = new ArrayList<>();
 
+    @ManyToMany(mappedBy = "files")
+    private List<ChatMessage> chatMessages = new ArrayList<>();
+
     // Default constructor
     public DbFile() {
         this.uploadDate = LocalDateTime.now();

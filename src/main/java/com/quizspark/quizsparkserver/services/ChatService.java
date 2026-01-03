@@ -107,16 +107,16 @@ public class ChatService {
                         List<ChatMessage> messagesToDelete = chatMessageRepository
                                         .findBySessionAndMessageIndexGreaterThanEqual(session, index);
                         if (!messagesToDelete.isEmpty()) {
-                                List<DbFile> filesToDelete = messagesToDelete.stream()
+                                List<UUID> fileIdsToCheck = messagesToDelete.stream()
                                                 .flatMap(m -> m.getFiles().stream())
-                                                .filter(f -> f.getUser() == null)
+                                                .map(DbFile::getId)
                                                 .distinct()
                                                 .collect(Collectors.toList());
 
                                 chatMessageRepository.deleteAll(messagesToDelete);
 
-                                for (DbFile file : filesToDelete) {
-                                        fileService.deleteFile(file.getId().toString());
+                                if (!fileIdsToCheck.isEmpty()) {
+                                        fileRepository.deleteFilesWithNullUserByIds(fileIdsToCheck);
                                 }
                         }
                 }
@@ -152,17 +152,17 @@ public class ChatService {
                 }
 
                 List<ChatMessage> messages = chatMessageRepository.findBySessionOrderByMessageIndexAsc(session);
-                List<DbFile> filesToDelete = messages.stream()
+                List<UUID> fileIdsToCheck = messages.stream()
                                 .flatMap(m -> m.getFiles().stream())
-                                .filter(f -> f.getUser() == null)
+                                .map(DbFile::getId)
                                 .distinct()
                                 .collect(Collectors.toList());
 
                 chatMessageRepository.deleteAll(messages);
                 chatSessionRepository.delete(session);
 
-                for (DbFile file : filesToDelete) {
-                        fileService.deleteFile(file.getId().toString());
+                if (!fileIdsToCheck.isEmpty()) {
+                        fileRepository.deleteFilesWithNullUserByIds(fileIdsToCheck);
                 }
         }
 
