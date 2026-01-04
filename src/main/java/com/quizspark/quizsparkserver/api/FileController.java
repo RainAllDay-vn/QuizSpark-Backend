@@ -58,4 +58,10 @@ public class FileController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + dbFile.getFileName() + "\"")
                 .body(dbFile.getData());
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<FileDTO> updateFile(@PathVariable String id, @RequestBody String content) {
+        FileDTO updatedFile = fileService.updateFileContent(id, content);
+        return new ResponseEntity<>(updatedFile, HttpStatus.OK);
+    }
 }

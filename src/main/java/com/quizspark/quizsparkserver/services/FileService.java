@@ -146,6 +146,26 @@ public class FileService {
         return fileRepository.save(mirrorFile);
     }
 
+    public FileDTO updateFileContent(String fileId, String content) {
+        DbFile file = getFileEntity(fileId);
+        if (!canEdit(file))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to update this file");
+
+        if (!isTextFile(file)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only text files can be updated");
+        }
+
+        file.setData(content.getBytes());
+        return new FileDTO(fileRepository.save(file));
+    }
+
+    private boolean isTextFile(DbFile file) {
+        String contentType = file.getFileType();
+        return contentType.equals("text/plain") ||
+                contentType.equals("text/markdown") ||
+                contentType.equals("application/json");
+    }
+
     private String determineContentType(String fileName, String originalContentType) {
         String lowerCaseName = fileName.toLowerCase();
         if (lowerCaseName.endsWith(".md")) {
