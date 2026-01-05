@@ -1,4 +1,4 @@
-package com.quizspark.quizsparkserver.dto;
+package com.quizspark.quizsparkserver.dto.classrooms;
 
 import com.quizspark.quizsparkserver.models.ClassroomMember;
 import lombok.Getter;

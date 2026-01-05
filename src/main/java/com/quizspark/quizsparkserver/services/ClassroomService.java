@@ -1,7 +1,8 @@
 package com.quizspark.quizsparkserver.services;
 
-import com.quizspark.quizsparkserver.dto.ClassroomCreateDTO;
-import com.quizspark.quizsparkserver.dto.ClassroomResponseDTO;
+import com.quizspark.quizsparkserver.dto.classrooms.ClassroomCreateDTO;
+import com.quizspark.quizsparkserver.dto.classrooms.ClassroomDTO;
+import com.quizspark.quizsparkserver.dto.classrooms.ClassroomDetailsDTO;
 import com.quizspark.quizsparkserver.models.Classroom;
 import com.quizspark.quizsparkserver.models.ClassroomMember;
 import com.quizspark.quizsparkserver.models.User;
@@ -36,7 +37,7 @@ public class ClassroomService {
         this.userRepository = userRepository;
     }
 
-    public ClassroomResponseDTO createClassroom(ClassroomCreateDTO createDTO) {
+    public ClassroomDTO createClassroom(ClassroomCreateDTO createDTO) {
         User principal = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User owner = userService.getUserById(principal.getId());
 
@@ -53,17 +54,17 @@ public class ClassroomService {
         member.setRole(ClassroomMember.ClassroomRole.OWNER);
         classroomMemberRepository.save(member);
 
-        return new ClassroomResponseDTO(classroom);
+        return new ClassroomDTO(classroom);
     }
 
-    public List<ClassroomResponseDTO> getClassrooms() {
+    public List<ClassroomDTO> getClassrooms() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return classroomMemberRepository.findByUserId(user.getId()).stream()
-                .map(member -> new ClassroomResponseDTO(member.getClassroom()))
+                .map(member -> new ClassroomDTO(member.getClassroom()))
                 .collect(Collectors.toList());
     }
 
-    public ClassroomResponseDTO inviteUser(UUID classroomId, String username) {
+    public ClassroomDTO inviteUser(UUID classroomId, String username) {
         User inviterPrincipal = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User inviter = userService.getUserById(inviterPrincipal.getId());
 
@@ -99,7 +100,24 @@ public class ClassroomService {
         newMember.setRole(ClassroomMember.ClassroomRole.STUDENT);
         classroomMemberRepository.save(newMember);
 
-        return new ClassroomResponseDTO(classroom);
+        return new ClassroomDTO(classroom);
+    }
+
+    public ClassroomDetailsDTO getClassroomById(UUID id) {
+        User principal = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = userService.getUserById(principal.getId());
+
+        Classroom classroom = classroomRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Classroom not found"));
+
+        boolean isMember = classroom.getMembers().stream()
+                .anyMatch(m -> m.getUser().getId().equals(user.getId()));
+
+        if (!isMember) {
+            throw new RuntimeException("You are not a member of this classroom");
+        }
+
+        return new ClassroomDetailsDTO(classroom);
     }
 
     private String generateUniqueJoinCode() {

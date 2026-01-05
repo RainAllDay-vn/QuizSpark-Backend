@@ -1,4 +1,4 @@
-package com.quizspark.quizsparkserver.dto;
+package com.quizspark.quizsparkserver.dto.classrooms;
 
 import com.quizspark.quizsparkserver.models.Classroom;
 import lombok.Getter;
@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ClassroomResponseDTO {
+public class ClassroomDetailsDTO {
     private UUID id;
     private String name;
     private String description;
@@ -21,7 +21,7 @@ public class ClassroomResponseDTO {
     private Date createdAt;
     private List<ClassroomMemberDTO> members;
 
-    public ClassroomResponseDTO(Classroom classroom) {
+    public ClassroomDetailsDTO(Classroom classroom) {
         this.id = classroom.getId();
         this.name = classroom.getName();
         this.description = classroom.getDescription();
