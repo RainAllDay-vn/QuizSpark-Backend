@@ -8,6 +8,7 @@ import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.repositories.ClassroomMemberRepository;
 import com.quizspark.quizsparkserver.repositories.ClassroomRepository;
 import com.quizspark.quizsparkserver.repositories.UserRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,17 +23,23 @@ import java.util.stream.Collectors;
 public class ClassroomService {
     private final ClassroomRepository classroomRepository;
     private final ClassroomMemberRepository classroomMemberRepository;
+    private final UserService userService;
     private final UserRepository userRepository;
 
     public ClassroomService(ClassroomRepository classroomRepository,
             ClassroomMemberRepository classroomMemberRepository,
+            UserService userService,
             UserRepository userRepository) {
         this.classroomRepository = classroomRepository;
         this.classroomMemberRepository = classroomMemberRepository;
+        this.userService = userService;
         this.userRepository = userRepository;
     }
 
-    public ClassroomResponseDTO createClassroom(ClassroomCreateDTO createDTO, User owner) {
+    public ClassroomResponseDTO createClassroom(ClassroomCreateDTO createDTO) {
+        User principal = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User owner = userService.getUserById(principal.getId());
+
         Classroom classroom = new Classroom();
         classroom.setName(createDTO.getName());
         classroom.setDescription(createDTO.getDescription());
@@ -49,13 +56,17 @@ public class ClassroomService {
         return new ClassroomResponseDTO(classroom);
     }
 
-    public List<ClassroomResponseDTO> getClassroomsForUser(User user) {
-        return user.getClassrooms().stream()
+    public List<ClassroomResponseDTO> getClassrooms() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return classroomMemberRepository.findByUserId(user.getId()).stream()
                 .map(member -> new ClassroomResponseDTO(member.getClassroom()))
                 .collect(Collectors.toList());
     }
 
-    public ClassroomResponseDTO inviteUser(UUID classroomId, String username, User inviter) {
+    public ClassroomResponseDTO inviteUser(UUID classroomId, String username) {
+        User inviterPrincipal = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User inviter = userService.getUserById(inviterPrincipal.getId());
+
         Classroom classroom = classroomRepository.findById(classroomId)
                 .orElseThrow(() -> new RuntimeException("Classroom not found"));
 

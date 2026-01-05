@@ -45,10 +45,14 @@ public class QuestionService {
 
     public List<QuestionBankDTO> getQuestionBankByUser() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return bankRepository.findQuestionBankByUser(user)
+        List<QuestionBankDTO> body = new ArrayList<>(bankRepository.findQuestionBankByUser(user)
                 .stream()
                 .map(QuestionBankDTO::new)
-                .toList();
+                .toList());
+        if (user.getRole().equals("ROLE_ADMIN")) {
+            body.addAll(getAdminBank());
+        }
+        return body;
     }
 
     public List<QuestionBankDTO> getAdminBank() {

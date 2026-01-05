@@ -268,12 +268,13 @@ public class ChatService {
                                 .collect(Collectors.toList());
         }
 
-        public List<ChatMessageDTO> getMessagesBySession(UUID sessionId, User user) {
-                User freshUser = userService.getUserById(user.getId());
+        public List<ChatMessageDTO> getMessagesBySession(UUID sessionId) {
+                User principal = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+                User user = userService.getUserById(principal.getId());
                 ChatSession session = chatSessionRepository.findById(sessionId)
                                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                                 "Session not found"));
-                if (!session.getUser().getId().equals(freshUser.getId())) {
+                if (!session.getUser().getId().equals(user.getId())) {
                         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
                 }
                 return chatMessageRepository.findBySessionOrderByMessageIndexAsc(session)

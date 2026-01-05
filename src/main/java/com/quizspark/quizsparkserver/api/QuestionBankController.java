@@ -3,7 +3,6 @@ package com.quizspark.quizsparkserver.api;
 import com.quizspark.quizsparkserver.dto.banks.QuestionBankCreationDTO;
 import com.quizspark.quizsparkserver.dto.banks.QuestionBankDTO;
 import com.quizspark.quizsparkserver.dto.banks.QuestionBankUpdateDTO;
-import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.FileService;
 import com.quizspark.quizsparkserver.services.QuestionService;
 import com.quizspark.quizsparkserver.dto.FileDTO;
@@ -12,10 +11,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -36,12 +33,8 @@ public class QuestionBankController {
     }
 
     @GetMapping()
-    public ResponseEntity<List<QuestionBankDTO>> getUserQuestionBanks(@AuthenticationPrincipal User user) {
-        List<QuestionBankDTO> body = new ArrayList<>(questionService.getQuestionBankByUser());
-        if (user.getRole().equals("ROLE_ADMIN")) {
-            body.addAll(questionService.getAdminBank());
-        }
-        return new ResponseEntity<>(body, HttpStatus.OK);
+    public ResponseEntity<List<QuestionBankDTO>> getUserQuestionBanks() {
+        return new ResponseEntity<>(questionService.getQuestionBankByUser(), HttpStatus.OK);
     }
 
     @GetMapping("/single/{id}")

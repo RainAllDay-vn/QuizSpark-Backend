@@ -1,10 +1,8 @@
 package com.quizspark.quizsparkserver.api;
 
 import com.quizspark.quizsparkserver.dto.chat.*;
-import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.services.ChatService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,9 +29,8 @@ public class ChatController {
     }
 
     @GetMapping("/sessions/{sessionId}/messages")
-    public ResponseEntity<List<ChatMessageDTO>> getMessages(@PathVariable UUID sessionId,
-            @AuthenticationPrincipal User user) {
-        return new ResponseEntity<>(chatService.getMessagesBySession(sessionId, user), HttpStatus.OK);
+    public ResponseEntity<List<ChatMessageDTO>> getMessages(@PathVariable UUID sessionId) {
+        return new ResponseEntity<>(chatService.getMessagesBySession(sessionId), HttpStatus.OK);
     }
 
     @DeleteMapping("/sessions/{sessionId}")
