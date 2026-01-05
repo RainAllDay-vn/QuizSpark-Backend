@@ -54,4 +54,14 @@ public class UserService implements UserDetailsService {
             return;
         userRepository.save(user);
     }
+
+    public java.util.List<com.quizspark.quizsparkserver.dto.UserDTO> searchUsers(String query) {
+        if (query == null)
+            query = "";
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return userRepository.findTop10ByUsernameContainingIgnoreCaseAndIdNot(query, currentUser.getId())
+                .stream()
+                .map(com.quizspark.quizsparkserver.dto.UserDTO::new)
+                .toList();
+    }
 }

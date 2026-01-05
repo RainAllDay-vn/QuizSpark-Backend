@@ -1,5 +1,6 @@
 package com.quizspark.quizsparkserver.api;
 
+import com.quizspark.quizsparkserver.dto.UserDTO;
 import com.quizspark.quizsparkserver.dto.UserRegistrationDTO;
 import com.quizspark.quizsparkserver.dto.UserStatisticDTO;
 import com.quizspark.quizsparkserver.models.User;
@@ -47,5 +48,10 @@ public class UserController {
         User newUser = userRegistration.toUser(email);
         userService.saveUser(newUser);
         return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @GetMapping
+    public ResponseEntity<java.util.List<UserDTO>> searchUsers(@RequestParam(required = false) String query) {
+        return new ResponseEntity<>(userService.searchUsers(query), HttpStatus.OK);
     }
 }
