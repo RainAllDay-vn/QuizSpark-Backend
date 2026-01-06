@@ -103,6 +103,30 @@ public class ClassroomService {
         return new ClassroomDTO(classroom);
     }
 
+    public ClassroomDTO joinClassroom(String joinCode) {
+        User principal = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = userService.getUserById(principal.getId());
+
+        Classroom classroom = classroomRepository.findByJoinCode(joinCode)
+                .orElseThrow(() -> new RuntimeException("Classroom not found with join code: " + joinCode));
+
+        // Check if already a member
+        boolean alreadyMember = classroom.getMembers().stream()
+                .anyMatch(m -> m.getUser().getId().equals(user.getId()));
+
+        if (alreadyMember) {
+            throw new RuntimeException("User is already a member of this classroom");
+        }
+
+        ClassroomMember newMember = new ClassroomMember();
+        newMember.setClassroom(classroom);
+        newMember.setUser(user);
+        newMember.setRole(ClassroomMember.ClassroomRole.STUDENT);
+        classroomMemberRepository.save(newMember);
+
+        return new ClassroomDTO(classroom);
+    }
+
     public ClassroomDetailsDTO getClassroomById(UUID id) {
         User principal = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User user = userService.getUserById(principal.getId());

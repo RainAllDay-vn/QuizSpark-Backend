@@ -41,4 +41,9 @@ public class ClassroomController {
             @RequestParam String username) {
         return ResponseEntity.ok(classroomService.inviteUser(id, username));
     }
+
+    @PostMapping("/join")
+    public ResponseEntity<ClassroomDTO> joinClassroom(@RequestParam String joinCode) {
+        return ResponseEntity.ok(classroomService.joinClassroom(joinCode));
+    }
 }

@@ -49,7 +49,7 @@ public class AiService {
     private final PdfProcessorService pdfProcessorService;
     private final ObjectMapper mapper;
     private final ChatModel chatModel;
-    private static final String TEXT_MODEL = "deepseek-ai/DeepSeek-V3.2-TEE";
+    private static final String TEXT_MODEL = "Qwen/Qwen3-Next-80B-A3B-Instruct";
     private static final String IMAGE_MODEL = "Qwen/Qwen3-VL-235B-A22B-Instruct";
     private static final String EXTRACT_TEXT_PROMPT = """
             ### Content Analysis & Extraction Protocol

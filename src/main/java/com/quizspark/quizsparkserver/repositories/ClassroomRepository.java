@@ -9,4 +9,6 @@ import java.util.UUID;
 @Repository
 public interface ClassroomRepository extends JpaRepository<Classroom, UUID> {
     boolean existsByJoinCode(String joinCode);
+
+    java.util.Optional<Classroom> findByJoinCode(String joinCode);
 }
