@@ -38,7 +38,7 @@ public class QuestionDTO {
         this.totalAttempts = practiceQuestions.size();
         this.correctAttempts = (int) practiceQuestions.stream()
                 .map(PracticeQuestion::getIsCorrect)
-                .filter(isCorrect -> isCorrect == true)
+                .filter(isCorrect -> Boolean.TRUE.equals(isCorrect))
                 .count();
         return this;
     }
