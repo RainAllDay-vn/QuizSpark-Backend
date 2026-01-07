@@ -35,6 +35,7 @@ public class QuestionService {
         this.questionCommentRepository = questionCommentRepository;
     }
 
+    @Transactional(readOnly = true)
     public List<QuestionBankDTO> getPublicQuestionBanks() {
         return bankRepository.findAllByAccess(QuestionBank.Access.PUBLIC)
                 .stream()
@@ -43,6 +44,7 @@ public class QuestionService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<QuestionBankDTO> getQuestionBankByUser() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         List<QuestionBankDTO> body = new ArrayList<>(bankRepository.findQuestionBankByUser(user)
@@ -55,6 +57,7 @@ public class QuestionService {
         return body;
     }
 
+    @Transactional(readOnly = true)
     public List<QuestionBankDTO> getAdminBank() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (user.getRole().equals("ROLE_ADMIN")) {
@@ -67,6 +70,7 @@ public class QuestionService {
         }
     }
 
+    @Transactional(readOnly = true)
     public QuestionBank getQuestionBankEntityById(String bankId) {
         Optional<QuestionBank> bankOptional = bankRepository.findById(UUID.fromString(bankId));
         if (bankOptional.isEmpty())
@@ -82,10 +86,12 @@ public class QuestionService {
         return bank;
     }
 
+    @Transactional(readOnly = true)
     public QuestionBankDTO getQuestionBankById(String bankId) {
         return new QuestionBankDTO(getQuestionBankEntityById(bankId));
     }
 
+    @Transactional
     public QuestionBankDTO getFullQuestionBankById(String bankId) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         QuestionBank questionBank = getQuestionBankEntityById(bankId);
@@ -143,6 +149,7 @@ public class QuestionService {
         bankRepository.delete(questionBank);
     }
 
+    @Transactional(readOnly = true)
     public Question getQuestionEntityById(String questionId) {
         Optional<Question> questionOptional = questionRepository.findById(UUID.fromString(questionId));
         if (questionOptional.isEmpty())
@@ -164,6 +171,7 @@ public class QuestionService {
         return canBeEdited(questionBank);
     }
 
+    @Transactional
     public QuestionDTO saveQuestion(String bankId, QuestionCreationDTO questionCreationDTO) {
         QuestionBank questionBank = getQuestionBankEntityById(bankId);
         Question question = questionCreationDTO.toQuestion(questionBank);
@@ -173,6 +181,7 @@ public class QuestionService {
         return new QuestionDTO(question);
     }
 
+    @Transactional
     public List<QuestionDTO> saveAllQuestions(String bankId, List<QuestionCreationDTO> questionCreationDTOs) {
         QuestionBank questionBank = getQuestionBankEntityById(bankId);
         List<Question> questions = questionCreationDTOs.stream()
@@ -182,6 +191,7 @@ public class QuestionService {
         return questions.stream().map(QuestionDTO::new).toList();
     }
 
+    @Transactional
     public QuestionDTO updateQuestion(String questionId, QuestionUpdateDTO questionUpdateDTO) {
         Question question = getQuestionEntityById(questionId);
         if (!canBeEdited(question))
@@ -213,6 +223,7 @@ public class QuestionService {
                 .toList();
     }
 
+    @Transactional
     public void deleteQuestion(String questionId) {
         Question question = getQuestionEntityById(questionId);
         if (!canBeEdited(question))
@@ -231,6 +242,7 @@ public class QuestionService {
         return comment;
     }
 
+    @Transactional(readOnly = true)
     public List<QuestionCommentDTO> getComments(String questionId) {
         Question question = getQuestionEntityById(questionId);
         List<QuestionComment> comments = question.getComments();
@@ -239,6 +251,7 @@ public class QuestionService {
                 .toList();
     }
 
+    @Transactional
     public QuestionCommentDTO addComment(String questionId, QuestionCommentCreationDTO commentCreationDTO) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Question question = getQuestionEntityById(questionId);
@@ -247,6 +260,7 @@ public class QuestionService {
         return new QuestionCommentDTO(comment);
     }
 
+    @Transactional
     public QuestionCommentDTO updateComment(String commentId, QuestionCommentUpdateDTO commentUpdateDTO) {
         QuestionComment questionComment = getCommentEntityById(commentId);
         commentUpdateDTO.updateComment(questionComment);

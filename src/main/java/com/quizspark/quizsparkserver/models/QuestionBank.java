@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.hibernate.annotations.SQLRestriction;
+
 @Entity
 @Table(name = "question_bank", indexes = {
         @Index(name = "idx_question_bank_user_id", columnList = "user_id"),
@@ -55,6 +57,7 @@ public class QuestionBank {
 
     // Relationship: One QuestionBank can contain many Questions
     @OneToMany(mappedBy = "questionBank", cascade = CascadeType.ALL, orphanRemoval = true)
+    @SQLRestriction("deleted = false")
     private List<Question> questions = new ArrayList<>();
 
     @OneToMany(mappedBy = "bank", cascade = CascadeType.ALL, orphanRemoval = true)

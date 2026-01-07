@@ -53,12 +53,16 @@ public class PracticeService {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         QuestionBank bank = questionService.getQuestionBankEntityById(questionBankId);
         List<Question> suitableQuestions = new ArrayList<>(getSuitableQuestions(bank, user, limit, tags));
+        if (suitableQuestions.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No questions found matching the criteria");
+        }
         Collections.shuffle(suitableQuestions);
         Practice practice = new Practice(user, suitableQuestions, shuffleAnswer, revealAnswer);
         practice = practiceRepository.save(practice);
         return practice.getId();
     }
 
+    @Transactional
     public PracticeDTO startNewAnonymPractice(String questionBankId, int limit, boolean shuffleAnswer,
             List<String> tags) {
         Set<String> tagSet = new HashSet<>(tags);
@@ -68,16 +72,21 @@ public class PracticeService {
                 .filter(question -> tagSet.containsAll(question.getTags().stream().map(Tag::getName).toList()))
                 .limit(limit)
                 .toList();
+        if (questions.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No questions found matching the criteria");
+        }
         Practice practice = new Practice(null, questions, shuffleAnswer, true);
         return new PracticeDTO(practice);
     }
 
+    @Transactional(readOnly = true)
     public Page<PracticeDTO> getUserPractice(Pageable pageable, Boolean isClosed) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Page<Practice> page = practiceRepository.findByUser(user, isClosed, pageable);
         return page.map(PracticeDTO::new);
     }
 
+    @Transactional(readOnly = true)
     public PracticeDTO getPractice(String practiceId) {
         return new PracticeDTO(getPracticeEntity(practiceId));
     }
@@ -107,6 +116,7 @@ public class PracticeService {
         return practiceQuestion;
     }
 
+    @Transactional
     public PracticeAnswerResponseDTO answerPracticeQuestion(String practiceId, int index, List<String> userAnswer,
             int secondsToAnswer) {
         PracticeQuestion question = getPracticeQuestionEntity(practiceId, index);
@@ -121,6 +131,7 @@ public class PracticeService {
         return dto;
     }
 
+    @Transactional
     public PracticeDTO finishPractice(String practiceId) {
         Practice practice = getPracticeEntity(practiceId);
         practice.setClosed(true);

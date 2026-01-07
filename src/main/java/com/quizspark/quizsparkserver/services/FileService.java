@@ -30,6 +30,7 @@ public class FileService {
         this.questionService = questionService;
     }
 
+    @Transactional(readOnly = true)
     public DbFile getFileEntity(String fileId) {
         DbFile file = fileRepository.findById(UUID.fromString(fileId))
                 .orElseThrow(
@@ -39,6 +40,7 @@ public class FileService {
         return file;
     }
 
+    @Transactional(readOnly = true)
     public DbFile getFileEntityByName(String fileName) {
         DbFile file = fileRepository.findByFileName(fileName)
                 .orElseThrow(
@@ -49,6 +51,7 @@ public class FileService {
         return file;
     }
 
+    @Transactional(readOnly = true)
     public DbFile getParseFileEntity(DbFile originalFile) {
         String parseFileName = originalFile.getFileName() + "_PARSE";
         DbFile parseFile = getFileEntityByName(parseFileName);
@@ -73,6 +76,7 @@ public class FileService {
         return false;
     }
 
+    @Transactional
     public FileDTO storeFile(MultipartFile file) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         // Normalize file name
@@ -117,6 +121,7 @@ public class FileService {
         fileRepository.save(file);
     }
 
+    @Transactional(readOnly = true)
     public List<FileDTO> getUserFiles() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return fileRepository.findByUserId(user.getId()).stream()
@@ -136,6 +141,7 @@ public class FileService {
         fileRepository.delete(file);
     }
 
+    @Transactional
     public DbFile createMirrorFile(DbFile source, String content) {
         DbFile mirrorFile = new DbFile(
                 source.getFileName() + ".txt",
@@ -146,6 +152,7 @@ public class FileService {
         return fileRepository.save(mirrorFile);
     }
 
+    @Transactional
     public FileDTO updateFileContent(String fileId, String content) {
         DbFile file = getFileEntity(fileId);
         if (!canEdit(file))

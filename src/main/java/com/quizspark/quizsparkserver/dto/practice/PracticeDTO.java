@@ -30,26 +30,32 @@ public class PracticeDTO {
     public PracticeDTO(Practice practice) {
         this.practice = practice;
         this.id = practice.getId();
-        this.bankNames = Collections.singletonList(practice.getPracticeQuestion()
-                .get(0)
-                .getQuestion()
-                .getQuestionBank()
-                .getName());
-        this.tags = practice.getPracticeQuestion()
-                .stream()
-                .map(PracticeQuestion::getQuestion)
-                .map(Question::getTags)
-                .flatMap(List::stream)
-                .distinct()
-                .map(TagDTO::new)
-                .sorted()
-                .toList();
-        this.timeInSeconds = practice.getPracticeQuestion()
-                .stream()
-                .map(PracticeQuestion::getSecondsToAnswer)
-                .filter(Objects::nonNull)
-                .mapToInt(Integer::intValue)
-                .sum();
+        if (practice.getPracticeQuestion() != null && !practice.getPracticeQuestion().isEmpty()) {
+            this.bankNames = Collections.singletonList(practice.getPracticeQuestion()
+                    .get(0)
+                    .getQuestion()
+                    .getQuestionBank()
+                    .getName());
+            this.tags = practice.getPracticeQuestion()
+                    .stream()
+                    .map(PracticeQuestion::getQuestion)
+                    .map(Question::getTags)
+                    .flatMap(List::stream)
+                    .distinct()
+                    .map(TagDTO::new)
+                    .sorted()
+                    .toList();
+            this.timeInSeconds = practice.getPracticeQuestion()
+                    .stream()
+                    .map(PracticeQuestion::getSecondsToAnswer)
+                    .filter(Objects::nonNull)
+                    .mapToInt(Integer::intValue)
+                    .sum();
+        } else {
+            this.bankNames = Collections.emptyList();
+            this.tags = Collections.emptyList();
+            this.timeInSeconds = 0;
+        }
         this.numberOfQuestion = practice.getPracticeQuestion().size();
         this.closed = practice.isClosed();
         this.date = practice.getDate();

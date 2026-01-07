@@ -12,14 +12,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
         User getUsersByEmail(String email);
 
-        @Query("SELECT COALESCE(COUNT(qb.id), 0) " +
+        @Query("SELECT COUNT(qb) " +
                         "FROM users u " +
                         "LEFT JOIN QuestionBank qb ON u.id = qb.user.id " +
                         "WHERE u.id = :userId")
         long getQuestionBankCount(UUID userId);
 
         @Query("SELECT new com.quizspark.quizsparkserver.dto.repositories.PracticeStatisticsDTO(" +
-                        "COALESCE(COUNT(pq.id), 0), " +
+                        "COUNT(pq), " +
                         "COALESCE(SUM(pq.secondsToAnswer), 0)) " +
                         "FROM users u " +
                         "LEFT JOIN PracticeQuestion pq ON u.id = pq.practice.user.id " +

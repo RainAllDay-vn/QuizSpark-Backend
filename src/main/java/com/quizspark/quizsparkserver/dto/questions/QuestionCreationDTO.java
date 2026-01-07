@@ -43,9 +43,28 @@ public class QuestionCreationDTO {
         }
         question.setTags(new ArrayList<>());
         if (tags != null) {
-            for (String tagId : tags) {
-                Tag tag = questionBank.getTagById(UUID.fromString(tagId))
-                        .orElse(new Tag(tagId));
+            for (String tagInput : tags) {
+                Tag tag = null;
+                try {
+                    UUID id = UUID.fromString(tagInput);
+                    tag = questionBank.getTagById(id).orElse(null);
+                } catch (IllegalArgumentException e) {
+                    // Not a UUID, treat as name
+                }
+
+                if (tag == null) {
+                    tag = questionBank.getTagByName(tagInput).orElse(null);
+                    if (tag == null) {
+                        tag = new Tag(tagInput);
+                        tag.setBank(questionBank);
+                        questionBank.getTags().add(tag);
+                    }
+                }
+
+                if (tag.getBank() == null) {
+                    tag.setBank(questionBank);
+                }
+
                 question.getTags().add(tag);
             }
         }

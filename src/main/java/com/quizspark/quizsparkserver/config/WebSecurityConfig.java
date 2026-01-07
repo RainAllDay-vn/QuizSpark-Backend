@@ -55,7 +55,11 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "https://quiz-spark-website.vercel.app/"));
+        String envAllowedOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
+        List<String> allowedOrigins = envAllowedOrigins != null && !envAllowedOrigins.isBlank()
+                ? List.of(envAllowedOrigins.split(","))
+                : List.of("http://localhost:5173", "https://quiz-spark-website.vercel.app/");
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Content-Disposition"));
