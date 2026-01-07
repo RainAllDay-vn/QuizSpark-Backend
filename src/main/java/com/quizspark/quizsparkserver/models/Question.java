@@ -32,7 +32,7 @@ public class Question {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean deleted = false;
 
     @ManyToOne(fetch = FetchType.LAZY)

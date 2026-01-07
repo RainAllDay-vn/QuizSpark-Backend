@@ -82,4 +82,12 @@ public class PracticeController {
                 .appendQuestions();
         return new ResponseEntity<>(body, HttpStatus.OK);
     }
+
+    @PostMapping("/id/{practiceId}/duplicate")
+    public ResponseEntity<Object> duplicatePractice(@PathVariable String practiceId) {
+        UUID newPracticeId = practiceService.duplicatePractice(practiceId);
+        HashMap<Object, Object> body = new HashMap<>();
+        body.put("id", newPracticeId.toString());
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
+    }
 }

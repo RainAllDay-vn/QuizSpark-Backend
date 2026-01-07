@@ -138,4 +138,27 @@ public class PracticeService {
         practice = practiceRepository.save(practice);
         return new PracticeDTO(practice);
     }
+
+    @Transactional
+    public UUID duplicatePractice(String practiceId) {
+        Practice practice = getPracticeEntity(practiceId);
+        List<PracticeQuestion> practiceQuestions = practice.getPracticeQuestion();
+        if (practiceQuestions.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot duplicate a practice with no questions");
+        }
+
+        QuestionBank bank = practiceQuestions.get(0).getQuestion().getQuestionBank();
+        int size = practiceQuestions.size();
+        boolean revealAnswer = practice.isRevealAnswer();
+        boolean shuffleAnswer = practiceQuestions.stream()
+                .anyMatch(pq -> pq.getShuffleMapping() != null);
+
+        List<String> tags = practiceQuestions.stream()
+                .flatMap(pq -> pq.getQuestion().getTags().stream())
+                .map(Tag::getName)
+                .distinct()
+                .toList();
+
+        return startNewPractice(bank.getId().toString(), size, shuffleAnswer, revealAnswer, tags);
+    }
 }
