@@ -2,10 +2,10 @@ package com.quizspark.quizsparkserver.api;
 
 import com.quizspark.quizsparkserver.dto.chat.*;
 import com.quizspark.quizsparkserver.services.ChatService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -14,12 +14,15 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/chat")
-@RequiredArgsConstructor
 public class ChatController {
     private final ChatService chatService;
 
+    public ChatController(ChatService chatservice) {
+        this.chatService = chatservice;
+    }
+
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ChatResponseDTO> streamChat(@RequestBody ChatRequestDTO request) {
+    public Flux<ChatResponseDTO> streamChat(@Valid @RequestBody ChatRequestDTO request) {
         return chatService.streamChat(request);
     }
 

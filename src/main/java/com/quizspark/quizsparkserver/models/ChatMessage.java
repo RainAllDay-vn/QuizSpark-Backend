@@ -1,12 +1,14 @@
 package com.quizspark.quizsparkserver.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,26 +38,42 @@ public class ChatMessage {
     @Column(nullable = false)
     private Integer messageIndex;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    @JsonManagedReference
+    private List<ChatItem> items = new ArrayList<>();
 
     private String model;
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "chat_message_files", joinColumns = @JoinColumn(name = "message_id"), inverseJoinColumns = @JoinColumn(name = "file_id"))
-    private List<DbFile> files = new java.util.ArrayList<>();
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    public ChatMessage(ChatSession session, MessageRole role, String content, String model, List<DbFile> files,
-            Integer messageIndex) {
+    public ChatMessage(ChatSession session, MessageRole role, String model, Integer messageIndex) {
         this.session = session;
         this.role = role;
-        this.content = content;
         this.model = model;
-        this.files = files;
         this.messageIndex = messageIndex;
         this.createdAt = LocalDateTime.now();
     }
+    
+    public void addItem(ChatItem item) {
+        items.add(item);
+        item.setMessage(this);
+    }
+
+    // Helper method to get files from items for deletion logic
+    public List<DbFile> getFiles() {
+        List<DbFile> files = new ArrayList<>();
+        if (items != null) {
+            for (ChatItem item : items) {
+                if (item.getFile() != null) {
+                    files.add(item.getFile());
+                }
+            }
+        }
+        return files;
+    }
+    
+    // Helper to legacy content string getter if needed, though we should move away from it.
+    // Ideally code should consume items.
 }

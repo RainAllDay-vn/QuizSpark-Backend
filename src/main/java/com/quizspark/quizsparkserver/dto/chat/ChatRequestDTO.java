@@ -1,5 +1,7 @@
 package com.quizspark.quizsparkserver.dto.chat;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,10 +15,16 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRequestDTO {
-    private String message;
+    
     private UUID sessionId;
+    
     private String model;
-    private List<ChatFileDTO> files;
+    
     private Integer index;
+    
     private Boolean tts;
+
+    @NotEmpty(message = "Items list cannot be empty")
+    @Valid
+    private List<ChatItemDTO> items;
 }

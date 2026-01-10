@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -18,22 +19,27 @@ import java.util.UUID;
 public class ChatMessageDTO {
     private UUID id;
     private MessageRole role;
-    private String content;
+    private List<ChatItemDTO> content;
     private String model;
     private Integer messageIndex;
-    private List<UUID> fileIds;
     private LocalDateTime createdAt;
-
+    
     public ChatMessageDTO(ChatMessage message) {
         this.id = message.getId();
         this.role = message.getRole();
-        this.content = message.getContent();
         this.model = message.getModel();
         this.messageIndex = message.getMessageIndex();
-        this.fileIds = message.getFiles() != null
-                ? message.getFiles().stream().map(com.quizspark.quizsparkserver.models.DbFile::getId)
-                        .collect(java.util.stream.Collectors.toList())
-                : new java.util.ArrayList<>();
         this.createdAt = message.getCreatedAt();
+        
+        this.content = message.getItems().stream()
+                .map(item -> ChatItemDTO.builder()
+                        .type(ChatItemDTO.ChatItemType.valueOf(item.getType().name()))
+                        .description(item.getDescription())
+                        .content(item.getContent()) // Or handle retrieving base64 if needed, but usually we just send back text/ids
+                        .fileId(item.getFile() != null ? item.getFile().getId() : null)
+                        .fileName(item.getFileName())
+                        .fileType(item.getFileType())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

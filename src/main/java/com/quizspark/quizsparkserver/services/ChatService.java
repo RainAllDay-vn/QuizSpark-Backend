@@ -3,6 +3,7 @@ package com.quizspark.quizsparkserver.services;
 import com.quizspark.quizsparkserver.dto.chat.*;
 import com.quizspark.quizsparkserver.dto.chat.ModelDTO.ModelCharacteristic;
 import com.quizspark.quizsparkserver.models.*;
+import com.quizspark.quizsparkserver.models.ChatItem.ChatItemType;
 import com.quizspark.quizsparkserver.repositories.ChatMessageRepository;
 import com.quizspark.quizsparkserver.repositories.ChatSessionRepository;
 import com.quizspark.quizsparkserver.repositories.FileRepository;
@@ -90,8 +91,14 @@ public class ChatService {
 
         private ChatSession getOrCreateSession(ChatRequestDTO request, User user) {
                 if (request.getSessionId() == null) {
-                        String title = request.getMessage().substring(0, Math.min(request.getMessage().length(), 50));
-                        return chatSessionRepository.save(new ChatSession(user, title));
+                    String title = "New Chat";
+                    for (ChatItemDTO item : request.getItems()) {
+                        if (item.getType() == ChatItemDTO.ChatItemType.MESSAGE && item.getContent() != null) {
+                            title = item.getContent().substring(0, Math.min(item.getContent().length(), 50));
+                            break;
+                        }
+                    }
+                    return chatSessionRepository.save(new ChatSession(user, title));
                 }
                 ChatSession session = chatSessionRepository.findById(request.getSessionId())
                                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -123,20 +130,31 @@ public class ChatService {
         }
 
         private void saveUserMessage(ChatRequestDTO request, ChatSession session, int index) {
-                List<DbFile> files = new ArrayList<>();
-                if (request.getFiles() != null) {
-                        for (ChatFileDTO fileDto : request.getFiles()) {
-                                if (fileDto.getId() != null) {
-                                        files.add(fileService.getFileEntity(fileDto.getId().toString()));
-                                } else if (fileDto.getData() != null) {
-                                        DbFile newFile = new DbFile(fileDto.getFileName(), fileDto.getFileType(),
-                                                        fileDto.getData(), null);
-                                        files.add(fileRepository.save(newFile));
-                                }
-                        }
+                ChatMessage userMessage = new ChatMessage(session, ChatMessage.MessageRole.USER,
+                                request.getModel(), index);
+                
+                int orderIndex = 0;
+                for (ChatItemDTO itemDto : request.getItems()) {
+                    ChatItem item = itemDto.toChatItem(orderIndex++);
+
+                    if (itemDto.getFileId() != null) {
+                        // Use existing file from DB
+                        DbFile dbFile = fileService.getFileEntity(itemDto.getFileId().toString());
+                        item.setFile(dbFile);
+                        item.setContent(null); // Content not needed if file exists, or redundant
+                    } else if (itemDto.getType() == ChatItemDTO.ChatItemType.ATTACHMENT && itemDto.getContent() != null) {
+                        // Create new file from content (Base64)
+                        byte[] data = java.util.Base64.getDecoder().decode(itemDto.getContent());
+                        DbFile newFile = new DbFile(itemDto.getFileName(), itemDto.getFileType(), data, null);
+                        newFile = fileRepository.save(newFile);
+                        item.setFile(newFile);
+                        item.setContent(null);
+                    }
+                    // Content for non-attachment types is already handled in toChatItem
+                    
+                    userMessage.addItem(item);
                 }
-                ChatMessage userMessage = new ChatMessage(session, ChatMessage.MessageRole.USER, request.getMessage(),
-                                request.getModel(), files, index);
+                
                 chatMessageRepository.save(userMessage);
         }
 
@@ -180,7 +198,7 @@ public class ChatService {
                                 })
                                 .filter(resp -> resp.getChunk() != null && !resp.getChunk().isEmpty())
                                 .doOnComplete(() -> {
-                                        if (fullResponse.length() > 0) {
+                                        if (!fullResponse.isEmpty()) {
                                                 saveAssistantMessage(session, fullResponse.toString(), model,
                                                                 assistantIndex);
                                         }
@@ -216,26 +234,47 @@ public class ChatService {
         }
 
         private Message convertToAiMessage(ChatMessage msg, boolean includeFiles) {
-                if (msg.getRole() == ChatMessage.MessageRole.USER) {
-                        if (includeFiles && msg.getFiles() != null && !msg.getFiles().isEmpty()) {
-                                List<Media> medias = msg.getFiles().stream()
-                                                .filter(file -> file.getFileType().startsWith("image/"))
-                                                .map(file -> new Media(
-                                                                MimeTypeUtils.parseMimeType(file.getFileType()),
-                                                                new ByteArrayResource(file.getData())))
-                                                .collect(Collectors.toList());
-                                if (!medias.isEmpty()) {
-                                        return new UserMessage(msg.getContent(), medias);
-                                }
+                StringBuilder textContent = new StringBuilder();
+                List<Media> medias = new ArrayList<>();
+
+                for (ChatItem item : msg.getItems()) {
+                    if (item.getType() == ChatItemType.MESSAGE) {
+                        if (item.getContent() != null) {
+                            textContent.append(item.getContent()).append("\n");
                         }
-                        return new UserMessage(msg.getContent());
+                    } else if (item.getType() == ChatItemType.ATTACHMENT) {
+                        if (includeFiles && item.getFile() != null && item.getFile().getFileType().startsWith("image/")) {
+                             medias.add(new Media(
+                                     MimeTypeUtils.parseMimeType(item.getFile().getFileType()),
+                                     new ByteArrayResource(item.getFile().getData())));
+                        }
+                    } else if (item.getType() == ChatItemType.CONTEXT) {
+                        if (item.getDescription() != null) {
+                             textContent.append("[Context: ").append(item.getDescription()).append("]\n");
+                        }
+                        if (item.getFile()!=null) {
+
+                        }
+                        if (item.getContent() != null) {
+                             textContent.append(item.getContent()).append("\n");
+                        }
+                    }
                 }
-                return new AssistantMessage(msg.getContent());
+
+                if (msg.getRole() == ChatMessage.MessageRole.USER) {
+                        if (!medias.isEmpty()) {
+                                return new UserMessage(textContent.toString().trim(), medias);
+                        }
+                        return new UserMessage(textContent.toString().trim());
+                }
+                return new AssistantMessage(textContent.toString().trim());
         }
 
         private void saveAssistantMessage(ChatSession session, String content, String model, int index) {
                 ChatMessage assistantMsg = new ChatMessage(session, ChatMessage.MessageRole.ASSISTANT,
-                                content, model, new ArrayList<>(), index);
+                                model, index);
+                ChatItem item = new ChatItem(assistantMsg, ChatItemType.MESSAGE, content, null, 0);
+                assistantMsg.addItem(item);
                 chatMessageRepository.save(assistantMsg);
         }
 

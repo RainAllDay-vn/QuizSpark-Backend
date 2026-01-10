@@ -19,6 +19,7 @@ Initial setup of the architectural documentation (Memory Bank) to enable effecti
 ## Recent Changes
 -   Initialized Memory Bank structure (`brief.md`, `product.md`).
 -   Analyzed codebase to understand current capabilities.
+-   Added `toChatItem` method to `ChatItemDTO` and refactored `ChatService` to use it.
 
 ## Next Steps
 1.  Complete Memory Bank initialization (`architecture.md`, `tech.md`).
