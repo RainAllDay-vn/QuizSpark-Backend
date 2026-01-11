@@ -28,6 +28,9 @@ public class ChatItem {
     @JsonBackReference
     private ChatMessage message;
 
+    @Column(nullable = false)
+    private Integer orderIndex;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ChatItemType type;
@@ -41,15 +44,6 @@ public class ChatItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "file_id")
     private DbFile file;
-    
-    @Column(nullable = false)
-    private Integer orderIndex;
-    
-    @Column
-    private String fileName;
-    
-    @Column
-    private String fileType;
 
     public ChatItem(ChatMessage message, ChatItemType type, String content, DbFile file, Integer orderIndex) {
         this.message = message;

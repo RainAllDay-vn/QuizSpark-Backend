@@ -31,7 +31,7 @@ public class DbFile {
     private LocalDateTime uploadDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = true)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @ManyToMany(mappedBy = "files")
@@ -44,8 +44,8 @@ public class DbFile {
     @OneToMany(mappedBy = "originFile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DbFile> derivedFiles = new ArrayList<>();
 
-    @ManyToMany(mappedBy = "files")
-    private List<ChatMessage> chatMessages = new ArrayList<>();
+    @OneToMany(mappedBy = "file")
+    private List<ChatItem> chatItems = new ArrayList<>();
 
     // Default constructor
     public DbFile() {

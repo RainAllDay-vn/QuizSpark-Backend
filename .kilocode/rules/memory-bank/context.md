@@ -20,6 +20,7 @@ Initial setup of the architectural documentation (Memory Bank) to enable effecti
 -   Initialized Memory Bank structure (`brief.md`, `product.md`).
 -   Analyzed codebase to understand current capabilities.
 -   Added `toChatItem` method to `ChatItemDTO` and refactored `ChatService` to use it.
+-   Implemented chat request logging in `ChatService` using SLF4J (Spring's default logger) to capture user messages, media counts, and AI responses.
 
 ## Next Steps
 1.  Complete Memory Bank initialization (`architecture.md`, `tech.md`).

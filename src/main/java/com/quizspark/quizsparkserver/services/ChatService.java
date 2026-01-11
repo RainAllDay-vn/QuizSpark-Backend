@@ -28,7 +28,9 @@ import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,292 +39,359 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class ChatService {
-        private final ChatSessionRepository chatSessionRepository;
-        private final ChatMessageRepository chatMessageRepository;
-        private final FileService fileService;
-        private final FileRepository fileRepository;
-        private final UserService userService;
-        private final ChatModel chatModel;
+    private final ChatSessionRepository chatSessionRepository;
+    private final ChatMessageRepository chatMessageRepository;
+    private final FileService fileService;
+    private final FileRepository fileRepository;
+    private final UserService userService;
+    private final ChatModel chatModel;
 
-        private static final List<ModelDTO> AVAILABLE_MODELS = List.of(
-                        // DeepSeek V3.2 (Released Dec 2025) - Supports Reasoning/Thinking Mode
-                        new ModelDTO("deepseek-v3.2", "deepseek-ai/DeepSeek-V3.2-TEE", "DeepSeek V3.2 TEE",
-                                        List.of(ModelCharacteristic.REASONING)),
-                        // Qwen 3 235B (Released July 2025) - Features "Thinking Mode" and dual-mode
-                        // switching
-                        new ModelDTO("qwen-3-235b", "Qwen/Qwen3-235B-A22B-Instruct-2507-TEE", "Qwen 3 235B TEE",
-                                        List.of(ModelCharacteristic.REASONING)),
-                        // GLM 4.7 (Released late 2025) - Features "Interleaved Thinking"
-                        new ModelDTO("glm-4.7", "zai-org/GLM-4.7-TEE", "GLM 4.7 TEE",
-                                        List.of(ModelCharacteristic.REASONING)),
-                        // Kimi K2 Thinking (Released Nov 2025) - Native Thinking Agent
-                        new ModelDTO("kimi-k2", "moonshotai/Kimi-K2-Thinking-TEE", "Kimi K2 Thinking TEE",
-                                        List.of(ModelCharacteristic.REASONING)),
-                        // Hermes 4 405B (Released late 2025) - Hybrid Reasoning capabilities
-                        new ModelDTO("hermes-4", "NousResearch/Hermes-4-405B-FP8-TEE", "Hermes 4 405B TEE",
-                                        List.of(ModelCharacteristic.REASONING)),
-                        // MiniMax M2.1 (Released Dec 2025) - "Advanced Interleaved Thinking"
-                        new ModelDTO("minimax-m2.1", "MiniMaxAI/MiniMax-M2.1-TEE", "MiniMax M2.1 TEE",
-                                        List.of(ModelCharacteristic.REASONING)),
-                        // Qwen 3 VL - Vision Language Model
-                        new ModelDTO("qwen-3-vl", "Qwen/Qwen3-VL-235B-A22B-Instruct", "Qwen 3 VL",
-                                        List.of(ModelCharacteristic.VISION)),
-                        // GLM 4.6V - Vision Model (Predecessor to 4.7 text)
-                        new ModelDTO("glm-4.6v", "zai-org/GLM-4.6V", "GLM 4.6V",
-                                        List.of(ModelCharacteristic.VISION)),
-                        // DeepSeek V3.2 Speciale - "Maxed-out reasoning capabilities"
-                        new ModelDTO("deepseek-v3.2-speciale", "deepseek-ai/DeepSeek-V3.2-Speciale-TEE",
-                                        "DeepSeek V3.2 Speciale TEE",
-                                        List.of(ModelCharacteristic.REASONING)));
+    private static final List<ModelDTO> AVAILABLE_MODELS = List.of(
+            // DeepSeek V3.2 (Released Dec 2025) - Supports Reasoning/Thinking Mode
+            new ModelDTO("deepseek-v3.2", "deepseek-ai/DeepSeek-V3.2-TEE", "DeepSeek V3.2 TEE",
+                    List.of(ModelCharacteristic.REASONING)),
+            // Qwen 3 235B (Released July 2025) - Features "Thinking Mode" and dual-mode
+            // switching
+            new ModelDTO("qwen-3-235b", "Qwen/Qwen3-235B-A22B-Instruct-2507-TEE", "Qwen 3 235B TEE",
+                    List.of(ModelCharacteristic.REASONING)),
+            // GLM 4.7 (Released late 2025) - Features "Interleaved Thinking"
+            new ModelDTO("glm-4.7", "zai-org/GLM-4.7-TEE", "GLM 4.7 TEE",
+                    List.of(ModelCharacteristic.REASONING)),
+            // Kimi K2 Thinking (Released Nov 2025) - Native Thinking Agent
+            new ModelDTO("kimi-k2", "moonshotai/Kimi-K2-Thinking-TEE", "Kimi K2 Thinking TEE",
+                    List.of(ModelCharacteristic.REASONING)),
+            // Hermes 4 405B (Released late 2025) - Hybrid Reasoning capabilities
+            new ModelDTO("hermes-4", "NousResearch/Hermes-4-405B-FP8-TEE", "Hermes 4 405B TEE",
+                    List.of(ModelCharacteristic.REASONING)),
+            // MiniMax M2.1 (Released Dec 2025) - "Advanced Interleaved Thinking"
+            new ModelDTO("minimax-m2.1", "MiniMaxAI/MiniMax-M2.1-TEE", "MiniMax M2.1 TEE",
+                    List.of(ModelCharacteristic.REASONING)),
+            // Qwen 3 VL - Vision Language Model
+            new ModelDTO("qwen-3-vl", "Qwen/Qwen3-VL-235B-A22B-Instruct", "Qwen 3 VL",
+                    List.of(ModelCharacteristic.VISION)),
+            // GLM 4.6V - Vision Model (Predecessor to 4.7 text)
+            new ModelDTO("glm-4.6v", "zai-org/GLM-4.6V", "GLM 4.6V",
+                    List.of(ModelCharacteristic.VISION)),
+            // DeepSeek V3.2 Speciale - "Maxed-out reasoning capabilities"
+            new ModelDTO("deepseek-v3.2-speciale", "deepseek-ai/DeepSeek-V3.2-Speciale-TEE",
+                    "DeepSeek V3.2 Speciale TEE",
+                    List.of(ModelCharacteristic.REASONING)));
 
-        private static final String DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3.2-TEE";
-        private static final String SYSTEM_PROMPT = "You are a helpful educational assistant for QuizSpark.";
+    private static final String DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3.2-TEE";
+    private static final String SYSTEM_PROMPT = "You are a helpful educational assistant for QuizSpark.";
 
-        @Transactional
-        public Flux<ChatResponseDTO> streamChat(ChatRequestDTO request) {
-                User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-                user = userService.getUserById(user.getId());
-                ChatSession session = getOrCreateSession(request, user);
-                handleMessageTruncation(session, request.getIndex());
-                int nextIndex = chatMessageRepository.countBySession(session).intValue();
-                saveUserMessage(request, session, nextIndex);
-                return executeChatStream(session, request.getModel(), nextIndex + 1);
+    @Transactional
+    public Flux<ChatResponseDTO> streamChat(ChatRequestDTO request) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        user = userService.getUserById(user.getId());
+        ChatSession session = getOrCreateSession(request, user);
+        ChatMessage userMessage = convertToChatMessage(request, session);
+        handleMessageTruncation(session, request.getIndex());
+        chatMessageRepository.save(userMessage);
+        return executeChatStream(session, request.getModel(), userMessage.getMessageIndex() + 1);
+    }
+
+    /**
+     * Converts a ChatRequestDTO to a ChatMessage object.
+     * This method creates a USER role message and processes all items including attachments.
+     *
+     * @param request The ChatRequestDTO containing the message data
+     * @return A ChatMessage object
+     */
+    public ChatMessage convertToChatMessage(ChatRequestDTO request, ChatSession session) {
+        ChatMessage userMessage = new ChatMessage();
+        userMessage.setSession(session);
+        int nextIndex = chatMessageRepository.countBySession(session).intValue();
+        userMessage.setMessageIndex(nextIndex);
+        userMessage.setRole(ChatMessage.MessageRole.USER);
+        userMessage.setModel(request.getModel());
+
+        List<ChatItemDTO> chatItemDTOS = request.getItems();
+        for (int i=0; i<chatItemDTOS.size(); i++) {
+            ChatItemDTO itemDTO = chatItemDTOS.get(i);
+
+            if (itemDTO.getFileId() != null) {
+                // Use existing file from DB
+                DbFile dbFile = fileService.getFileEntity(itemDTO.getFileId().toString());
+                ChatItem item = itemDTO.toChatItem(i, dbFile);
+                userMessage.addItem(item);
+            } else if (itemDTO.getType() == ChatItemDTO.ChatItemType.MESSAGE) {
+                // Create new file from content (Base64)
+                ChatItem item = itemDTO.toChatItem(i, itemDTO.getContent());
+                userMessage.addItem(item);
+            } else {
+                byte[] data = Base64.getDecoder().decode(itemDTO.getContent());
+                DbFile newFile = new DbFile(itemDTO.getFileName(), itemDTO.getFileType(), data, null);
+                ChatItem item = itemDTO.toChatItem(i, newFile);
+                userMessage.addItem(item);
+            }
         }
+        return userMessage;
+    }
 
-        private ChatSession getOrCreateSession(ChatRequestDTO request, User user) {
-                if (request.getSessionId() == null) {
-                    String title = "New Chat";
-                    for (ChatItemDTO item : request.getItems()) {
-                        if (item.getType() == ChatItemDTO.ChatItemType.MESSAGE && item.getContent() != null) {
-                            title = item.getContent().substring(0, Math.min(item.getContent().length(), 50));
-                            break;
-                        }
-                    }
-                    return chatSessionRepository.save(new ChatSession(user, title));
+    private ChatSession getOrCreateSession(ChatRequestDTO request, User user) {
+        if (request.getSessionId() == null) {
+            String title = "New Chat";
+            for (ChatItemDTO item : request.getItems()) {
+                if (item.getType() == ChatItemDTO.ChatItemType.MESSAGE && item.getContent() != null) {
+                    title = item.getContent().substring(0, Math.min(item.getContent().length(), 50));
+                    break;
                 }
-                ChatSession session = chatSessionRepository.findById(request.getSessionId())
-                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                                                "Session not found"));
-                if (!session.getUser().getId().equals(user.getId())) {
-                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
-                }
-                return session;
+            }
+            return chatSessionRepository.save(new ChatSession(user, title));
         }
-
-        private void handleMessageTruncation(ChatSession session, Integer index) {
-                if (index != null) {
-                        List<ChatMessage> messagesToDelete = chatMessageRepository
-                                        .findBySessionAndMessageIndexGreaterThanEqual(session, index);
-                        if (!messagesToDelete.isEmpty()) {
-                                List<UUID> fileIdsToCheck = messagesToDelete.stream()
-                                                .flatMap(m -> m.getFiles().stream())
-                                                .map(DbFile::getId)
-                                                .distinct()
-                                                .collect(Collectors.toList());
-
-                                chatMessageRepository.deleteAll(messagesToDelete);
-
-                                if (!fileIdsToCheck.isEmpty()) {
-                                        fileRepository.deleteFilesWithNullUserByIds(fileIdsToCheck);
-                                }
-                        }
-                }
+        ChatSession session = chatSessionRepository.findById(request.getSessionId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Session not found"));
+        if (!session.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
+        return session;
+    }
 
-        private void saveUserMessage(ChatRequestDTO request, ChatSession session, int index) {
-                ChatMessage userMessage = new ChatMessage(session, ChatMessage.MessageRole.USER,
-                                request.getModel(), index);
-                
-                int orderIndex = 0;
-                for (ChatItemDTO itemDto : request.getItems()) {
-                    ChatItem item = itemDto.toChatItem(orderIndex++);
+    private void handleMessageTruncation(ChatSession session, Integer index) {
+        if (index != null) {
+            List<ChatMessage> messagesToDelete = chatMessageRepository
+                    .findBySessionAndMessageIndexGreaterThanEqual(session, index);
+            if (!messagesToDelete.isEmpty()) {
+                List<UUID> fileIdsToCheck = messagesToDelete.stream()
+                        .flatMap(m -> m.getFiles().stream())
+                        .map(DbFile::getId)
+                        .distinct()
+                        .collect(Collectors.toList());
 
-                    if (itemDto.getFileId() != null) {
-                        // Use existing file from DB
-                        DbFile dbFile = fileService.getFileEntity(itemDto.getFileId().toString());
-                        item.setFile(dbFile);
-                        item.setContent(null); // Content not needed if file exists, or redundant
-                    } else if (itemDto.getType() == ChatItemDTO.ChatItemType.ATTACHMENT && itemDto.getContent() != null) {
-                        // Create new file from content (Base64)
-                        byte[] data = java.util.Base64.getDecoder().decode(itemDto.getContent());
-                        DbFile newFile = new DbFile(itemDto.getFileName(), itemDto.getFileType(), data, null);
-                        newFile = fileRepository.save(newFile);
-                        item.setFile(newFile);
-                        item.setContent(null);
-                    }
-                    // Content for non-attachment types is already handled in toChatItem
-                    
-                    userMessage.addItem(item);
-                }
-                
-                chatMessageRepository.save(userMessage);
-        }
-
-        @Transactional
-        public void deleteSession(UUID sessionId) {
-                ChatSession session = chatSessionRepository.findById(sessionId)
-                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                                                "Session not found"));
-
-                User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-                if (!session.getUser().getId().equals(user.getId())) {
-                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
-                }
-
-                List<ChatMessage> messages = chatMessageRepository.findBySessionOrderByMessageIndexAsc(session);
-                List<UUID> fileIdsToCheck = messages.stream()
-                                .flatMap(m -> m.getFiles().stream())
-                                .map(DbFile::getId)
-                                .distinct()
-                                .collect(Collectors.toList());
-
-                chatMessageRepository.deleteAll(messages);
-                chatSessionRepository.delete(session);
+                chatMessageRepository.deleteAll(messagesToDelete);
 
                 if (!fileIdsToCheck.isEmpty()) {
-                        fileRepository.deleteFilesWithNullUserByIds(fileIdsToCheck);
+                    fileRepository.deleteFilesWithNullUserByIds(fileIdsToCheck);
                 }
+            }
         }
+    }
 
-        private Flux<ChatResponseDTO> executeChatStream(ChatSession session, String modelName, int assistantIndex) {
-                String model = modelName != null ? modelName : DEFAULT_MODEL;
-                UUID sessionId = session.getId();
-                Prompt prompt = createPrompt(session, model);
-                StringBuilder fullResponse = new StringBuilder();
+    private Flux<ChatResponseDTO> executeChatStream(ChatSession session, String modelName, int assistantIndex) {
+        String model = modelName != null ? modelName : DEFAULT_MODEL;
+        UUID sessionId = session.getId();
+        Prompt prompt = createPrompt(session, model);
+        StringBuilder fullResponse = new StringBuilder();
 
-                return chatModel.stream(prompt)
-                                .map(response -> {
-                                        String content = extractContent(response);
-                                        fullResponse.append(content);
-                                        return createChatResponse(content, sessionId, "data");
-                                })
-                                .filter(resp -> resp.getChunk() != null && !resp.getChunk().isEmpty())
-                                .doOnComplete(() -> {
-                                        if (!fullResponse.isEmpty()) {
-                                                saveAssistantMessage(session, fullResponse.toString(), model,
-                                                                assistantIndex);
-                                        }
-                                })
-                                .startWith(Flux.just(createChatResponse("", sessionId, "start")))
-                                .concatWith(Flux.just(createChatResponse("", sessionId, "finish")))
-                                .onErrorResume(e -> {
-                                        log.error("AI Provider error for session {}: {}", sessionId, e.getMessage(), e);
-                                        return Flux.just(createChatResponse(
-                                                        "Error: The AI provider is currently unavailable. Please try again later.",
-                                                        sessionId, "error"));
-                                });
-        }
-
-        private Prompt createPrompt(ChatSession session, String model) {
-                boolean supportsVision = AVAILABLE_MODELS.stream()
-                                .filter(m -> m.getName().equals(model))
-                                .findFirst()
-                                .map(m -> m.getCharacteristics().contains(ModelCharacteristic.VISION))
-                                .orElse(false);
-
-                List<Message> messages = new ArrayList<>();
-                messages.add(new SystemMessage(SYSTEM_PROMPT));
-
-                List<ChatMessage> chatMessages = chatMessageRepository.findBySessionOrderByMessageIndexAsc(session);
-                for (int i = 0; i < chatMessages.size(); i++) {
-                        ChatMessage msg = chatMessages.get(i);
-                        boolean isLatest = (i == chatMessages.size() - 1);
-                        messages.add(convertToAiMessage(msg, isLatest && supportsVision));
-                }
-
-                return new Prompt(messages, OpenAiChatOptions.builder().model(model).build());
-        }
-
-        private Message convertToAiMessage(ChatMessage msg, boolean includeFiles) {
-                StringBuilder textContent = new StringBuilder();
-                List<Media> medias = new ArrayList<>();
-
-                for (ChatItem item : msg.getItems()) {
-                    if (item.getType() == ChatItemType.MESSAGE) {
-                        if (item.getContent() != null) {
-                            textContent.append(item.getContent()).append("\n");
-                        }
-                    } else if (item.getType() == ChatItemType.ATTACHMENT) {
-                        if (includeFiles && item.getFile() != null && item.getFile().getFileType().startsWith("image/")) {
-                             medias.add(new Media(
-                                     MimeTypeUtils.parseMimeType(item.getFile().getFileType()),
-                                     new ByteArrayResource(item.getFile().getData())));
-                        }
-                    } else if (item.getType() == ChatItemType.CONTEXT) {
-                        if (item.getDescription() != null) {
-                             textContent.append("[Context: ").append(item.getDescription()).append("]\n");
-                        }
-                        if (item.getFile()!=null) {
-
-                        }
-                        if (item.getContent() != null) {
-                             textContent.append(item.getContent()).append("\n");
-                        }
+        return chatModel.stream(prompt)
+                .map(response -> {
+                    String content = extractContent(response);
+                    fullResponse.append(content);
+                    return createChatResponse(content, sessionId, "data");
+                })
+                .filter(resp -> resp.getChunk() != null && !resp.getChunk().isEmpty())
+                .doOnComplete(() -> {
+                    if (!fullResponse.isEmpty()) {
+                        saveAssistantMessage(session, fullResponse.toString(), model,
+                                assistantIndex);
+                        logChatRequest(prompt, fullResponse.toString());
                     }
+                })
+                .startWith(Flux.just(createChatResponse("", sessionId, "start")))
+                .concatWith(Flux.just(createChatResponse("", sessionId, "finish")))
+                .onErrorResume(e -> {
+                    logChatRequest(prompt, fullResponse.toString());
+                    return Flux.just(createChatResponse(
+                            "Error: The AI provider is currently unavailable. Please try again later.",
+                            sessionId, "error"));
+                });
+    }
+
+    private Prompt createPrompt(ChatSession session, String model) {
+        boolean supportsVision = AVAILABLE_MODELS.stream()
+                .filter(m -> m.getName().equals(model))
+                .findFirst()
+                .map(m -> m.getCharacteristics().contains(ModelCharacteristic.VISION))
+                .orElse(false);
+
+        List<Message> messages = new ArrayList<>();
+        messages.add(new SystemMessage(SYSTEM_PROMPT));
+
+        List<ChatMessage> chatMessages = chatMessageRepository.findBySessionOrderByMessageIndexAsc(session);
+        for (int i = 0; i < chatMessages.size(); i++) {
+            ChatMessage msg = chatMessages.get(i);
+            boolean isLatest = (i == chatMessages.size() - 1);
+            messages.add(convertToAiMessage(msg, isLatest && supportsVision));
+        }
+
+        return new Prompt(messages, OpenAiChatOptions.builder().model(model).build());
+    }
+
+    private Message convertToAiMessage(ChatMessage chatMessage, boolean includeFiles) {
+        StringBuilder textContent = new StringBuilder();
+        List<Media> medias = new ArrayList<>();
+        int mediaIndex = 1;
+
+        for (ChatItem item : chatMessage.getItems()) {
+            if (item.getType() == ChatItemType.MESSAGE) {
+                if (item.getContent() != null) {
+                    textContent.append(item.getContent()).append("\n");
+                    continue;
                 }
-
-                if (msg.getRole() == ChatMessage.MessageRole.USER) {
-                        if (!medias.isEmpty()) {
-                                return new UserMessage(textContent.toString().trim(), medias);
-                        }
-                        return new UserMessage(textContent.toString().trim());
+            }
+            if (!includeFiles) {
+                continue;
+            }
+            if (item.getType() == ChatItemType.ATTACHMENT) {
+                if (item.getFile()==null) {
+                    textContent.append("\n[Text Attachment]")
+                            .append(item.getContent())
+                            .append("\n");
+                    continue;
+                } else if (isTextFile(item.getFile())) {
+                    textContent.append("\n[Text Attachment]")
+                            .append(new String(item.getFile().getData(), StandardCharsets.UTF_8))
+                            .append("\n");
+                    continue;
+                } else if (isImageFile(item.getFile())) {
+                    textContent.append("\n[Image Attachment - Reference #")
+                            .append(mediaIndex++)
+                            .append("]\n");
+                    medias.add(new Media(
+                            MimeTypeUtils.parseMimeType(item.getFile().getFileType()),
+                            new ByteArrayResource(item.getFile().getData())));
+                    continue;
                 }
-                return new AssistantMessage(textContent.toString().trim());
-        }
-
-        private void saveAssistantMessage(ChatSession session, String content, String model, int index) {
-                ChatMessage assistantMsg = new ChatMessage(session, ChatMessage.MessageRole.ASSISTANT,
-                                model, index);
-                ChatItem item = new ChatItem(assistantMsg, ChatItemType.MESSAGE, content, null, 0);
-                assistantMsg.addItem(item);
-                chatMessageRepository.save(assistantMsg);
-        }
-
-        private String extractContent(ChatResponse response) {
-                if (response.getResult() == null || response.getResult().getOutput() == null
-                                || response.getResult().getOutput().getContent() == null) {
-                        return "";
+                else continue;
+            }
+            if (item.getType() == ChatItemType.CONTEXT) {
+                if (item.getFile()==null) {
+                    textContent.append("\n[Text Context]")
+                            .append(item.getContent())
+                            .append("\n");
+                } else if (isTextFile(item.getFile())) {
+                    textContent.append("\n[Text Context]")
+                            .append(new String(item.getFile().getData(), StandardCharsets.UTF_8))
+                            .append("\n");
+                } else if (isImageFile(item.getFile())) {
+                    textContent.append("\n[Image Attachment - Reference #")
+                            .append(mediaIndex++)
+                            .append("]\n");
+                    medias.add(new Media(
+                            MimeTypeUtils.parseMimeType(item.getFile().getFileType()),
+                            new ByteArrayResource(item.getFile().getData())));
                 }
-                return response.getResult().getOutput().getContent();
+            }
         }
 
-        private ChatResponseDTO createChatResponse(String chunk, UUID sessionId, String status) {
-                return ChatResponseDTO.builder()
-                                .chunk(chunk)
-                                .sessionId(sessionId)
-                                .role(status.equals("data") ? ChatMessage.MessageRole.ASSISTANT : null)
-                                .status(status)
-                                .build();
+        if (chatMessage.getRole() == ChatMessage.MessageRole.USER) {
+            if (!medias.isEmpty()) {
+                return new UserMessage(textContent.toString().trim(), medias);
+            }
+            return new UserMessage(textContent.toString().trim());
+        }
+        return new AssistantMessage(textContent.toString().trim());
+    }
+
+    private boolean isTextFile(DbFile dbFile) {
+        if (dbFile.getFileType().startsWith("text")) return true;
+        if (dbFile.getFileType().equals("application/json")) return true;
+        return false;
+    }
+
+    private boolean isImageFile(DbFile dbFile) {
+        return dbFile.getFileType().startsWith("image");
+    }
+    private String extractContent(ChatResponse response) {
+        if (response.getResult() == null
+                || response.getResult().getOutput() == null
+                || response.getResult().getOutput().getContent() == null) {
+            return "";
+        }
+        return response.getResult().getOutput().getContent();
+    }
+
+    private void saveAssistantMessage(ChatSession session, String content, String model, int index) {
+        ChatMessage assistantMsg = new ChatMessage(session, ChatMessage.MessageRole.ASSISTANT,
+                model, index);
+        ChatItem item = new ChatItem(assistantMsg, ChatItemType.MESSAGE, content, null, 0);
+        assistantMsg.addItem(item);
+        chatMessageRepository.save(assistantMsg);
+    }
+
+    private void logChatRequest(Prompt prompt, String aiResponse) {
+        String userMessage = "N/A";
+        int mediaCount = 0;
+
+        List<Message> messages = prompt.getInstructions();
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            Message msg = messages.get(i);
+            if (msg instanceof UserMessage userMsg) {
+                userMessage = userMsg.getContent();
+                mediaCount = userMsg.getMedia() != null ? userMsg.getMedia().size() : 0;
+                break;
+            }
         }
 
-        public List<ChatSessionDTO> getSessions() {
-                User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-                return getSessions(user);
+        log.info("\n--- Chat Request Log ---\nUser Message: {}\nMedia Count: {}\nAI Response: {}\n------------------------",
+                userMessage, mediaCount, aiResponse);
+    }
+
+    private ChatResponseDTO createChatResponse(String chunk, UUID sessionId, String status) {
+        return ChatResponseDTO.builder()
+                .chunk(chunk)
+                .sessionId(sessionId)
+                .role(status.equals("data") ? ChatMessage.MessageRole.ASSISTANT : null)
+                .status(status)
+                .build();
+    }
+
+    public List<ChatSessionDTO> getSessions() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return getSessions(user);
+    }
+
+    public List<ChatSessionDTO> getSessions(User user) {
+        return chatSessionRepository.findByUserOrderByCreatedAtDesc(user)
+                .stream()
+                .map(ChatSessionDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteSession(UUID sessionId) {
+        ChatSession session = chatSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Session not found"));
+
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!session.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
 
-        public List<ChatSessionDTO> getSessions(User user) {
-                return chatSessionRepository.findByUserOrderByCreatedAtDesc(user)
-                                .stream()
-                                .map(ChatSessionDTO::new)
-                                .collect(Collectors.toList());
-        }
+        List<ChatMessage> messages = chatMessageRepository.findBySessionOrderByMessageIndexAsc(session);
+        List<UUID> fileIdsToCheck = messages.stream()
+                .flatMap(m -> m.getFiles().stream())
+                .map(DbFile::getId)
+                .distinct()
+                .collect(Collectors.toList());
 
-        public List<ChatMessageDTO> getMessagesBySession(UUID sessionId) {
-                User principal = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-                User user = userService.getUserById(principal.getId());
-                ChatSession session = chatSessionRepository.findById(sessionId)
-                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                                                "Session not found"));
-                if (!session.getUser().getId().equals(user.getId())) {
-                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
-                }
-                return chatMessageRepository.findBySessionOrderByMessageIndexAsc(session)
-                                .stream()
-                                .map(ChatMessageDTO::new)
-                                .collect(Collectors.toList());
-        }
+        chatMessageRepository.deleteAll(messages);
+        chatSessionRepository.delete(session);
 
-        public List<ModelDTO> getAvailableModels() {
-                return AVAILABLE_MODELS;
+        if (!fileIdsToCheck.isEmpty()) {
+            fileRepository.deleteFilesWithNullUserByIds(fileIdsToCheck);
         }
+    }
+
+    public List<ChatMessageDTO> getMessagesBySession(UUID sessionId) {
+        User principal = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = userService.getUserById(principal.getId());
+        ChatSession session = chatSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Session not found"));
+        if (!session.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        return chatMessageRepository.findBySessionOrderByMessageIndexAsc(session)
+                .stream()
+                .map(ChatMessageDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    public List<ModelDTO> getAvailableModels() {
+        return AVAILABLE_MODELS;
+    }
 }

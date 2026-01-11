@@ -37,8 +37,8 @@ public class ChatMessageDTO {
                         .description(item.getDescription())
                         .content(item.getContent()) // Or handle retrieving base64 if needed, but usually we just send back text/ids
                         .fileId(item.getFile() != null ? item.getFile().getId() : null)
-                        .fileName(item.getFileName())
-                        .fileType(item.getFileType())
+                        .fileName(item.getFile().getFileName())
+                        .fileType(item.getFile().getFileType())
                         .build())
                 .collect(Collectors.toList());
     }
