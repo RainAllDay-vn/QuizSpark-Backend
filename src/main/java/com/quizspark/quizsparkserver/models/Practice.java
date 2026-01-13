@@ -24,6 +24,10 @@ public class Practice {
     @JoinColumn(name = "user_id")
     private User user;
 
+    private String name;
+
+    private String description;
+
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "practice", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PracticeQuestion> practiceQuestion;
 

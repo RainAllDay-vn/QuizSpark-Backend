@@ -29,6 +29,10 @@ public class TagDTO implements Comparable<TagDTO> {
         this.color = tag.getColor();
     }
 
+    public TagDTO(String name) {
+        this.name = name;
+    }
+
     @Override
     public int compareTo(TagDTO o) {
         return this.name.compareTo(o.getName());

@@ -7,6 +7,7 @@ import com.quizspark.quizsparkserver.models.Practice;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
 import com.quizspark.quizsparkserver.models.Question;
 
+import com.quizspark.quizsparkserver.models.QuestionBank;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,18 +32,20 @@ public class PracticeDTO {
         this.practice = practice;
         this.id = practice.getId();
         if (practice.getPracticeQuestion() != null && !practice.getPracticeQuestion().isEmpty()) {
-            this.bankNames = Collections.singletonList(practice.getPracticeQuestion()
-                    .get(0)
-                    .getQuestion()
-                    .getQuestionBank()
-                    .getName());
+            this.bankNames = practice.getPracticeQuestion()
+                    .stream()
+                    .map(PracticeQuestion::getBaseQuestion)
+                    .filter(Objects::nonNull)
+                    .map(Question::getQuestionBank)
+                    .map(QuestionBank::getName)
+                    .distinct()
+                    .sorted()
+                    .toList();
             this.tags = practice.getPracticeQuestion()
                     .stream()
-                    .map(PracticeQuestion::getQuestion)
-                    .map(Question::getTags)
+                    .map(PracticeQuestion::getTags)
                     .flatMap(List::stream)
                     .distinct()
-                    .map(TagDTO::new)
                     .sorted()
                     .toList();
             this.timeInSeconds = practice.getPracticeQuestion()

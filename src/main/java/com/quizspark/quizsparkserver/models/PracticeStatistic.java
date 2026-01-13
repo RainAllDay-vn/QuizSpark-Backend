@@ -27,7 +27,7 @@ public class PracticeStatistic{
 
     public void calculateStatistic(List<PracticeQuestion> practiceHistory){
         for (PracticeQuestion question: practiceHistory){
-            QuestionAndScore questionAndScore = scoreMap.get(question.getQuestion().getId());
+            QuestionAndScore questionAndScore = scoreMap.get(question.getBaseQuestion().getId());
             if (questionAndScore == null) continue;
             if (question.getIsCorrect() == null) questionAndScore.score-=0.4;
             else if (question.getIsCorrect()) questionAndScore.score+=1;
@@ -39,6 +39,6 @@ public class PracticeStatistic{
         return scoreMap.values().stream()
                 .sorted(Comparator.comparingDouble(q -> q.score))
                 .map(q -> q.question)
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 }

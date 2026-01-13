@@ -19,8 +19,6 @@ import java.util.*;
 
 @Service
 public class QuestionService {
-    @jakarta.persistence.PersistenceContext
-    private jakarta.persistence.EntityManager entityManager;
     private final QuestionBankRepository bankRepository;
     private final QuestionRepository questionRepository;
     private final PracticeQuestionRepository practiceQuestionRepository;
@@ -153,19 +151,6 @@ public class QuestionService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You don't have permission to delete this question bank");
 
-        // Break associations with Tags manually for ALL questions in the bank.
-        // We must query the repository directly because the bank.getQuestions()
-        // collection is @SQLRestriction filtered and won't include soft-deleted questions.
-        // Soft-deleted questions in the DB still have join table entries that block Tag deletion.
-        List<Question> allQuestions = questionRepository.findAllByQuestionBank(questionBank);
-        for (Question question : allQuestions) {
-            question.getTags().clear(); // Clear join table 'question_tag' entries
-        }
-
-        // Explicitly flush to remove Join Table records before child entities are deleted.
-        // This handles cases where ddl-auto=update didn't apply ON DELETE CASCADE to FKs.
-        entityManager.flush();
-        
         bankRepository.delete(questionBank);
     }
 

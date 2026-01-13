@@ -3,6 +3,7 @@ package com.quizspark.quizsparkserver.services;
 import com.quizspark.quizsparkserver.dto.practice.PracticeAnswerResponseDTO;
 import com.quizspark.quizsparkserver.dto.practice.PracticeDTO;
 import com.quizspark.quizsparkserver.dto.questions.QuestionCommentDTO;
+import com.quizspark.quizsparkserver.dto.tags.TagDTO;
 import com.quizspark.quizsparkserver.models.PracticeStatistic;
 import com.quizspark.quizsparkserver.models.*;
 import com.quizspark.quizsparkserver.repositories.PracticeQuestionRepository;
@@ -32,32 +33,37 @@ public class PracticeService {
         this.practiceQuestionRepository = practiceQuestionRepository;
     }
 
-    private List<Question> getSuitableQuestions(QuestionBank bank, User user, int limit, List<String> tags) {
-        Set<String> tagSet = new HashSet<>(tags);
-        List<Question> questions = bank.getQuestions()
-                .stream()
-                .filter(question -> tagSet.containsAll(question.getTags().stream().map(Tag::getName).toList()))
-                .toList();
-        List<PracticeQuestion> practiceHistory = practiceQuestionRepository.findByQuestionsAndUser(questions, user);
+    private List<Question> sortByRelevantScore(List<Question> questions) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        List<PracticeQuestion> practiceHistory = practiceQuestionRepository.findByQuestionBankAndUser(questions, user);
         PracticeStatistic practiceStatistic = new PracticeStatistic(questions);
         practiceStatistic.calculateStatistic(practiceHistory);
-        return practiceStatistic.getResult()
-                .stream()
-                .limit(limit)
-                .toList();
+        return practiceStatistic.getResult();
     }
 
     @Transactional
     public UUID startNewPractice(String questionBankId, int limit, boolean shuffleAnswer, boolean revealAnswer,
-            List<String> tags) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+                                 List<String> tags) {
         QuestionBank bank = questionService.getQuestionBankEntityById(questionBankId);
-        List<Question> suitableQuestions = new ArrayList<>(getSuitableQuestions(bank, user, limit, tags));
-        if (suitableQuestions.isEmpty()) {
+        List<Question> questions = bank.getQuestions();
+        questions = questions.subList(0, Math.min(questions.size(), limit));
+        return startNewPractice(questions, limit, shuffleAnswer, revealAnswer, tags);
+    }
+
+    public UUID startNewPractice(List<Question> questions, int limit, boolean shuffleAnswer, boolean revealAnswer,
+                                 List<String> tags) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Set<String> tagSet = new HashSet<>(tags);
+        questions = questions.stream()
+                .filter(question -> tagSet.containsAll(question.getTags().stream().map(Tag::getName).toList()))
+                .toList();
+        if (questions.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No questions found matching the criteria");
         }
-        Collections.shuffle(suitableQuestions);
-        Practice practice = new Practice(user, suitableQuestions, shuffleAnswer, revealAnswer);
+        questions = sortByRelevantScore(questions);
+        questions = questions.subList(0, Math.min(questions.size(), limit));
+        Collections.shuffle(questions);
+        Practice practice = new Practice(user, questions, shuffleAnswer, revealAnswer);
         practice = practiceRepository.save(practice);
         return practice.getId();
     }
@@ -124,10 +130,20 @@ public class PracticeService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot answer this question");
         question.updateUserAnswer(userAnswer, secondsToAnswer);
         practiceQuestionRepository.save(question);
+        
         PracticeAnswerResponseDTO dto = new PracticeAnswerResponseDTO();
         if (question.getPractice().isRevealAnswer())
-            dto.setCorrectAnswer(question.getCorrectAnswer());
-        dto.setQuestionComments(question.getQuestion().getComments().stream().map(QuestionCommentDTO::new).toList());
+            dto.setCorrectAnswer(question.getAnswer());
+            
+        if (question.getBaseQuestion() != null) {
+            dto.setQuestionComments(question.getBaseQuestion()
+                    .getComments()
+                    .stream()
+                    .map(QuestionCommentDTO::new)
+                    .toList());
+        } else {
+            dto.setQuestionComments(Collections.emptyList());
+        }
         return dto;
     }
 
@@ -147,18 +163,26 @@ public class PracticeService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot duplicate a practice with no questions");
         }
 
-        QuestionBank bank = practiceQuestions.get(0).getQuestion().getQuestionBank();
+        List<QuestionBank> baseQuestionBanks = practiceQuestions
+                .stream()
+                .map(PracticeQuestion::getBaseQuestion)
+                .filter(Objects::nonNull)
+                .map(Question::getQuestionBank)
+                .toList();
+        if (baseQuestionBanks.isEmpty())
+            throw  new ResponseStatusException(HttpStatus.BAD_REQUEST, "All questions in this practice are outdated");
         int size = practiceQuestions.size();
         boolean revealAnswer = practice.isRevealAnswer();
-        boolean shuffleAnswer = practiceQuestions.stream()
-                .anyMatch(pq -> pq.getShuffleMapping() != null);
-
+        boolean shuffleAnswer = true;
         List<String> tags = practiceQuestions.stream()
-                .flatMap(pq -> pq.getQuestion().getTags().stream())
-                .map(Tag::getName)
+                .flatMap(pq -> pq.getTags().stream())
+                .map(TagDTO::getName)
                 .distinct()
                 .toList();
+        List<Question> questions = baseQuestionBanks.stream()
+                .flatMap(questionBank -> questionBank.getQuestions().stream())
+                .toList();
 
-        return startNewPractice(bank.getId().toString(), size, shuffleAnswer, revealAnswer, tags);
+        return startNewPractice(questions, size, shuffleAnswer, revealAnswer, tags);
     }
 }

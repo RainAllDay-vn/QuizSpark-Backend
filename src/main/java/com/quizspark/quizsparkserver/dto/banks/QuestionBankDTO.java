@@ -69,7 +69,8 @@ public class QuestionBankDTO {
         if (questions == null)
             return this;
         Map<UUID, List<PracticeQuestion>> practiceQuestionsMap = practiceQuestions.stream()
-                .collect(Collectors.groupingBy(pq -> pq.getQuestion().getId()));
+                .filter(practiceQuestion -> practiceQuestion.getBaseQuestion()!=null)
+                .collect(Collectors.groupingBy(pq -> pq.getBaseQuestion().getId()));
         for (QuestionDTO question : questions) {
             List<PracticeQuestion> practiceHistory = practiceQuestionsMap.getOrDefault(question.getId(), List.of());
             question.appendStatistics(practiceHistory);
