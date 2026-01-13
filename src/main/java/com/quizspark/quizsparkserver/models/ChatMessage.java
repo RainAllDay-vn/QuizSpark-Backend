@@ -46,14 +46,13 @@ public class ChatMessage {
     private String model;
 
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     public ChatMessage(ChatSession session, MessageRole role, String model, Integer messageIndex) {
         this.session = session;
         this.role = role;
         this.model = model;
         this.messageIndex = messageIndex;
-        this.createdAt = LocalDateTime.now();
     }
     
     public void addItem(ChatItem item) {
@@ -73,7 +72,4 @@ public class ChatMessage {
         }
         return files;
     }
-    
-    // Helper to legacy content string getter if needed, though we should move away from it.
-    // Ideally code should consume items.
 }

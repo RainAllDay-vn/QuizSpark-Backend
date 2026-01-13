@@ -78,7 +78,17 @@ public class ChatService {
                     List.of(ModelCharacteristic.REASONING)));
 
     private static final String DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3.2-TEE";
-    private static final String SYSTEM_PROMPT = "You are a helpful educational assistant for QuizSpark.";
+    private static final String SYSTEM_PROMPT = """
+            You are a helpful educational assistant for QuizSpark, an intelligent study platform.
+            
+            ## Context Awareness
+            Users may provide contextual information from their workspace. When you see context markers like [WORKSPACE FILE], this indicates content the user is currently viewing or working with on the QuizSpark platform. Their questions are likely related to this context, so prioritize it when formulating your responses.
+            
+            Context types you may encounter:
+            - **WORKSPACE FILE**: A document or file the user is currently viewing/editing in their workspace. Treat this as their primary study material for the conversation.
+            
+            When context is provided, focus your answers on that material unless the user explicitly asks about something else.
+            """;
 
     @Transactional
     public Flux<ChatResponseDTO> streamChat(ChatRequestDTO request) {
@@ -200,12 +210,6 @@ public class ChatService {
     }
 
     private Prompt createPrompt(ChatSession session, String model) {
-        boolean supportsVision = AVAILABLE_MODELS.stream()
-                .filter(m -> m.getName().equals(model))
-                .findFirst()
-                .map(m -> m.getCharacteristics().contains(ModelCharacteristic.VISION))
-                .orElse(false);
-
         List<Message> messages = new ArrayList<>();
         messages.add(new SystemMessage(SYSTEM_PROMPT));
 
@@ -213,7 +217,7 @@ public class ChatService {
         for (int i = 0; i < chatMessages.size(); i++) {
             ChatMessage msg = chatMessages.get(i);
             boolean isLatest = (i == chatMessages.size() - 1);
-            messages.add(convertToAiMessage(msg, isLatest && supportsVision));
+            messages.add(convertToAiMessage(msg, isLatest));
         }
 
         return new Prompt(messages, OpenAiChatOptions.builder().model(model).build());
@@ -222,7 +226,6 @@ public class ChatService {
     private Message convertToAiMessage(ChatMessage chatMessage, boolean includeFiles) {
         StringBuilder textContent = new StringBuilder();
         List<Media> medias = new ArrayList<>();
-        int mediaIndex = 1;
 
         for (ChatItem item : chatMessage.getItems()) {
             if (item.getType() == ChatItemType.MESSAGE) {
@@ -247,7 +250,7 @@ public class ChatService {
                     continue;
                 } else if (isImageFile(item.getFile())) {
                     textContent.append("\n[Image Attachment - Reference #")
-                            .append(mediaIndex++)
+                            .append(medias.size()+1)
                             .append("]\n");
                     medias.add(new Media(
                             MimeTypeUtils.parseMimeType(item.getFile().getFileType()),
@@ -257,22 +260,7 @@ public class ChatService {
                 else continue;
             }
             if (item.getType() == ChatItemType.CONTEXT) {
-                if (item.getFile()==null) {
-                    textContent.append("\n[Text Context]")
-                            .append(item.getContent())
-                            .append("\n");
-                } else if (isTextFile(item.getFile())) {
-                    textContent.append("\n[Text Context]")
-                            .append(new String(item.getFile().getData(), StandardCharsets.UTF_8))
-                            .append("\n");
-                } else if (isImageFile(item.getFile())) {
-                    textContent.append("\n[Image Attachment - Reference #")
-                            .append(mediaIndex++)
-                            .append("]\n");
-                    medias.add(new Media(
-                            MimeTypeUtils.parseMimeType(item.getFile().getFileType()),
-                            new ByteArrayResource(item.getFile().getData())));
-                }
+                processContext(textContent, medias, item);
             }
         }
 
@@ -294,6 +282,32 @@ public class ChatService {
     private boolean isImageFile(DbFile dbFile) {
         return dbFile.getFileType().startsWith("image");
     }
+
+    private void processContext(StringBuilder textContent, List<Media> medias, ChatItem item) {
+        if (item.getDescription().equals("WORKSPACE FILE")) {
+            if (item.getFile()==null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Workspace File context should contain file or file id");
+            } 
+            DbFile file = item.getFile();
+            if (isTextFile(file)) {
+                textContent.append("[WORKSPACE FILE - ").append(file.getFileName()).append("]\n")
+                        .append("The following is the text content of the file the user is currently viewing in their workspace:\n")
+                        .append("---\n")
+                        .append(new String(item.getFile().getData(), StandardCharsets.UTF_8))
+                        .append("\n---\n\n");
+            } else if (isImageFile(item.getFile())) {
+                textContent.append("\n[WORKSPACE FILE (Image) - ").append(file.getFileName())
+                        .append(" - Reference #")
+                        .append(medias.size()+1)
+                        .append("]\n")
+                        .append("The user is currently viewing this image in their workspace.\n\n");
+                medias.add(new Media(
+                        MimeTypeUtils.parseMimeType(item.getFile().getFileType()),
+                        new ByteArrayResource(item.getFile().getData())));
+            }
+        }
+    }
+
     private String extractContent(ChatResponse response) {
         if (response.getResult() == null
                 || response.getResult().getOutput() == null
