@@ -18,6 +18,8 @@ public interface FileRepository extends JpaRepository<DbFile, UUID> {
 
     List<DbFile> findByUserId(UUID userId);
 
+    List<DbFile> findByUserIdAndOriginFileIsNull(UUID userId);
+
     @Modifying
     @Query("DELETE FROM DbFile f WHERE f.user IS NULL AND f.id IN :ids")
     void deleteFilesWithNullUserByIds(@Param("ids") List<UUID> ids);

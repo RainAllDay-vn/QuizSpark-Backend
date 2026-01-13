@@ -124,7 +124,7 @@ public class FileService {
     @Transactional(readOnly = true)
     public List<FileDTO> getUserFiles() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return fileRepository.findByUserId(user.getId()).stream()
+        return fileRepository.findByUserIdAndOriginFileIsNull(user.getId()).stream()
                 .map(FileDTO::new)
                 .toList();
     }

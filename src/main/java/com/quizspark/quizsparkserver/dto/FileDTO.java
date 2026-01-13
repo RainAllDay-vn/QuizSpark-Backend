@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -16,11 +17,22 @@ public class FileDTO {
     private String fileName;
     private String fileType;
     private LocalDateTime uploadDate;
+    private List<FileDTO> derivedFiles;
 
     public FileDTO(DbFile dbFile) {
+        this(dbFile, false);
+    }
+
+    private FileDTO(DbFile dbFile, boolean isDerived) {
         this.id = dbFile.getId();
         this.fileName = dbFile.getFileName();
         this.fileType = dbFile.getFileType();
         this.uploadDate = dbFile.getUploadDate();
+
+        if (!isDerived && dbFile.getDerivedFiles() != null) {
+            this.derivedFiles = dbFile.getDerivedFiles().stream()
+                    .map(file -> new FileDTO(file, true))
+                    .toList();
+        }
     }
 }
