@@ -11,11 +11,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.UUID;
 
 @Service
 public class TagService {
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
     private final TagRepository tagRepository;
     private final QuestionService questionService;
 
@@ -24,6 +25,7 @@ public class TagService {
         this.questionService = questionService;
     }
 
+    @Transactional
     public TagDTO addTag(String bankId, TagCreationDTO tagCreationDTO) {
         QuestionBank bank = questionService.getQuestionBankEntityById(bankId);
         if (!questionService.canBeEdited(bank)) {
@@ -35,6 +37,7 @@ public class TagService {
         return new TagDTO(tag);
     }
 
+    @Transactional
     public TagDTO updateTag(String tagId, TagUpdateDTO tagUpdateDTO) {
         Tag tag = getTagEntityById(tagId);
         if (!questionService.canBeEdited(tag.getBank())) {
@@ -51,9 +54,16 @@ public class TagService {
         if (!questionService.canBeEdited(tag.getBank())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete this tag");
         }
-        for (com.quizspark.quizsparkserver.models.Question question : new ArrayList<>(tag.getQuestions())) {
+        
+        // Use programmatic cleanup of the Many-to-Many association for ALL questions.
+        // Similar to QuestionBank deletion, we must ensure associations from soft-deleted
+        // questions are also removed to satisfy referential integrity in the join table.
+        for (com.quizspark.quizsparkserver.models.Question question : tag.getQuestions()) {
             question.getTags().remove(tag);
         }
+        
+        // Flush join table updates before deleting the Tag entity
+        entityManager.flush();
 
         tagRepository.delete(tag);
     }

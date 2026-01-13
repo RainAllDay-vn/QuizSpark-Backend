@@ -19,6 +19,8 @@ import java.util.*;
 
 @Service
 public class QuestionService {
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
     private final QuestionBankRepository bankRepository;
     private final QuestionRepository questionRepository;
     private final PracticeQuestionRepository practiceQuestionRepository;
@@ -111,6 +113,7 @@ public class QuestionService {
         return true;
     }
 
+    @Transactional
     public QuestionBankDTO saveQuestionBank(QuestionBankCreationDTO bankCreationDTO) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         QuestionBank questionBank = bankCreationDTO.toQuestionBank(user);
@@ -121,6 +124,7 @@ public class QuestionService {
         return new QuestionBankDTO(questionBank);
     }
 
+    @Transactional
     public QuestionBankDTO savePublicQuestionBank(QuestionBankCreationDTO bankCreationDTO) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (!user.getRole().equals("ROLE_ADMIN"))
@@ -131,6 +135,7 @@ public class QuestionService {
         return new QuestionBankDTO(questionBank);
     }
 
+    @Transactional
     public QuestionBankDTO updateQuestionBank(String bankId, QuestionBankUpdateDTO questionBankUpdateDTO) {
         QuestionBank questionBank = getQuestionBankEntityById(bankId);
         if (!canBeEdited(questionBank))
@@ -141,11 +146,26 @@ public class QuestionService {
         return new QuestionBankDTO(questionBank);
     }
 
+    @Transactional
     public void deleteQuestionBank(String bankId) {
         QuestionBank questionBank = getQuestionBankEntityById(bankId);
         if (!canBeEdited(questionBank))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You don't have permission to delete this question bank");
+
+        // Break associations with Tags manually for ALL questions in the bank.
+        // We must query the repository directly because the bank.getQuestions()
+        // collection is @SQLRestriction filtered and won't include soft-deleted questions.
+        // Soft-deleted questions in the DB still have join table entries that block Tag deletion.
+        List<Question> allQuestions = questionRepository.findAllByQuestionBank(questionBank);
+        for (Question question : allQuestions) {
+            question.getTags().clear(); // Clear join table 'question_tag' entries
+        }
+
+        // Explicitly flush to remove Join Table records before child entities are deleted.
+        // This handles cases where ddl-auto=update didn't apply ON DELETE CASCADE to FKs.
+        entityManager.flush();
+        
         bankRepository.delete(questionBank);
     }
 
@@ -232,13 +252,13 @@ public class QuestionService {
         questionRepository.delete(question);
     }
 
+    @Transactional(readOnly = true)
     public QuestionComment getCommentEntityById(String commentId) {
         Optional<QuestionComment> commentOptional = questionCommentRepository.findById(UUID.fromString(commentId));
         if (commentOptional.isEmpty())
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
         QuestionComment comment = commentOptional.get();
-        if (getQuestionEntityById(comment.getQuestion().getId().toString()) == null)
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can not view this comment");
+        getQuestionEntityById(comment.getQuestion().getId().toString());
         return comment;
     }
 

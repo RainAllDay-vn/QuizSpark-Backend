@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +25,7 @@ public class Tag {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bank_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private QuestionBank bank;
 
     @Column(nullable = false)
@@ -33,6 +36,7 @@ public class Tag {
     private String color = "#4c1d954d";
 
     @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private List<Question> questions = new ArrayList<>();
 
     public Tag(String name) {

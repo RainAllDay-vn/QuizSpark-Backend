@@ -21,6 +21,8 @@ Initial setup of the architectural documentation (Memory Bank) to enable effecti
 -   Analyzed codebase to understand current capabilities.
 -   Added `toChatItem` method to `ChatItemDTO` and refactored `ChatService` to use it.
 -   Implemented chat request logging in `ChatService` using SLF4J (Spring's default logger) to capture user messages, media counts, and AI responses.
+-   Updated `FileDTO` to include a list of `derivedFiles`, ensuring derived files themselves cannot have nesting.
+-   Configured physical cascading deletes for `QuestionBank` using Hibernate's `@OnDelete(action = OnDeleteAction.CASCADE)` on dependent entities and join tables. Added programmatic cleanup in `QuestionService` and `TagService` to handle referential integrity with many-to-many associations and soft-deleted questions.
 
 ## Next Steps
 1.  Complete Memory Bank initialization (`architecture.md`, `tech.md`).

@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
@@ -64,7 +66,8 @@ public class QuestionBank {
     private List<Tag> tags = new ArrayList<>();
 
     @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH })
-    @JoinTable(name = "question_bank_files", joinColumns = @JoinColumn(name = "question_bank_id"), inverseJoinColumns = @JoinColumn(name = "file_id"))
+    @JoinTable(name = "question_bank_files", joinColumns = @JoinColumn(name = "question_bank_id", foreignKey = @ForeignKey(foreignKeyDefinition = "FOREIGN KEY (question_bank_id) REFERENCES question_bank(id) ON DELETE CASCADE")), inverseJoinColumns = @JoinColumn(name = "file_id", foreignKey = @ForeignKey(foreignKeyDefinition = "FOREIGN KEY (file_id) REFERENCES db_file(id) ON DELETE CASCADE")))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private List<DbFile> files = new ArrayList<>();
 
     public Optional<Tag> getTagByName(String name) {

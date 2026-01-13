@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.type.SqlTypes;
 
@@ -37,6 +39,7 @@ public class Question {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bank_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private QuestionBank questionBank;
 
     @Column(nullable = false)
@@ -44,10 +47,11 @@ public class Question {
     private QuestionType questionType;
 
     @ManyToMany(fetch = FetchType.EAGER, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
-    @JoinTable(name = "question_tag", joinColumns = @JoinColumn(name = "question_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"), indexes = {
+    @JoinTable(name = "question_tag", joinColumns = @JoinColumn(name = "question_id", foreignKey = @ForeignKey(foreignKeyDefinition = "FOREIGN KEY (question_id) REFERENCES question(id) ON DELETE CASCADE")), inverseJoinColumns = @JoinColumn(name = "tag_id", foreignKey = @ForeignKey(foreignKeyDefinition = "FOREIGN KEY (tag_id) REFERENCES tag(id) ON DELETE CASCADE")), indexes = {
             @Index(name = "idx_question_tag_question_id", columnList = "question_id"),
             @Index(name = "idx_question_tag_tag_id", columnList = "tag_id")
     })
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private List<Tag> tags = new ArrayList<>();
 
     @Column(nullable = false)
