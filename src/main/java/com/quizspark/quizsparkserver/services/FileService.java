@@ -43,11 +43,34 @@ public class FileService {
     }
 
     @Transactional(readOnly = true)
+    public DbFile getFileEntityWithContent(String fileId) {
+        DbFile file = fileRepository.findByIdWithContent(UUID.fromString(fileId))
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found with id " + fileId));
+        if (!canView(file))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to view this file");
+        return file;
+    }
+
+    @Transactional(readOnly = true)
     public Optional<DbFile> getDerivedFile(DbFile originalFile, String fileName) {
         List<DbFile> derivedFiles = fileRepository.findByOriginFileAndFileName(originalFile, fileName);
         if (derivedFiles.isEmpty())
             return Optional.empty();
         DbFile derivedFile = derivedFiles.get(0);
+        return Optional.of(derivedFile);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<DbFile> getDerivedFileWithContent(DbFile originalFile, String fileName) {
+        List<DbFile> derivedFiles = fileRepository.findByOriginFileAndFileName(originalFile, fileName);
+        if (derivedFiles.isEmpty())
+            return Optional.empty();
+        DbFile derivedFile = derivedFiles.get(0);
+        // Trigger lazy loading
+        if (derivedFile.getData() != null) {
+            // just accessing to ensure loaded
+        }
         return Optional.of(derivedFile);
     }
 
@@ -135,7 +158,7 @@ public class FileService {
     @Transactional
     public FileDTO createNoteFile(String fileId) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        DbFile originalFile = getFileEntity(fileId);
+        DbFile originalFile = getFileEntityWithContent(fileId);
         if (!"application/pdf".equals(originalFile.getFileType())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Derived files can only be created from PDFs");
         }

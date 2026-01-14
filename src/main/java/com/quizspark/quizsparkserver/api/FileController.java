@@ -42,7 +42,7 @@ public class FileController {
 
     @GetMapping("/{id}/view")
     public ResponseEntity<byte[]> viewFile(@PathVariable String id) {
-        DbFile dbFile = fileService.getFileEntity(id);
+        DbFile dbFile = fileService.getFileEntityWithContent(id);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(dbFile.getFileType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + dbFile.getFileName() + "\"")
@@ -51,8 +51,7 @@ public class FileController {
 
     @GetMapping("/{id}/download")
     public ResponseEntity<byte[]> downloadFile(@PathVariable String id) {
-        DbFile dbFile = fileService.getFileEntity(id);
-
+        DbFile dbFile = fileService.getFileEntityWithContent(id);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(dbFile.getFileType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + dbFile.getFileName() + "\"")

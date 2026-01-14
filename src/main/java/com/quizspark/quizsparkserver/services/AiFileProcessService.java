@@ -376,7 +376,7 @@ public class AiFileProcessService {
     }
 
     public Flux<AiResponseDTO> extractQuestion(String fileId) {
-        DbFile file = fileService.getFileEntity(fileId);
+        DbFile file = fileService.getFileEntityWithContent(fileId);
         String fileType = file.getFileType();
 
         if (fileType.equals("text/plain") || fileType.equals("application/json") || fileType.equals("text/markdown")) {
@@ -449,7 +449,7 @@ public class AiFileProcessService {
     }
 
     public Flux<AiResponseDTO> extractContent(String fileId) {
-        DbFile file = fileService.getFileEntity(fileId);
+        DbFile file = fileService.getFileEntityWithContent(fileId);
         if (file.getFileType().equals("application/pdf")) {
             return extractContentFromPdf(file);
         }
@@ -476,7 +476,7 @@ public class AiFileProcessService {
 
     private List<ProcessedPageDTO> classifyPages(DbFile file) {
         List<ProcessedPageDTO> pages;
-        Optional<DbFile> resultFileOptional = fileService.getDerivedFile(file, "CLASSIFY RESULTS.json");
+        Optional<DbFile> resultFileOptional = fileService.getDerivedFileWithContent(file, "CLASSIFY RESULTS.json");
         if (resultFileOptional.isPresent()) {
             DbFile resultFile = resultFileOptional.get();
             String content = new String(resultFile.getData());
@@ -541,7 +541,7 @@ public class AiFileProcessService {
     }
 
     public List<ProcessedPageDTO> extractContent(DbFile file, List<ProcessedPageDTO> pages) {
-        Optional<DbFile> resultFileOptional = fileService.getDerivedFile(file, "EXTRACT RESULTS.json");
+        Optional<DbFile> resultFileOptional = fileService.getDerivedFileWithContent(file, "EXTRACT RESULTS.json");
         if (resultFileOptional.isPresent()) {
             DbFile resultFile = resultFileOptional.get();
             String content = new String(resultFile.getData());

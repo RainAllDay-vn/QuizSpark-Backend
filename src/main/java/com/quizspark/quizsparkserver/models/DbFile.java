@@ -23,9 +23,8 @@ public class DbFile {
     @Column(nullable = false)
     private String fileType;
 
-    @Lob
-    @Column(nullable = false)
-    private byte[] data;
+    @OneToOne(mappedBy = "file", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private DbFileContent content;
 
     @Column(nullable = false)
     private LocalDateTime uploadDate;
@@ -56,8 +55,20 @@ public class DbFile {
     public DbFile(String fileName, String fileType, byte[] data, User user) {
         this.fileName = fileName;
         this.fileType = fileType;
-        this.data = data;
         this.user = user;
         this.uploadDate = LocalDateTime.now();
+        this.setData(data);
+    }
+
+    public byte[] getData() {
+        return content != null ? content.getData() : null;
+    }
+
+    public void setData(byte[] data) {
+        if (this.content == null) {
+            this.content = new DbFileContent(this, data);
+        } else {
+            this.content.setData(data);
+        }
     }
 }

@@ -122,7 +122,7 @@ public class ChatService {
 
             if (itemDTO.getFileId() != null) {
                 // Use existing file from DB
-                DbFile dbFile = fileService.getFileEntity(itemDTO.getFileId().toString());
+                DbFile dbFile = fileService.getFileEntityWithContent(itemDTO.getFileId().toString());
                 ChatItem item = itemDTO.toChatItem(i, dbFile);
                 userMessage.addItem(item);
             } else if (itemDTO.getType() == ChatItemDTO.ChatItemType.MESSAGE) {
