@@ -46,11 +46,10 @@ public class PracticeService {
                                  List<String> tags) {
         QuestionBank bank = questionService.getQuestionBankEntityById(questionBankId);
         List<Question> questions = bank.getQuestions();
-        questions = questions.subList(0, Math.min(questions.size(), limit));
-        return startNewPractice(questions, limit, shuffleAnswer, revealAnswer, tags);
+        return startNewPractice(bank, questions, limit, shuffleAnswer, revealAnswer, tags);
     }
 
-    public UUID startNewPractice(List<Question> questions, int limit, boolean shuffleAnswer, boolean revealAnswer,
+    public UUID startNewPractice(QuestionBank bank, List<Question> questions, int limit, boolean shuffleAnswer, boolean revealAnswer,
                                  List<String> tags) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Set<String> tagSet = new HashSet<>(tags);
@@ -63,7 +62,7 @@ public class PracticeService {
         questions = sortByRelevantScore(questions);
         questions = questions.subList(0, Math.min(questions.size(), limit));
         Collections.shuffle(questions);
-        Practice practice = new Practice(user, questions, shuffleAnswer, revealAnswer);
+        Practice practice = new Practice(user, bank, questions, shuffleAnswer, revealAnswer);
         practice = practiceRepository.save(practice);
         return practice.getId();
     }
@@ -81,7 +80,7 @@ public class PracticeService {
         if (questions.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No questions found matching the criteria");
         }
-        Practice practice = new Practice(null, questions, shuffleAnswer, true);
+        Practice practice = new Practice(null, bank, questions, shuffleAnswer, true);
         return new PracticeDTO(practice);
     }
 
@@ -163,14 +162,9 @@ public class PracticeService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot duplicate a practice with no questions");
         }
 
-        List<QuestionBank> baseQuestionBanks = practiceQuestions
-                .stream()
-                .map(PracticeQuestion::getBaseQuestion)
-                .filter(Objects::nonNull)
-                .map(Question::getQuestionBank)
-                .toList();
-        if (baseQuestionBanks.isEmpty())
-            throw  new ResponseStatusException(HttpStatus.BAD_REQUEST, "All questions in this practice are outdated");
+        QuestionBank bank = practice.getQuestionBank();
+        if (bank == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Practice is not associated with a question bank");
         int size = practiceQuestions.size();
         boolean revealAnswer = practice.isRevealAnswer();
         boolean shuffleAnswer = true;
@@ -179,10 +173,8 @@ public class PracticeService {
                 .map(TagDTO::getName)
                 .distinct()
                 .toList();
-        List<Question> questions = baseQuestionBanks.stream()
-                .flatMap(questionBank -> questionBank.getQuestions().stream())
-                .toList();
+        List<Question> questions = bank.getQuestions();
 
-        return startNewPractice(questions, size, shuffleAnswer, revealAnswer, tags);
+        return startNewPractice(bank, questions, size, shuffleAnswer, revealAnswer, tags);
     }
 }

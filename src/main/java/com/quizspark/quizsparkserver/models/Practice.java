@@ -28,6 +28,10 @@ public class Practice {
 
     private String description;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bank_id")
+    private QuestionBank questionBank;
+
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "practice", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PracticeQuestion> practiceQuestion;
 
@@ -40,11 +44,16 @@ public class Practice {
     @Column(nullable = false)
     private Date date = new Date();
 
-    public Practice(User user, List<Question> questions, boolean shuffleAnswer, boolean revealAnswer) {
+    public Practice(User user, QuestionBank questionBank, List<Question> questions, boolean shuffleAnswer, boolean revealAnswer) {
         this.user = user;
+        this.questionBank = questionBank;
         this.practiceQuestion = new ArrayList<>(questions.size());
         for (int i=0; i<questions.size(); i++) {
-            this.practiceQuestion.add(new PracticeQuestion(this, i, questions.get(i), shuffleAnswer));
+            Question question = questions.get(i);
+            if (!question.getQuestionBank().getId().equals(questionBank.getId())) {
+                throw new IllegalArgumentException("Question at index " + i + " does not belong to the specified QuestionBank");
+            }
+            this.practiceQuestion.add(new PracticeQuestion(this, i, question, shuffleAnswer));
         }
         this.revealAnswer = revealAnswer;
     }

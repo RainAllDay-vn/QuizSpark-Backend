@@ -5,9 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.quizspark.quizsparkserver.dto.tags.TagDTO;
 import com.quizspark.quizsparkserver.models.Practice;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
-import com.quizspark.quizsparkserver.models.Question;
 
-import com.quizspark.quizsparkserver.models.QuestionBank;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,16 +29,13 @@ public class PracticeDTO {
     public PracticeDTO(Practice practice) {
         this.practice = practice;
         this.id = practice.getId();
+        if (practice.getQuestionBank() != null) {
+            this.bankNames = List.of(practice.getQuestionBank().getName());
+        } else {
+            this.bankNames = Collections.emptyList();
+        }
+
         if (practice.getPracticeQuestion() != null && !practice.getPracticeQuestion().isEmpty()) {
-            this.bankNames = practice.getPracticeQuestion()
-                    .stream()
-                    .map(PracticeQuestion::getBaseQuestion)
-                    .filter(Objects::nonNull)
-                    .map(Question::getQuestionBank)
-                    .map(QuestionBank::getName)
-                    .distinct()
-                    .sorted()
-                    .toList();
             this.tags = practice.getPracticeQuestion()
                     .stream()
                     .map(PracticeQuestion::getTags)
@@ -55,7 +50,6 @@ public class PracticeDTO {
                     .mapToInt(Integer::intValue)
                     .sum();
         } else {
-            this.bankNames = Collections.emptyList();
             this.tags = Collections.emptyList();
             this.timeInSeconds = 0;
         }
