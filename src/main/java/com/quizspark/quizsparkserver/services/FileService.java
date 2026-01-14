@@ -5,6 +5,7 @@ import com.quizspark.quizsparkserver.models.DbFile;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.repositories.FileRepository;
+import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,23 +43,12 @@ public class FileService {
     }
 
     @Transactional(readOnly = true)
-    public DbFile getFileEntityByName(String fileName) {
-        DbFile file = fileRepository.findByFileName(fileName)
-                .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                                "File not found with name " + fileName));
-        if (!canView(file))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to view this file");
-        return file;
-    }
-
-    @Transactional(readOnly = true)
-    public DbFile getParseFileEntity(DbFile originalFile) {
-        String parseFileName = originalFile.getFileName() + "_PARSE";
-        DbFile parseFile = getFileEntityByName(parseFileName);
-        if (!canView(parseFile))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to view this file");
-        return parseFile;
+    public Optional<DbFile> getDerivedFile(DbFile originalFile, String fileName) {
+        List<DbFile> derivedFiles = fileRepository.findByOriginFileAndFileName(originalFile, fileName);
+        if (derivedFiles.isEmpty())
+            return Optional.empty();
+        DbFile derivedFile = derivedFiles.get(0);
+        return Optional.of(derivedFile);
     }
 
     private boolean canView(DbFile file) {
@@ -142,14 +133,38 @@ public class FileService {
     }
 
     @Transactional
-    public DbFile createMirrorFile(DbFile source, String content) {
-        DbFile mirrorFile = new DbFile(
-                source.getFileName() + ".txt",
-                "text/plain",
-                content.getBytes(),
-                source.getUser());
-        mirrorFile.setOriginFile(source);
-        return fileRepository.save(mirrorFile);
+    public FileDTO createNoteFile(String fileId) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        DbFile originalFile = getFileEntity(fileId);
+        if (!"application/pdf".equals(originalFile.getFileType())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Derived files can only be created from PDFs");
+        }
+        String content = "";
+        try (PDDocument document = PDDocument.load(originalFile.getData())) {
+            int pageCount = document.getNumberOfPages();
+            if (pageCount > 1) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < pageCount - 1; i++) {
+                    if (i > 0) sb.append("\n\n");
+                    sb.append("---");
+                }
+                content = sb.toString();
+            }
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error reading PDF file", e);
+        }
+        DbFile derivedFile = createDerivedFile(originalFile, "NOTE.md", content);
+        return new FileDTO(derivedFile);
+    }
+
+    public DbFile createDerivedFile(DbFile baseFile, String fileName, String content) {
+        String fileType = "application/octet-stream";
+        if (fileName.endsWith(".md")) {
+            fileType = "text/markdown";
+        }
+        DbFile derivedFile = new DbFile(fileName, fileType, content.getBytes(), baseFile.getUser());
+        derivedFile.setOriginFile(baseFile);
+        return fileRepository.save(derivedFile);
     }
 
     @Transactional

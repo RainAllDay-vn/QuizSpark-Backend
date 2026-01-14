@@ -64,4 +64,10 @@ public class FileController {
         FileDTO updatedFile = fileService.updateFileContent(id, content);
         return new ResponseEntity<>(updatedFile, HttpStatus.OK);
     }
+
+    @PostMapping("/{id}/note")
+    public ResponseEntity<FileDTO> createNoteFile(@PathVariable String id) {
+        FileDTO derivedFile = fileService.createNoteFile(id);
+        return new ResponseEntity<>(derivedFile, HttpStatus.CREATED);
+    }
 }

@@ -2,7 +2,7 @@ package com.quizspark.quizsparkserver.api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.quizspark.quizsparkserver.dto.ai.AiResponseDTO;
-import com.quizspark.quizsparkserver.services.AiService;
+import com.quizspark.quizsparkserver.services.AiFileProcessService;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,19 +14,24 @@ import org.springframework.http.MediaType;
 @RequestMapping("/api/v1/ai")
 public class AiController {
 
-    private final AiService aiService;
+    private final AiFileProcessService aiFileProcessService;
 
-    public AiController(AiService aiService) {
-        this.aiService = aiService;
+    public AiController(AiFileProcessService aiFileProcessService) {
+        this.aiFileProcessService = aiFileProcessService;
     }
 
     @PostMapping(value = "/parse/file/{fileId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<AiResponseDTO> parseFile(@PathVariable String fileId) {
-        return aiService.extractQuestion(fileId);
+        return aiFileProcessService.extractQuestion(fileId);
     }
 
     @PostMapping(value = "/generate/bank/{bankId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<AiResponseDTO> generateQuestion(@PathVariable String bankId) throws JsonProcessingException {
-        return aiService.generateQuestionFromPracticeHistory(bankId);
+        return aiFileProcessService.generateQuestionFromPracticeHistory(bankId);
+    }
+
+    @PostMapping(value = "/extract/file/{fileId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<AiResponseDTO> extractFile(@PathVariable String fileId) {
+        return aiFileProcessService.extractContent(fileId);
     }
 }

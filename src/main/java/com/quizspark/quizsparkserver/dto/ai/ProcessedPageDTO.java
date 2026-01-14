@@ -17,15 +17,24 @@ public class ProcessedPageDTO {
     }
 
     private String text;
-    private byte[] image;
+    private boolean requireVision;
     private TextDensity textDensity;
+    private boolean extracted;
+
+    public ProcessedPageDTO(String text, boolean requiredVision) {
+        this.text = text;
+        this.requireVision = requiredVision;
+        this.textDensity = null;
+        this.extracted = false;
+    }
 
     @Override
     public String toString() {
         return "ProcessedPageDTO{" +
-                "text=" + (text == null ? "null" : text.length()) +
-                ", image=" + (image == null ? "null" : image.length) +
+                "text='" + text + '\'' +
+                ", requireVision=" + requireVision +
                 ", textDensity=" + textDensity +
+                ", extracted=" + extracted +
                 '}';
     }
 }

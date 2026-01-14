@@ -13,7 +13,10 @@ import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.springframework.ai.model.Media;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.MimeTypeUtils;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -25,12 +28,11 @@ import javax.imageio.ImageIO;
 
 @Service
 public class PdfProcessorService {
-    public List<ProcessedPageDTO> splitePages(DbFile dbFile) {
+    public List<ProcessedPageDTO> splitPages(DbFile dbFile) {
         List<ProcessedPageDTO> pages = new ArrayList<>();
 
         try (PDDocument document = PDDocument.load(dbFile.getData())) {
             PDFTextStripper stripper = new PDFTextStripper();
-            PDFRenderer pdfRenderer = new PDFRenderer(document);
             int pageNum = 0;
             for (PDPage page : document.getPages()) {
                 pageNum++;
@@ -40,8 +42,7 @@ public class PdfProcessorService {
                 if (resources != null) {
                     for (COSName xObjectName : resources.getXObjectNames()) {
                         PDXObject xObject = resources.getXObject(xObjectName);
-                        if (xObject instanceof PDImageXObject) {
-                            PDImageXObject image = (PDImageXObject) xObject;
+                        if (xObject instanceof PDImageXObject image) {
                             if (image.getWidth() > 50 && image.getHeight() > 50) {
                                 significantImages++;
                             }
@@ -72,13 +73,10 @@ public class PdfProcessorService {
                 // 4. Decision & Extraction
                 if (significantImages > 0 || hasVisualAnnotations || text.length() <= 50) {
                     // VISION Strategy
-                    BufferedImage bim = pdfRenderer.renderImageWithDPI(pageNum - 1, 300, ImageType.RGB);
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    ImageIO.write(bim, "png", baos);
-                    pages.add(new ProcessedPageDTO(null, baos.toByteArray(), null));
+                    pages.add(new ProcessedPageDTO(text, true));
                 } else {
                     // TEXT Strategy
-                    pages.add(new ProcessedPageDTO(text, null, null));
+                    pages.add(new ProcessedPageDTO(text, false));
                 }
             }
         } catch (IOException e) {
@@ -101,5 +99,21 @@ public class PdfProcessorService {
             throw new RuntimeException("Error converting PDF to images: " + e.getMessage(), e);
         }
         return images;
+    }
+
+    public List<Media> convertToMedias(DbFile dbFile, List<Integer> indexes) {
+        try (PDDocument document = PDDocument.load(dbFile.getData())) {
+            List<Media> images = new ArrayList<>();
+            PDFRenderer pdfRenderer = new PDFRenderer(document);
+            for (int index : indexes) {
+                BufferedImage bim = pdfRenderer.renderImageWithDPI(index, 300, ImageType.RGB);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(bim, "png", baos);
+                images.add(new Media(MimeTypeUtils.IMAGE_PNG, new ByteArrayResource(baos.toByteArray())));
+            }
+            return images;
+        } catch (IOException e) {
+            throw new RuntimeException("Error processing PDF: " + e.getMessage(), e);
+        }
     }
 }

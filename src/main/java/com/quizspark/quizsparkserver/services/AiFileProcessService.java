@@ -1,6 +1,7 @@
 package com.quizspark.quizsparkserver.services;
 
 import com.quizspark.quizsparkserver.models.DbFile;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -17,6 +18,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
 
@@ -32,11 +34,12 @@ import com.quizspark.quizsparkserver.dto.questions.QuestionDTO;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 
+@Slf4j
 @Service
-public class AiService {
+public class AiFileProcessService {
     private static class ParsingState {
         StringBuilder buffer = new StringBuilder();
-        List<String> lastEmitted = new java.util.ArrayList<>();
+        List<String> lastEmitted = new ArrayList<>();
         int balance = 0;
         boolean insideString = false;
         boolean escape = false;
@@ -49,8 +52,8 @@ public class AiService {
     private final PdfProcessorService pdfProcessorService;
     private final ObjectMapper mapper;
     private final ChatModel chatModel;
-    private static final String TEXT_MODEL = "Qwen/Qwen3-Next-80B-A3B-Instruct";
-    private static final String IMAGE_MODEL = "Qwen/Qwen3-VL-235B-A22B-Instruct";
+    private static final String TEXT_MODEL = "gemini-3-pro-high";
+    private static final String IMAGE_MODEL = "gemini-3-flash";
     private static final String EXTRACT_TEXT_PROMPT = """
             ### Content Analysis & Extraction Protocol
 
@@ -223,19 +226,38 @@ public class AiService {
             """;
 
     private static final String PDF_TRANSCRIPT_PROMPT = """
-            ### Input Parsing Logic (CRITICAL)
-            You will receive a text stream containing indexed placeholders like `[[IMAGE_1]]`, `[[IMAGE_2]]`.
-            - **Mapping:** `[[IMAGE_N]]` corresponds strictly to the **Nth image attachment** provided in this request.
-            - **Execution:** When you encounter `[[IMAGE_N]]` in the text, immediately stop reading the text, process the corresponding image using the "Image Input Handling" rules below, insert the result, and then resume reading the text.
+            ### Input Structure (CRITICAL)
+            Each page in the input follows this structure:
+            - **Optional Image Placeholder:** `[[IMAGE_N]]` appears if the page requires vision processing (N = sequential image number)
+            - **Extracted Text:** Raw text extracted programmatically from the PDF page (may be incomplete, malformed, or empty)
+            - **Page Delimiter:** `---` marks the end of each page
+
+            **Image Mapping:** `[[IMAGE_N]]` corresponds strictly to the **Nth image attachment** provided in this request.
 
             ### Processing Logic
-            Process the input stream sequentially. Do not summarize. Do not skip content.
+            Process the input stream sequentially, page by page. Do not summarize. Do not skip content.
 
             #### 1. Page Delimiting (STRICT REQUIREMENT)
-            - **Mandatory Split:** You **MUST** append the exact token `<|PAGE_SPLIT_TOKEN|>` at the very end of the content for every single input page processed (whether it was a Text chunk or an Image).
-            - **Empty Pages:** If an input page/image is blank, output **nothing but** `<|PAGE_SPLIT_TOKEN|>`.
+            - **Mandatory Split:** You **MUST** output the exact token `---` at the very end of your processed content for every single input page.
+            - **Preserve Boundaries:** Content from one page must NOT be merged with content from another page. If text is split across pages (e.g., "The coefficient of" on page 1, "friction is" on page 2), output them separately on their respective pages.
+            - **Empty Pages:** If an input page contains no meaningful content, output **only** `---`.
+            - **Constraint:** Do NOT use `---` for any other purpose than page separation. Use other delimiters like `***` or `___` if needed for horizontal rules.
 
-            #### 2. Visual Annotation Handling (Handwriting & Markups)
+            #### 2. Per-Page Processing Strategy
+            For each page, you receive **both** an image (if `[[IMAGE_N]]` is present) and extracted text. Use this dual-input strategy:
+
+            * **If `[[IMAGE_N]]` is present:**
+              - The extracted text may be incomplete or inaccurate (OCR artifacts, missing columns, broken tables).
+              - **Use the image as the authoritative source** for transcription.
+              - Cross-reference with the extracted text to verify your OCR and catch edge cases.
+              - Apply "Image Input Handling" rules below.
+
+            * **If no image placeholder exists:**
+              - The page is text-only (no visual elements requiring OCR).
+              - **Use the extracted text as the primary source.**
+              - Apply "Text Input Handling" rules to clean and normalize.
+
+            #### 3. Visual Annotation Handling (Handwriting & Markups)
             Interpret human markings (red pen, highlighters, pencil) on images using these rules:
             - **Circled Text (Focus):** Treat as High Importance. Format as **Bold** or place in a Blockquote (`>`).
               - *Example:* `> **The core formula is...**`
@@ -248,12 +270,12 @@ public class AiService {
             - **Checkmark (✓) (Verification):** Append `[✓]` to the verified item.
               - *Example:* `Answer: 42 [✓]`
 
-            #### 3. Text Input Handling
+            #### 4. Text Input Handling (When no image present)
             - **Formatting:** Clean up raw text by fixing spacing, indentation, and broken line breaks caused by PDF extraction.
             - **Structure:** Apply semantic Markdown (e.g., convert "Chapter 1" to `## Chapter 1`, bold key terms).
-            - **Continuity:** If text immediately before `[[IMAGE_N]]` ends mid-sentence, hold the context and merge it seamlessly with the transcription of `[[IMAGE_N]]` without inserting a new line.
+            - **Preserve Content:** Do not add or remove information. Only normalize formatting.
 
-            #### 4. Image Input Handling
+            #### 5. Image Input Handling (When `[[IMAGE_N]]` is present)
             Analyze the visual content of the referenced image to determine the processing mode:
 
             * **Mode A: Text-Heavy (Slides, Pages, Exam Questions)**
@@ -274,7 +296,8 @@ public class AiService {
 
             ### Edge Case Handling
             - **Illegible Text:** Mark as `[?]`.
-            - **Split Sentences:** If Text Input ends with "The coefficient of" and the subsequent Image starts with "friction is...", output "The coefficient of friction is..." on one line.
+            - **Extracted Text Mismatch:** If the image shows different content than the extracted text, trust the image.
+            - **Partial Content at Page Boundaries:** Output partial content exactly as it appears on that page. Do NOT attempt to complete or merge with adjacent pages.
             """;
     private static final String QUESTION_FORMAT_PROMPT = """
             This prompt focuses strictly on the **JSON structure, data types, and validation constraints**. It is designed to be appended to the processing prompt or used as a function definition.
@@ -340,11 +363,11 @@ public class AiService {
             4. If the extracted answer was missing, is the `"NO ANSWER"` tag applied and the answer index set to default `["0"]`?
             """;
 
-    public AiService(FileService fileService,
-            QuestionService questionService,
-            PdfProcessorService pdfProcessorService,
-            ChatModel chatModel,
-            ObjectMapper mapper) {
+    public AiFileProcessService(FileService fileService,
+                                QuestionService questionService,
+                                PdfProcessorService pdfProcessorService,
+                                ChatModel chatModel,
+                                ObjectMapper mapper) {
         this.fileService = fileService;
         this.questionService = questionService;
         this.pdfProcessorService = pdfProcessorService;
@@ -398,17 +421,15 @@ public class AiService {
                     Flux<AiResponseDTO> finish = Flux.just(AiResponseDTO.builder().status("finish").build());
                     return Flux.concat(Flux.just(startNode), thinking, aiStream, finish);
                 });
-
     }
 
     public Flux<AiResponseDTO> generateQuestionFromPracticeHistory(String bankId) throws JsonProcessingException {
         QuestionBankDTO questionBank = questionService.getFullQuestionBankById(bankId);
         List<QuestionDTO> questions = questionBank.getQuestions()
                 .stream()
-                .map(question -> {
+                .peek(question -> {
                     question.setId(null);
                     question.setQuestionBankId(null);
-                    return question;
                 })
                 .collect(Collectors.toList());
         String questionsJson = mapper.writeValueAsString(questions);
@@ -427,22 +448,23 @@ public class AiService {
         return Flux.concat(start, thinking, aiStream, finish);
     }
 
-    private Flux<AiResponseDTO> extractContentFromPdf(DbFile file) {
+    public Flux<AiResponseDTO> extractContent(String fileId) {
+        DbFile file = fileService.getFileEntity(fileId);
+        if (file.getFileType().equals("application/pdf")) {
+            return extractContentFromPdf(file);
+        }
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File format is not supported");
+    }
+
+    public Flux<AiResponseDTO> extractContentFromPdf(DbFile file) {
         return Flux.<AiResponseDTO>create(sink -> {
             try {
                 sink.next(AiResponseDTO.builder().status("analyze").build());
-                DbFile parseFile;
-                try {
-                    parseFile = fileService.getParseFileEntity(file);
-                } catch (Exception e) {
-                    List<ProcessedPageDTO> pages = pdfProcessorService.splitePages(file);
-                    pages.forEach(page -> System.out.println(page));
-                    pages = classifyTextDensity(pages);
-                    pages.forEach(page -> System.out.println(page));
-                    pages = extractContent(pages);
-                    pages.forEach(page -> System.out.println(page));
-                    sink.next(AiResponseDTO.builder().status("thinking").build());
-                }
+                // Start stage 1: Generate classification of page type and text density
+                List<ProcessedPageDTO> classifiedPages = classifyPages(file);
+                // Start stage 2: Parse content from pages requiring vision
+                List<ProcessedPageDTO> extractedPages = extractContent(file, classifiedPages);
+
                 sink.next(AiResponseDTO.builder().status("finish").build());
                 sink.complete();
             } catch (Exception e) {
@@ -452,23 +474,34 @@ public class AiService {
                 .subscribeOn(Schedulers.boundedElastic());
     }
 
-    public List<ProcessedPageDTO> classifyTextDensity(List<ProcessedPageDTO> pages) {
-        List<ProcessedPageDTO> imagePages = new ArrayList<>();
-        List<Integer> imageIndices = new ArrayList<>();
-        List<Media> mediaList = new ArrayList<>();
+    private List<ProcessedPageDTO> classifyPages(DbFile file) {
+        List<ProcessedPageDTO> pages;
+        Optional<DbFile> resultFileOptional = fileService.getDerivedFile(file, "CLASSIFY RESULTS.json");
+        if (resultFileOptional.isPresent()) {
+            DbFile resultFile = resultFileOptional.get();
+            String content = new String(resultFile.getData());
+            try {
+                pages = mapper.readValue(content, new TypeReference<>() {});
+            } catch (Exception e) {
+                log.error("Parsing past pages classification results failed");
+                pages = pdfProcessorService.splitPages(file);
+            }
+        } else {
+            pages = pdfProcessorService.splitPages(file);
+        }
 
+        List<Integer> imageIndices = new ArrayList<>();
         for (int i = 0; i < pages.size(); i++) {
             ProcessedPageDTO page = pages.get(i);
-            if (page.getImage() != null) {
-                imagePages.add(page);
-                imageIndices.add(i);
-                mediaList.add(new Media(MimeTypeUtils.IMAGE_PNG, new ByteArrayResource(page.getImage())));
-            }
+            if (!page.isRequireVision() || page.getTextDensity() != null)
+                continue;
+            imageIndices.add(i);
         }
-        if (mediaList.isEmpty()) {
+        if (imageIndices.isEmpty()) {
             return pages;
         }
 
+        List<Media> mediaList = pdfProcessorService.convertToMedias(file, imageIndices);
         UserMessage userMessage = new UserMessage(IMAGE_SORTER_INSTRUCTIONS, mediaList); // Using static final constant
         Prompt prompt = new Prompt(userMessage,
                 OpenAiChatOptions.builder().model(IMAGE_MODEL).build());
@@ -482,73 +515,76 @@ public class AiService {
             System.out.println(content);
             ObjectMapper mapper = new ObjectMapper();
             try {
-                List<TextDensityResponseDTO> results = mapper.readValue(content,
-                        new TypeReference<List<TextDensityResponseDTO>>() {
-                        });
+                List<TextDensityResponseDTO> results = mapper.readValue(content, new TypeReference<>() {});
                 for (TextDensityResponseDTO res : results) {
-                    if (res.index() >= 0 && res.index() < imagePages.size()) {
-                        ProcessedPageDTO p = imagePages.get(res.index());
-
+                    if (res.index() >= 0 && res.index() < pages.size()) {
+                        int index = imageIndices.get(res.index());
+                        ProcessedPageDTO page = pages.get(index);
                         try {
-                            p.setTextDensity(ProcessedPageDTO.TextDensity.valueOf(res.density().toUpperCase()));
+                            page.setTextDensity(ProcessedPageDTO.TextDensity.valueOf(res.density().toUpperCase()));
                         } catch (IllegalArgumentException e) {
-                            p.setTextDensity(ProcessedPageDTO.TextDensity.MEDIUM); // Fallback
+                            page.setTextDensity(ProcessedPageDTO.TextDensity.MEDIUM); // Fallback
                         }
                     }
                 }
             } catch (Exception e) {
                 System.err.println("Failed to parse AI response: " + content);
-                e.printStackTrace();
-                // Fallback to defaults if parsing fails
             }
         }
-
+        try {
+            String jsonString = mapper.writeValueAsString(pages);
+            fileService.createDerivedFile(file, "CLASSIFY RESULTS.json", jsonString);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to save classification result: {}", e.getMessage());
+        }
         return pages;
     }
 
-    public List<ProcessedPageDTO> extractContent(List<ProcessedPageDTO> pages) {
-        StringBuilder textBuffer = new StringBuilder();
-        List<Media> mediaBuffer = new ArrayList<>();
-        List<ProcessedPageDTO> currentBatchPages = new ArrayList<>();
+    public List<ProcessedPageDTO> extractContent(DbFile file, List<ProcessedPageDTO> pages) {
+        Optional<DbFile> resultFileOptional = fileService.getDerivedFile(file, "EXTRACT RESULTS.json");
+        if (resultFileOptional.isPresent()) {
+            DbFile resultFile = resultFileOptional.get();
+            String content = new String(resultFile.getData());
+            try {
+                pages = mapper.readValue(content, new TypeReference<>() {});
+            } catch (Exception e) {
+                log.error("Parsing past pages extraction results failed");
+            }
+        }
+        List<Integer> currentBatchPageIndexes = new ArrayList<>();
         double currentBatchCost = 0;
-        int imageIndex = 0; // Track image index within the current batch
         final double BUCKET_LIMIT = 4000.0;
 
-        for (ProcessedPageDTO page : pages) {
+        for (int i=0; i<pages.size(); i++) {
+            ProcessedPageDTO page = pages.get(i);
+            if (page.isExtracted()) continue;
             double itemCost = calculateCost(page);
             if (currentBatchCost + itemCost > BUCKET_LIMIT) {
                 if (currentBatchCost > 0) {
-                    processBatch(textBuffer, mediaBuffer, currentBatchPages);
+                    processBatch(file, pages, currentBatchPageIndexes);
                 }
-                textBuffer.setLength(0);
-                mediaBuffer.clear();
-                currentBatchPages.clear();
+                currentBatchPageIndexes.clear();
                 currentBatchCost = 0;
-                imageIndex = 0; // Reset image index for the new batch
             }
             currentBatchCost += itemCost;
-            currentBatchPages.add(page);
-            if (page.getImage() != null) {
-                imageIndex++;
-                textBuffer.append("\n[[IMAGE_").append(imageIndex).append("]]\n");
-                mediaBuffer.add(new Media(MimeTypeUtils.IMAGE_PNG, new ByteArrayResource(page.getImage())));
-            } else if (page.getText() != null) {
-                textBuffer.append(page.getText()).append("\n");
-            }
+            currentBatchPageIndexes.add(i);
         }
 
         if (currentBatchCost > 0) {
-            processBatch(textBuffer, mediaBuffer, currentBatchPages);
+            processBatch(file, pages, currentBatchPageIndexes);
+        }
+        try {
+            String jsonString = mapper.writeValueAsString(pages);
+            fileService.createDerivedFile(file, "EXTRACT RESULTS.json", jsonString);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to save extraction result: {}", e.getMessage());
         }
         return pages;
     }
 
     private double calculateCost(ProcessedPageDTO page) {
-        if (page.getImage() != null) {
+        if (page.getTextDensity() != null) {
             ProcessedPageDTO.TextDensity density = page.getTextDensity();
-            if (density == null)
-                density = ProcessedPageDTO.TextDensity.MEDIUM; // Default
-
             return switch (density) {
                 case HIGH -> 1200.0;
                 case MEDIUM -> 500.0;
@@ -565,11 +601,24 @@ public class AiService {
         }
     }
 
-    private void processBatch(StringBuilder textBuffer, List<Media> mediaBuffer, List<ProcessedPageDTO> batchPages) {
-        if (batchPages.isEmpty())
+    private void processBatch(DbFile file, List<ProcessedPageDTO> pages, List<Integer> pageIndexes) {
+        if (pageIndexes.isEmpty())
             return;
+        StringBuilder textBuffer = new StringBuilder();
+        int imageIndex = 1;
+        for (int pageIndex : pageIndexes) {
+            ProcessedPageDTO page = pages.get(pageIndex);
+            if (page.isRequireVision())
+                textBuffer.append("\n[[IMAGE_").append(imageIndex++).append("]]\n");
+            if (page.getText() != null) textBuffer.append(page.getText()).append("\n");
+            textBuffer.append("---");
+        }
         try {
-            UserMessage userMessage = new UserMessage(textBuffer.toString(), new ArrayList<>(mediaBuffer));
+            List<Integer> mediaIndexes = pageIndexes.stream()
+                    .filter(i -> pages.get(i).isRequireVision())
+                    .toList();
+            List<Media> media = pdfProcessorService.convertToMedias(file, mediaIndexes);
+            UserMessage userMessage = new UserMessage(textBuffer.toString(), new ArrayList<>(media));
             Prompt prompt = new Prompt(
                     List.of(new SystemMessage(PDF_TRANSCRIPT_PROMPT), userMessage),
                     OpenAiChatOptions.builder().model(IMAGE_MODEL).build());
@@ -584,44 +633,22 @@ public class AiService {
             }
 
             if (content != null && !content.isEmpty()) {
-                String[] pageParts = content.split("<\\|PAGE_SPLIT_TOKEN\\|>");
-                for (int i = 0; i < batchPages.size(); i++) {
+                String[] pageParts = content.split("---\n");
+                for (int i = 0; i < pageIndexes.size(); i++) {
+                    ProcessedPageDTO page = pages.get(pageIndexes.get(i));
                     if (i < pageParts.length) {
-                        batchPages.get(i).setText(pageParts[i].trim());
+                        page.setText(pageParts[i].trim());
+                        page.setExtracted(true);
                     } else {
-                        batchPages.get(i).setText("[AI ERROR: No Content Generated]");
+                        log.error("[AI ERROR: No Content Generated] - File {}, pageIndex {}", file.getId().toString(), pageIndexes.get(i));
                     }
                 }
             } else {
-                for (int i = 0; i < batchPages.size(); i++) {
-                    batchPages.get(i).setText("[AI ERROR: No Content Generated]");
-                }
+                log.error("[AI ERROR: No Content Generated] - File {}", file.getId().toString());
             }
         } catch (Exception e) {
-            System.err.println("Error processing batch: " + e.getMessage());
-            e.printStackTrace();
-            for (int i = 0; i < batchPages.size(); i++) {
-                batchPages.get(i).setText("[AI ERROR: " + e.getMessage() + "]");
-            }
+            log.error("[AI ERROR: No Content Generated] - File {}", file.getId().toString(), e);
         }
-    }
-
-    public Flux<String> streamChat(String message, List<Media> media, String model) {
-        UserMessage userMessage = (media == null || media.isEmpty()) ? new UserMessage(message)
-                : new UserMessage(message, media);
-
-        Prompt prompt = new Prompt(userMessage,
-                OpenAiChatOptions.builder().model(model == null ? TEXT_MODEL : model).build());
-
-        return chatModel.stream(prompt)
-                .map(response -> {
-                    if (response.getResult() == null || response.getResult().getOutput() == null) {
-                        return "";
-                    }
-                    String content = response.getResult().getOutput().getContent();
-                    return content == null ? "" : content;
-                })
-                .filter(content -> !content.isEmpty());
     }
 
     private Flux<AiResponseDTO> streamAndParseJson(Prompt prompt) {
