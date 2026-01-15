@@ -224,7 +224,7 @@ public class AiFileProcessService {
         }
         try {
             String jsonString = mapper.writeValueAsString(pages);
-            fileService.createDerivedFile(file, "CLASSIFY RESULTS.json", jsonString);
+            fileService.createOrUpdateDerivedFile(file, "CLASSIFY RESULTS.json", jsonString);
         } catch (JsonProcessingException e) {
             log.error("Failed to save classification result: {}", e.getMessage());
         }
@@ -263,12 +263,6 @@ public class AiFileProcessService {
 
         if (currentBatchCost > 0) {
             processBatch(file, pages, currentBatchPageIndexes);
-        }
-        try {
-            String jsonString = mapper.writeValueAsString(pages);
-            fileService.createDerivedFile(file, "EXTRACT RESULTS.json", jsonString);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to save extraction result: {}", e.getMessage());
         }
         return pages;
     }
@@ -333,6 +327,12 @@ public class AiFileProcessService {
                     } else {
                         log.error("[AI ERROR: No Content Generated] - File {}, pageIndex {}", file.getId().toString(), pageIndexes.get(i));
                     }
+                }
+                try {
+                    String jsonString = mapper.writeValueAsString(pages);
+                    fileService.createOrUpdateDerivedFile(file, "EXTRACT RESULTS.json", jsonString);
+                } catch (JsonProcessingException e) {
+                    log.error("Failed to save extraction result: {}", e.getMessage());
                 }
             } else {
                 log.error("[AI ERROR: No Content Generated] - File {}", file.getId().toString());

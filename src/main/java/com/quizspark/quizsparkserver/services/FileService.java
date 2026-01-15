@@ -175,15 +175,25 @@ public class FileService {
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error reading PDF file", e);
         }
-        DbFile derivedFile = createDerivedFile(originalFile, "NOTE.md", content);
+        DbFile derivedFile = createOrUpdateDerivedFile(originalFile, "NOTE.md", content);
         return new FileDTO(derivedFile);
     }
 
-    public DbFile createDerivedFile(DbFile baseFile, String fileName, String content) {
+    @Transactional
+    public DbFile createOrUpdateDerivedFile(DbFile baseFile, String fileName, String content) {
         String fileType = "application/octet-stream";
         if (fileName.endsWith(".md")) {
             fileType = "text/markdown";
         }
+
+        Optional<DbFile> existing = getDerivedFile(baseFile, fileName);
+        if (existing.isPresent()) {
+            DbFile derivedFile = existing.get();
+            derivedFile.setFileType(fileType);
+            derivedFile.setData(content.getBytes());
+            return fileRepository.save(derivedFile);
+        }
+
         DbFile derivedFile = new DbFile(fileName, fileType, content.getBytes(), baseFile.getUser());
         derivedFile.setOriginFile(baseFile);
         return fileRepository.save(derivedFile);

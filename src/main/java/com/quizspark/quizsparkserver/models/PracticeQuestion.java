@@ -34,7 +34,6 @@ public class PracticeQuestion {
     @JoinColumn(name = "practice_id", nullable = false)
     private Practice practice;
 
-    @Column(name = "question_index")
     private int index;
 
     @ManyToOne(fetch = FetchType.LAZY)
