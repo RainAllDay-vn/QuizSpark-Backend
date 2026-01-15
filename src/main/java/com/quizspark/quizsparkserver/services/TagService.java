@@ -55,9 +55,7 @@ public class TagService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete this tag");
         }
         
-        // Use programmatic cleanup of the Many-to-Many association for ALL questions.
-        // Similar to QuestionBank deletion, we must ensure associations from soft-deleted
-        // questions are also removed to satisfy referential integrity in the join table.
+        // Use programmatic cleanup of the Many-to-Many association.
         for (com.quizspark.quizsparkserver.models.Question question : tag.getQuestions()) {
             question.getTags().remove(tag);
         }

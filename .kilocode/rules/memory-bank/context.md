@@ -30,6 +30,7 @@ Initial setup of the architectural documentation (Memory Bank) to enable effecti
 -   Created `AiService` to handle adaptive question generation using history and scratchpad.
 -   Refactored "Endless Practice" to use manual on-demand fetching instead of automatic fetching.
 -   Added `POST /api/v1/practice/{practiceId}/fetch` and `DELETE /api/v1/practice/{practiceId}/questions/{index}` endpoints.
+-   Removed soft delete logic for `Question` entity, including removing `@SQLRestriction` from `QuestionBank` and cleaning up related logic in `TagService`.
 
 ## Next Steps
 1.  Verify the new manual fetch and discard endpoints for Endless Mode.

@@ -9,7 +9,6 @@ import java.util.*;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "question_bank", indexes = {
@@ -55,7 +54,6 @@ public class QuestionBank {
 
     // Relationship: One QuestionBank can contain many Questions
     @OneToMany(mappedBy = "questionBank", cascade = CascadeType.ALL, orphanRemoval = true)
-    @SQLRestriction("deleted = false")
     private List<Question> questions = new ArrayList<>();
 
     @OneToMany(mappedBy = "bank", cascade = CascadeType.ALL, orphanRemoval = true)
