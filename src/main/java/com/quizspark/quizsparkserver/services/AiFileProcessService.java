@@ -2,8 +2,11 @@ package com.quizspark.quizsparkserver.services;
 
 import com.quizspark.quizsparkserver.models.DbFile;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -12,6 +15,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.model.Media;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
@@ -54,17 +58,20 @@ public class AiFileProcessService {
     private final PdfProcessorService pdfProcessorService;
     private final ObjectMapper mapper;
     private final ChatModel chatModel;
+    private final VectorStore vectorStore;
 
     public AiFileProcessService(FileService fileService,
                                 QuestionService questionService,
                                 PdfProcessorService pdfProcessorService,
-                                ChatModel chatModel,
-                                ObjectMapper mapper) {
+                                @Qualifier("openAiChatModel") ChatModel chatModel,
+                                ObjectMapper mapper,
+                                VectorStore vectorStore) {
         this.fileService = fileService;
         this.questionService = questionService;
         this.pdfProcessorService = pdfProcessorService;
         this.chatModel = chatModel;
         this.mapper = mapper;
+        this.vectorStore = vectorStore;
     }
 
     public Flux<AiResponseDTO> extractQuestion(String fileId) {
@@ -158,6 +165,8 @@ public class AiFileProcessService {
                 pages = extractContent(file, pages, sink);
                 // Start stage 3: Convert content to a md file and save to the DB.
                 pages = saveAsMarkdown(file, pages, sink);
+                // Start stage 4: Generate Embeddings and save to file
+                generateEmbeddings(file, pages, sink);
 
                 sink.next(AiResponseDTO.builder().status("finish").build());
                 sink.complete();
@@ -169,6 +178,7 @@ public class AiFileProcessService {
     }
 
     private List<ProcessedPageDTO> classifyPages(DbFile file, FluxSink<AiResponseDTO> sink) {
+        sink.next(AiResponseDTO.builder().status("next").data("classify").build());
         List<ProcessedPageDTO> pages;
         Optional<DbFile> resultFileOptional = fileService.getDerivedFileWithContent(file, "CLASSIFY RESULTS.json");
         if (resultFileOptional.isPresent()) {
@@ -225,9 +235,7 @@ public class AiFileProcessService {
         try {
             String jsonString = mapper.writeValueAsString(pages);
             fileService.createOrUpdateDerivedFile(file, "CLASSIFY RESULTS.json", jsonString);
-            if (sink != null) {
-                sink.next(AiResponseDTO.builder().status("classify").data(jsonString).build());
-            }
+            sink.next(AiResponseDTO.builder().status("classify").data(jsonString).build());
         } catch (JsonProcessingException e) {
             log.error("Failed to save classification result: {}", e.getMessage());
         }
@@ -235,6 +243,7 @@ public class AiFileProcessService {
     }
 
     public List<ProcessedPageDTO> extractContent(DbFile file, List<ProcessedPageDTO> pages, FluxSink<AiResponseDTO> sink) {
+        sink.next(AiResponseDTO.builder().status("next").data("content").build());
         Optional<DbFile> resultFileOptional = fileService.getDerivedFileWithContent(file, "EXTRACT RESULTS.json");
         if (resultFileOptional.isPresent()) {
             DbFile resultFile = resultFileOptional.get();
@@ -367,6 +376,27 @@ public class AiFileProcessService {
         fileService.createOrUpdateDerivedFile(file, "CONTENT.md", content.toString());
         sink.next(AiResponseDTO.builder().status("content").data(content.toString()).build());
         return pages;
+    }
+
+    private void generateEmbeddings(DbFile file, List<ProcessedPageDTO> pages, FluxSink<AiResponseDTO> sink) {
+        sink.next(AiResponseDTO.builder().status("next").data("embed").build());
+        List<Document> documents = new ArrayList<>();
+        for (ProcessedPageDTO page : pages) {
+            if (StringUtils.hasText(page.getText())) {
+                Document doc = new Document(page.getText());
+                doc.getMetadata().put("fileId", file.getId().toString());
+                doc.getMetadata().put("source", file.getFileName());
+                documents.add(doc);
+            }
+        }
+        if (!documents.isEmpty()) {
+            try {
+                vectorStore.add(documents);
+            } catch (Exception e) {
+                log.warn("Embedding generation failed (Ollama may be down): {}", e.getMessage());
+                sink.next(AiResponseDTO.builder().status("error").data("Embedding failed: " + e.getMessage()).build());
+            }
+        }
     }
 
     private Flux<AiResponseDTO> streamAndParseJson(Prompt prompt) {

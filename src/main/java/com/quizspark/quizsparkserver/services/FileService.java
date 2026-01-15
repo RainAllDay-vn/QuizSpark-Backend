@@ -5,7 +5,15 @@ import com.quizspark.quizsparkserver.models.DbFile;
 import com.quizspark.quizsparkserver.models.QuestionBank;
 import com.quizspark.quizsparkserver.models.User;
 import com.quizspark.quizsparkserver.repositories.FileRepository;
+
+import io.qdrant.client.ConditionFactory;
+import io.qdrant.client.QdrantClient;
+import io.qdrant.client.grpc.Points.DeletePoints;
+import io.qdrant.client.grpc.Points.Filter;
+import io.qdrant.client.grpc.Points.PointsSelector;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,15 +29,20 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class FileService {
-
+    
+    @Value("${spring.ai.vectorstore.qdrant.collection-name:vector_store}")
+    private String collectionName;
     private final FileRepository fileRepository;
     private final QuestionService questionService;
+    private final QdrantClient qdrantClient;
 
-    public FileService(FileRepository fileRepository, QuestionService questionService) {
+    public FileService(FileRepository fileRepository, QuestionService questionService, QdrantClient qdrantClient) {
         this.fileRepository = fileRepository;
         this.questionService = questionService;
+        this.qdrantClient = qdrantClient;
     }
 
     @Transactional(readOnly = true)
@@ -152,6 +165,30 @@ public class FileService {
             bank.getFiles().remove(file);
         }
         file.getQuestionBanks().clear();
+        
+        try {
+            // 1. Create a filter that matches the "fileId" metadata field
+            Filter filter = Filter.newBuilder()
+                .addMust(ConditionFactory.matchKeyword("fileId", fileId)) 
+                .build();
+
+            // 2. Create the PointsSelector
+            PointsSelector selector = PointsSelector.newBuilder()
+                .setFilter(filter)
+                .build();
+
+            // 3. Create the Delete Request
+            DeletePoints deleteRequest = DeletePoints.newBuilder()
+                .setCollectionName(collectionName)
+                .setPoints(selector)
+                .build();
+
+            // 4. Execute the deletion and wait for it to complete (.get())
+            qdrantClient.deleteAsync(deleteRequest).get();
+        } catch (Exception e) {
+            log.error("Failed to delete embeddings for file {}: {}", fileId, e.getMessage());
+        }
+
         fileRepository.delete(file);
     }
 

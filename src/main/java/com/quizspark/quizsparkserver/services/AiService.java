@@ -13,6 +13,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,7 +32,7 @@ public class AiService {
         private List<QuestionCreationDTO> questions;
     }
 
-    public AiService(ChatModel chatModel, ObjectMapper objectMapper) {
+    public AiService(@Qualifier("openAiChatModel") ChatModel chatModel, ObjectMapper objectMapper) {
         this.chatModel = chatModel;
         this.objectMapper = objectMapper;
     }

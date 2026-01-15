@@ -51,6 +51,9 @@ public class DbFile {
         this.uploadDate = LocalDateTime.now();
     }
 
+    @Column(nullable = true)
+    private Boolean isEmbedded = false;
+    
     // Parameterized constructor
     public DbFile(String fileName, String fileType, byte[] data, User user) {
         this.fileName = fileName;

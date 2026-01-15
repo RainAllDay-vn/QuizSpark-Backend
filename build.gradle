@@ -50,6 +50,8 @@ dependencies {
     
     // Spring AI
     implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
+    implementation 'org.springframework.ai:spring-ai-ollama-spring-boot-starter'
+    implementation 'org.springframework.ai:spring-ai-qdrant-store-spring-boot-starter'
 
     // Dotenv
     implementation 'me.paulschwarz:spring-dotenv:4.0.0'

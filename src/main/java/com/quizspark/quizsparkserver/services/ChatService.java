@@ -7,7 +7,6 @@ import com.quizspark.quizsparkserver.models.ChatItem.ChatItemType;
 import com.quizspark.quizsparkserver.repositories.ChatMessageRepository;
 import com.quizspark.quizsparkserver.repositories.ChatSessionRepository;
 import com.quizspark.quizsparkserver.repositories.FileRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -19,6 +18,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.Media;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,7 +36,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ChatService {
     private final ChatSessionRepository chatSessionRepository;
@@ -45,6 +44,20 @@ public class ChatService {
     private final FileRepository fileRepository;
     private final UserService userService;
     private final ChatModel chatModel;
+
+    public ChatService(ChatSessionRepository chatSessionRepository,
+                       ChatMessageRepository chatMessageRepository,
+                       FileService fileService,
+                       FileRepository fileRepository,
+                       UserService userService,
+                       @Qualifier("openAiChatModel") ChatModel chatModel) {
+        this.chatSessionRepository = chatSessionRepository;
+        this.chatMessageRepository = chatMessageRepository;
+        this.fileService = fileService;
+        this.fileRepository = fileRepository;
+        this.userService = userService;
+        this.chatModel = chatModel;
+    }
 
     @Transactional
     public Flux<ChatResponseDTO> streamChat(ChatRequestDTO request) {

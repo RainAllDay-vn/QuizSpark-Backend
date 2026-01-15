@@ -2,10 +2,53 @@ package com.quizspark.quizsparkserver.config;
 
 import com.quizspark.quizsparkserver.dto.chat.ModelDTO;
 import com.quizspark.quizsparkserver.dto.chat.ModelDTO.ModelCharacteristic;
+import io.qdrant.client.QdrantClient;
+import io.qdrant.client.QdrantGrpcClient;
+import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.qdrant.QdrantVectorStore;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import java.util.List;
 
+@Configuration
 public class AiConfig {
+
+    @Value("${spring.ai.vectorstore.qdrant.host}")
+    private String qdrantHost;
+
+    @Value("${spring.ai.vectorstore.qdrant.port}")
+    private int qdrantPort;
+
+    @Value("${spring.ai.vectorstore.qdrant.collection-name}")
+    private String collectionName;
+
+    @Bean
+    public QdrantClient qdrantClient() {
+        return new QdrantClient(QdrantGrpcClient.newBuilder(qdrantHost, qdrantPort, false).build());
+    }
+
+    @Bean
+    @Primary
+    public VectorStore customVectorStore(QdrantClient qdrantClient, @Qualifier("ollamaEmbeddingModel") EmbeddingModel embeddingModel) {
+        try {
+            QdrantVectorStore vectorStore = QdrantVectorStore.builder(qdrantClient, embeddingModel)
+                    .collectionName(collectionName)
+                    .initializeSchema(true)
+                    .build();
+            // Manually trigger initialization to catch errors immediately (e.g. missing Ollama model)
+            vectorStore.afterPropertiesSet();
+            return vectorStore;
+        } catch (Exception e) {
+            System.err.println("Failed to initialize QdrantVectorStore: " + e.getMessage());
+            return new NoOpVectorStore();
+        }
+    }
+    
     // Model Names
     public static final String TEXT_MODEL = "gemini-3-pro-high";
     public static final String IMAGE_MODEL = "gemini-3-flash";
