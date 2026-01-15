@@ -1,6 +1,7 @@
 package com.quizspark.quizsparkserver.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.quizspark.quizsparkserver.config.AiConfig;
 import com.quizspark.quizsparkserver.dto.questions.QuestionCreationDTO;
 import com.quizspark.quizsparkserver.models.Practice;
 import com.quizspark.quizsparkserver.models.PracticeQuestion;
@@ -22,7 +23,6 @@ import java.util.stream.Collectors;
 public class AiService {
     private final ChatModel chatModel;
     private final ObjectMapper objectMapper;
-    private static final String TEXT_MODEL = "gemini-3-pro-high";
 
     @Getter
     @Setter
@@ -35,37 +35,6 @@ public class AiService {
         this.chatModel = chatModel;
         this.objectMapper = objectMapper;
     }
-
-    private static final String ADAPTIVE_GENERATION_PROMPT = """
-            # Role
-            You are an Adaptive Learning Engine. Your goal is to analyze a user's performance and provide a continuous stream of tailored educational content.
-            
-            # Input
-            1. **Scratchpad**: Your own summary of the user's progress from the previous turn. Use this to maintain context.
-            2. **Recent History**: The last 5-10 questions the user attempted, including their description, choices, and whether they were correct.
-            
-            # Task
-            1. **Update Scratchpad**: Analyze the recent history. Identify persistent weaknesses, improving trends, or areas of mastery. Write a concise summary (the "scratchpad") for your future self.
-            2. **Generate Questions**: Generate %d new questions that:
-               - Target identified weak spots (Reinforcement).
-               - Introduce slightly more difficult variations of mastered concepts (Progression).
-               - Maintain the core themes of the original Question Bank.
-            
-            # Output Format
-            Return valid JSON only, following this structure:
-            {
-              "scratchPad": "Your updated summary here...",
-              "questions": [
-                {
-                  "questionType": "SINGLE_ANSWER",
-                  "tags": ["AI_GENERATED"],
-                  "description": "Question text...",
-                  "choices": ["A", "B", "C", "D"],
-                  "answer": ["0"]
-                }
-              ]
-            }
-            """;
 
     public AdaptiveGenerationResponse generateAdaptiveQuestions(Practice practice, int count) {
         String scratchPad = practice.getAiScratchPad();
@@ -95,8 +64,8 @@ public class AiService {
                     """, scratchPad, historyJson);
 
             Prompt prompt = new Prompt(
-                    List.of(new SystemMessage(String.format(ADAPTIVE_GENERATION_PROMPT, count)), new UserMessage(userPrompt)),
-                    OpenAiChatOptions.builder().model(TEXT_MODEL).build());
+                    List.of(new SystemMessage(String.format(AiConfig.ADAPTIVE_GENERATION_PROMPT, count)), new UserMessage(userPrompt)),
+                    OpenAiChatOptions.builder().model(AiConfig.TEXT_MODEL).build());
 
             String responseContent = chatModel.call(prompt).getResult().getOutput().getContent();
             

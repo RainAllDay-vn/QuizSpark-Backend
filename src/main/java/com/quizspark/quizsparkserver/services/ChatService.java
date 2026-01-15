@@ -1,7 +1,7 @@
 package com.quizspark.quizsparkserver.services;
 
+import com.quizspark.quizsparkserver.config.AiConfig;
 import com.quizspark.quizsparkserver.dto.chat.*;
-import com.quizspark.quizsparkserver.dto.chat.ModelDTO.ModelCharacteristic;
 import com.quizspark.quizsparkserver.models.*;
 import com.quizspark.quizsparkserver.models.ChatItem.ChatItemType;
 import com.quizspark.quizsparkserver.repositories.ChatMessageRepository;
@@ -45,50 +45,6 @@ public class ChatService {
     private final FileRepository fileRepository;
     private final UserService userService;
     private final ChatModel chatModel;
-
-    private static final List<ModelDTO> AVAILABLE_MODELS = List.of(
-            // DeepSeek V3.2 (Released Dec 2025) - Supports Reasoning/Thinking Mode
-            new ModelDTO("deepseek-v3.2", "deepseek-ai/DeepSeek-V3.2-TEE", "DeepSeek V3.2 TEE",
-                    List.of(ModelCharacteristic.REASONING)),
-            // Qwen 3 235B (Released July 2025) - Features "Thinking Mode" and dual-mode
-            // switching
-            new ModelDTO("qwen-3-235b", "Qwen/Qwen3-235B-A22B-Instruct-2507-TEE", "Qwen 3 235B TEE",
-                    List.of(ModelCharacteristic.REASONING)),
-            // GLM 4.7 (Released late 2025) - Features "Interleaved Thinking"
-            new ModelDTO("glm-4.7", "zai-org/GLM-4.7-TEE", "GLM 4.7 TEE",
-                    List.of(ModelCharacteristic.REASONING)),
-            // Kimi K2 Thinking (Released Nov 2025) - Native Thinking Agent
-            new ModelDTO("kimi-k2", "moonshotai/Kimi-K2-Thinking-TEE", "Kimi K2 Thinking TEE",
-                    List.of(ModelCharacteristic.REASONING)),
-            // Hermes 4 405B (Released late 2025) - Hybrid Reasoning capabilities
-            new ModelDTO("hermes-4", "NousResearch/Hermes-4-405B-FP8-TEE", "Hermes 4 405B TEE",
-                    List.of(ModelCharacteristic.REASONING)),
-            // MiniMax M2.1 (Released Dec 2025) - "Advanced Interleaved Thinking"
-            new ModelDTO("minimax-m2.1", "MiniMaxAI/MiniMax-M2.1-TEE", "MiniMax M2.1 TEE",
-                    List.of(ModelCharacteristic.REASONING)),
-            // Qwen 3 VL - Vision Language Model
-            new ModelDTO("qwen-3-vl", "Qwen/Qwen3-VL-235B-A22B-Instruct", "Qwen 3 VL",
-                    List.of(ModelCharacteristic.VISION)),
-            // GLM 4.6V - Vision Model (Predecessor to 4.7 text)
-            new ModelDTO("glm-4.6v", "zai-org/GLM-4.6V", "GLM 4.6V",
-                    List.of(ModelCharacteristic.VISION)),
-            // DeepSeek V3.2 Speciale - "Maxed-out reasoning capabilities"
-            new ModelDTO("deepseek-v3.2-speciale", "deepseek-ai/DeepSeek-V3.2-Speciale-TEE",
-                    "DeepSeek V3.2 Speciale TEE",
-                    List.of(ModelCharacteristic.REASONING)));
-
-    private static final String DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3.2-TEE";
-    private static final String SYSTEM_PROMPT = """
-            You are a helpful educational assistant for QuizSpark, an intelligent study platform.
-            
-            ## Context Awareness
-            Users may provide contextual information from their workspace. When you see context markers like [WORKSPACE FILE], this indicates content the user is currently viewing or working with on the QuizSpark platform. Their questions are likely related to this context, so prioritize it when formulating your responses.
-            
-            Context types you may encounter:
-            - **WORKSPACE FILE**: A document or file the user is currently viewing/editing in their workspace. Treat this as their primary study material for the conversation.
-            
-            When context is provided, focus your answers on that material unless the user explicitly asks about something else.
-            """;
 
     @Transactional
     public Flux<ChatResponseDTO> streamChat(ChatRequestDTO request) {
@@ -180,7 +136,7 @@ public class ChatService {
     }
 
     private Flux<ChatResponseDTO> executeChatStream(ChatSession session, String modelName, int assistantIndex) {
-        String model = modelName != null ? modelName : DEFAULT_MODEL;
+        String model = modelName != null ? modelName : AiConfig.CHAT_DEFAULT_MODEL;
         UUID sessionId = session.getId();
         Prompt prompt = createPrompt(session, model);
         StringBuilder fullResponse = new StringBuilder();
@@ -211,7 +167,7 @@ public class ChatService {
 
     private Prompt createPrompt(ChatSession session, String model) {
         List<Message> messages = new ArrayList<>();
-        messages.add(new SystemMessage(SYSTEM_PROMPT));
+        messages.add(new SystemMessage(AiConfig.CHAT_SYSTEM_PROMPT));
 
         List<ChatMessage> chatMessages = chatMessageRepository.findBySessionOrderByMessageIndexAsc(session);
         for (int i = 0; i < chatMessages.size(); i++) {
@@ -406,6 +362,6 @@ public class ChatService {
     }
 
     public List<ModelDTO> getAvailableModels() {
-        return AVAILABLE_MODELS;
+        return AiConfig.AVAILABLE_CHAT_MODELS;
     }
 }

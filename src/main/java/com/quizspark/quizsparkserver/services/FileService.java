@@ -157,7 +157,6 @@ public class FileService {
 
     @Transactional
     public FileDTO createNoteFile(String fileId) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         DbFile originalFile = getFileEntityWithContent(fileId);
         if (!"application/pdf".equals(originalFile.getFileType())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Derived files can only be created from PDFs");
