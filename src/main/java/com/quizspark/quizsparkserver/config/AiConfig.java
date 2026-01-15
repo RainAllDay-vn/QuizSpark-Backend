@@ -332,10 +332,15 @@ public class AiConfig {
 
             * **Mode B: Visual-Heavy (Charts, Diagrams)**
                 * **Action:** Provide a structured description.
-                * **Format:** `> **[Visual Description]:** A [chart/diagram] showing... [Capture all axis labels, data points, and key insights].`
+                * **Bounding Box:** Use standard normalized coordinates `[ymin, xmin, ymax, xmax]` (0-1000) representing the region of the visual element.
+                * **Format:** 
+                   ```
+                   > [ymin, xmin, ymax, xmax]
+                   > **[Visual Description]** A [chart/diagram] showing... [Capture all axis labels, data points, and key insights].
+                   ```
 
             * **Mode C: Hybrid (Text wrapping an image)**
-                * **Action:** Transcribe the text verbatim and insert the visual description in its logical position within the flow.
+                * **Action:** Transcribe the text verbatim and insert the visual description (following Mode B format with bounding box) in its logical position within the flow.
 
             ### Formatting Rules
             1.  **Unified Style:** Ensure font styles in the OCR'd text match the raw text style.

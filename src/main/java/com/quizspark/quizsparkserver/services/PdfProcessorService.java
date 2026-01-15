@@ -28,6 +28,13 @@ import javax.imageio.ImageIO;
 
 @Service
 public class PdfProcessorService {
+
+    private final FileService fileService;
+
+    public PdfProcessorService(FileService fileService) {
+        this.fileService = fileService;
+    }
+
     public List<ProcessedPageDTO> splitPages(DbFile dbFile) {
         List<ProcessedPageDTO> pages = new ArrayList<>();
 
@@ -115,5 +122,46 @@ public class PdfProcessorService {
         } catch (IOException e) {
             throw new RuntimeException("Error processing PDF: " + e.getMessage(), e);
         }
+    }
+
+    public List<String> cropImages(DbFile file, List<List<Integer>> crops) {
+        List<String> urls = new ArrayList<>();
+        try (PDDocument document = PDDocument.load(file.getData())) {
+            PDFRenderer pdfRenderer = new PDFRenderer(document);
+            for (List<Integer> crop : crops) {
+                if (crop.size() < 5) continue;
+                int pageIndex = crop.get(0);
+                int ymin = crop.get(1);
+                int xmin = crop.get(2);
+                int ymax = crop.get(3);
+                int xmax = crop.get(4);
+
+                BufferedImage bim = pdfRenderer.renderImageWithDPI(pageIndex, 300, ImageType.RGB);
+                int W = bim.getWidth();
+                int H = bim.getHeight();
+
+                int x = Math.max(0, xmin * W / 1000);
+                int y = Math.max(0, ymin * H / 1000);
+                int w = Math.min(W - x, (xmax - xmin) * W / 1000);
+                int h = Math.min(H - y, (ymax - ymin) * H / 1000);
+
+                if (w <= 0 || h <= 0) {
+                    urls.add(null);
+                    continue;
+                }
+
+                BufferedImage cropped = bim.getSubimage(x, y, w, h);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(cropped, "png", baos);
+                byte[] croppedBytes = baos.toByteArray();
+
+                String fileName = "crop_" + pageIndex + "_" + System.currentTimeMillis() + ".png";
+                DbFile savedFile = fileService.createOrUpdateDerivedFile(file, fileName, croppedBytes);
+                urls.add("/api/v1/files/" + savedFile.getId() + "/view");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error cropping images: " + e.getMessage(), e);
+        }
+        return urls;
     }
 }

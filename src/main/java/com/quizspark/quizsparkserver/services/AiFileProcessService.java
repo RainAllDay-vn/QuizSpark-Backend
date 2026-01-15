@@ -24,6 +24,8 @@ import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
 
@@ -202,6 +204,12 @@ public class AiFileProcessService {
             imageIndices.add(i);
         }
         if (imageIndices.isEmpty()) {
+            try {
+                String jsonString = mapper.writeValueAsString(pages);
+                sink.next(AiResponseDTO.builder().status("classify").data(jsonString).build());
+            } catch (JsonProcessingException e) {
+                log.error("Failed to save classification result: {}", e.getMessage());
+            }
             return pages;
         }
 
@@ -342,10 +350,48 @@ public class AiFileProcessService {
 
             if (content != null && !content.isEmpty()) {
                 String[] pageParts = content.split("---\n");
+
+                // Parse Bounding Boxes and Crop
+                List<List<Integer>> allCrops = new ArrayList<>();
+                Pattern cropPattern = Pattern.compile("(?m)^>\\s*\\[\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*\\]");
+                
+                // First pass: collect all crops from all pages in batch
+                for (int i = 0; i < pageIndexes.size(); i++) {
+                    if (i < pageParts.length) {
+                        Matcher matcher = cropPattern.matcher(pageParts[i]);
+                        while (matcher.find()) {
+                            allCrops.add(List.of(
+                                pageIndexes.get(i),
+                                Integer.parseInt(matcher.group(1)),
+                                Integer.parseInt(matcher.group(2)),
+                                Integer.parseInt(matcher.group(3)),
+                                Integer.parseInt(matcher.group(4))
+                            ));
+                        }
+                    }
+                }
+
+                // Process all crops in one go
+                List<String> imageUrls = allCrops.isEmpty() ? new ArrayList<>() : pdfProcessorService.cropImages(file, allCrops);
+                int urlCounter = 0;
+
+                // Second pass: replace coordinates with URLs
                 for (int i = 0; i < pageIndexes.size(); i++) {
                     ProcessedPageDTO page = pages.get(pageIndexes.get(i));
                     if (i < pageParts.length) {
-                        page.setText(pageParts[i].trim());
+                        String pageText = pageParts[i];
+                        Matcher matcher = cropPattern.matcher(pageText);
+                        StringBuilder sb = new StringBuilder();
+                        while (matcher.find()) {
+                            String url = imageUrls.get(urlCounter++);
+                            if (url != null) {
+                                matcher.appendReplacement(sb, "![Extracted Image](" + url + ")");
+                            } else {
+                                matcher.appendReplacement(sb, matcher.group(0));
+                            }
+                        }
+                        matcher.appendTail(sb);
+                        page.setText(sb.toString().trim());
                         page.setExtracted(true);
                     } else {
                         log.error("[AI ERROR: No Content Generated] - File {}, pageIndex {}", file.getId().toString(), pageIndexes.get(i));

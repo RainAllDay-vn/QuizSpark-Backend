@@ -1,6 +1,7 @@
 HELP.md
 backend-private-key.json
 qdrant_storage
+.kilocode
 .gradle
 .env
 build/

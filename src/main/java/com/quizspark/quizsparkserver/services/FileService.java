@@ -218,6 +218,11 @@ public class FileService {
 
     @Transactional
     public DbFile createOrUpdateDerivedFile(DbFile baseFileRef, String fileName, String content) {
+        return createOrUpdateDerivedFile(baseFileRef, fileName, content.getBytes());
+    }
+
+    @Transactional
+    public DbFile createOrUpdateDerivedFile(DbFile baseFileRef, String fileName, byte[] data) {
         // Reload baseFile to ensure it is attached to the current session
         DbFile baseFile = fileRepository.findById(baseFileRef.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Original file not found"));
@@ -225,17 +230,21 @@ public class FileService {
         String fileType = "application/octet-stream";
         if (fileName.endsWith(".md")) {
             fileType = "text/markdown";
+        } else if (fileName.endsWith(".png")) {
+            fileType = "image/png";
+        } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+            fileType = "image/jpeg";
         }
 
         Optional<DbFile> existing = getDerivedFile(baseFile, fileName);
         if (existing.isPresent()) {
             DbFile derivedFile = existing.get();
             derivedFile.setFileType(fileType);
-            derivedFile.setData(content.getBytes());
+            derivedFile.setData(data);
             return fileRepository.save(derivedFile);
         }
 
-        DbFile derivedFile = new DbFile(fileName, fileType, content.getBytes(), baseFile.getUser());
+        DbFile derivedFile = new DbFile(fileName, fileType, data, baseFile.getUser());
         derivedFile.setOriginFile(baseFile);
         return fileRepository.save(derivedFile);
     }
