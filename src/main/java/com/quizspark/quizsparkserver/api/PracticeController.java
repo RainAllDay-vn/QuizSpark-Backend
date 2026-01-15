@@ -1,9 +1,7 @@
 package com.quizspark.quizsparkserver.api;
 
-import com.quizspark.quizsparkserver.dto.practice.PracticeAnswerResponseDTO;
+import com.quizspark.quizsparkserver.dto.practice.*;
 import com.quizspark.quizsparkserver.dto.repositories.PageResponseDTO;
-import com.quizspark.quizsparkserver.dto.practice.PracticeAnswerDTO;
-import com.quizspark.quizsparkserver.dto.practice.PracticeDTO;
 import com.quizspark.quizsparkserver.services.PracticeService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,8 +30,9 @@ public class PracticeController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "true") boolean shuffle,
             @RequestParam(defaultValue = "true") boolean revealAnswer,
-            @RequestParam(defaultValue = "") List<String> tags) {
-        UUID practiceId = practiceService.startNewPractice(bankId, size, shuffle, revealAnswer, tags);
+            @RequestParam(defaultValue = "") List<String> tags,
+            @RequestParam(defaultValue = "false") boolean endlessMode) {
+        UUID practiceId = practiceService.startNewPractice(bankId, size, shuffle, revealAnswer, tags, endlessMode);
         HashMap<Object, Object> body = new HashMap<>();
         body.put("id", practiceId.toString());
         return new ResponseEntity<>(body, HttpStatus.CREATED);
@@ -89,5 +88,22 @@ public class PracticeController {
         HashMap<Object, Object> body = new HashMap<>();
         body.put("id", newPracticeId.toString());
         return new ResponseEntity<>(body, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/id/{practiceId}/fetch")
+    public ResponseEntity<List<PracticeQuestionDTO>> fetchQuestions(@PathVariable String practiceId,
+                                                                  @RequestBody PracticeFetchRequestDTO request) {
+        List<PracticeQuestionDTO> body = practiceService.fetchNextQuestionsManual(
+                practiceId,
+                request.getNumberOfQuestions(),
+                request.getAiQuestions());
+        return new ResponseEntity<>(body, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/id/{practiceId}/questions/{index}")
+    public ResponseEntity<Object> discardQuestion(@PathVariable String practiceId,
+                                                @PathVariable int index) {
+        practiceService.discardQuestion(practiceId, index);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }

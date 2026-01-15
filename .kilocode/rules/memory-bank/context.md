@@ -25,8 +25,13 @@ Initial setup of the architectural documentation (Memory Bank) to enable effecti
 -   Configured physical cascading deletes for `QuestionBank` using Hibernate's `@OnDelete(action = OnDeleteAction.CASCADE)` on dependent entities and join tables. Added programmatic cleanup in `QuestionService` and `TagService` to handle referential integrity with many-to-many associations and soft-deleted questions.
 -   Refactored `AiFileProcessService` to use `---` instead of `<|PAGE_SPLIT_TOKEN|>` for PDF page separation and added explicit instructions to the AI model to reserve `---` strictly for page breaks.
 -   Restricted `Practice` to a single `QuestionBank` by adding a `ManyToOne` relationship to `Practice`, updating the creation/duplication logic in `PracticeService`, and adding validation in the `Practice` constructor to ensure all questions belong to the associated bank.
+-   Implemented database and DTO changes for the "Endless Mode" feature. Added `endlessMode` and `aiScratchPad` fields to `Practice` model and `PracticeDTO`. Updated `PracticeService` and `PracticeController` to support creating practices in endless mode.
+-   Implemented "Adaptive Question Fetching" logic in `PracticeService`.
+-   Created `AiService` to handle adaptive question generation using history and scratchpad.
+-   Refactored "Endless Practice" to use manual on-demand fetching instead of automatic fetching.
+-   Added `POST /api/v1/practice/{practiceId}/fetch` and `DELETE /api/v1/practice/{practiceId}/questions/{index}` endpoints.
 
 ## Next Steps
-1.  Complete Memory Bank initialization (`architecture.md`, `tech.md`).
-2.  Verify system understanding with the user.
-3.  Await further development tasks (e.g., bug fixes, new features, testing).
+1.  Verify the new manual fetch and discard endpoints for Endless Mode.
+2.  Complete Memory Bank initialization (`architecture.md`, `tech.md`).
+3.  Verify system understanding with the user.

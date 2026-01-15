@@ -44,7 +44,17 @@ public class Practice {
     @Column(nullable = false)
     private Date date = new Date();
 
+    @Column(nullable = false)
+    private boolean endlessMode = false;
+
+    @Column(columnDefinition = "TEXT")
+    private String aiScratchPad;
+
     public Practice(User user, QuestionBank questionBank, List<Question> questions, boolean shuffleAnswer, boolean revealAnswer) {
+        this(user, questionBank, questions, shuffleAnswer, revealAnswer, false);
+    }
+
+    public Practice(User user, QuestionBank questionBank, List<Question> questions, boolean shuffleAnswer, boolean revealAnswer, boolean endlessMode) {
         this.user = user;
         this.questionBank = questionBank;
         this.practiceQuestion = new ArrayList<>(questions.size());
@@ -56,5 +66,6 @@ public class Practice {
             this.practiceQuestion.add(new PracticeQuestion(this, i, question, shuffleAnswer));
         }
         this.revealAnswer = revealAnswer;
+        this.endlessMode = endlessMode;
     }
 }

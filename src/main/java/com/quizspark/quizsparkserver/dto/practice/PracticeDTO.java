@@ -25,6 +25,8 @@ public class PracticeDTO {
     private List<PracticeQuestionDTO> questions;
     private boolean closed;
     private Date date;
+    private boolean endlessMode;
+    private String aiScratchPad;
 
     public PracticeDTO(Practice practice) {
         this.practice = practice;
@@ -56,6 +58,8 @@ public class PracticeDTO {
         this.numberOfQuestion = practice.getPracticeQuestion().size();
         this.closed = practice.isClosed();
         this.date = practice.getDate();
+        this.endlessMode = practice.isEndlessMode();
+        this.aiScratchPad = practice.getAiScratchPad();
     }
 
     public PracticeDTO appendQuestions() {
