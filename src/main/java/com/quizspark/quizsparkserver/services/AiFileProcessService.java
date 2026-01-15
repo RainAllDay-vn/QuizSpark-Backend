@@ -15,6 +15,7 @@ import org.springframework.ai.model.Media;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
@@ -150,11 +151,13 @@ public class AiFileProcessService {
     public Flux<AiResponseDTO> extractContentFromPdf(DbFile file) {
         return Flux.<AiResponseDTO>create(sink -> {
             try {
-                sink.next(AiResponseDTO.builder().status("analyze").build());
+                sink.next(AiResponseDTO.builder().status("start").build());
                 // Start stage 1: Generate classification of page type and text density
-                List<ProcessedPageDTO> classifiedPages = classifyPages(file);
-                // Start stage 2: Parse content from pages requiring vision
-                List<ProcessedPageDTO> extractedPages = extractContent(file, classifiedPages);
+                List<ProcessedPageDTO> pages = classifyPages(file, sink);
+                // Start stage 2: Parse content from pages 
+                pages = extractContent(file, pages, sink);
+                // Start stage 3: Convert content to a md file and save to the DB.
+                pages = saveAsMarkdown(file, pages, sink);
 
                 sink.next(AiResponseDTO.builder().status("finish").build());
                 sink.complete();
@@ -165,7 +168,7 @@ public class AiFileProcessService {
                 .subscribeOn(Schedulers.boundedElastic());
     }
 
-    private List<ProcessedPageDTO> classifyPages(DbFile file) {
+    private List<ProcessedPageDTO> classifyPages(DbFile file, FluxSink<AiResponseDTO> sink) {
         List<ProcessedPageDTO> pages;
         Optional<DbFile> resultFileOptional = fileService.getDerivedFileWithContent(file, "CLASSIFY RESULTS.json");
         if (resultFileOptional.isPresent()) {
@@ -196,14 +199,11 @@ public class AiFileProcessService {
         UserMessage userMessage = new UserMessage(AiConfig.IMAGE_SORTER_INSTRUCTIONS, mediaList); // Using static final constant
         Prompt prompt = new Prompt(userMessage,
                 OpenAiChatOptions.builder().model(AiConfig.IMAGE_MODEL).build());
-        System.out.println("Start Classification");
         ChatResponse response = chatModel.call(prompt);
 
         if (response != null && response.getResult() != null) {
             Generation generation = response.getResult();
             String content = generation.getOutput().getContent();
-            System.out.println("Classification Response: ");
-            System.out.println(content);
             ObjectMapper mapper = new ObjectMapper();
             try {
                 List<TextDensityResponseDTO> results = mapper.readValue(content, new TypeReference<>() {});
@@ -225,13 +225,16 @@ public class AiFileProcessService {
         try {
             String jsonString = mapper.writeValueAsString(pages);
             fileService.createOrUpdateDerivedFile(file, "CLASSIFY RESULTS.json", jsonString);
+            if (sink != null) {
+                sink.next(AiResponseDTO.builder().status("classify").data(jsonString).build());
+            }
         } catch (JsonProcessingException e) {
             log.error("Failed to save classification result: {}", e.getMessage());
         }
         return pages;
     }
 
-    public List<ProcessedPageDTO> extractContent(DbFile file, List<ProcessedPageDTO> pages) {
+    public List<ProcessedPageDTO> extractContent(DbFile file, List<ProcessedPageDTO> pages, FluxSink<AiResponseDTO> sink) {
         Optional<DbFile> resultFileOptional = fileService.getDerivedFileWithContent(file, "EXTRACT RESULTS.json");
         if (resultFileOptional.isPresent()) {
             DbFile resultFile = resultFileOptional.get();
@@ -247,6 +250,9 @@ public class AiFileProcessService {
         final double BUCKET_LIMIT = 4000.0;
 
         for (int i=0; i<pages.size(); i++) {
+            if (sink != null) {
+                sink.next(AiResponseDTO.builder().status("progress").current(i).total(pages.size()).build());
+            }
             ProcessedPageDTO page = pages.get(i);
             if (page.isExtracted()) continue;
             double itemCost = calculateCost(page);
@@ -263,6 +269,14 @@ public class AiFileProcessService {
 
         if (currentBatchCost > 0) {
             processBatch(file, pages, currentBatchPageIndexes);
+        }
+        if (sink != null) {
+            try {
+                String finalJson = mapper.writeValueAsString(pages);
+                sink.next(AiResponseDTO.builder().status("extract").data(finalJson).build());
+            } catch (JsonProcessingException e) {
+                log.error("Failed to serialize final result", e);
+            }
         }
         return pages;
     }
@@ -340,6 +354,19 @@ public class AiFileProcessService {
         } catch (Exception e) {
             log.error("[AI ERROR: No Content Generated] - File {}", file.getId().toString(), e);
         }
+    }
+
+    private List<ProcessedPageDTO> saveAsMarkdown(DbFile file, List<ProcessedPageDTO> pages, FluxSink<AiResponseDTO> sink) {
+        StringBuilder content = new StringBuilder();
+        for (int i=0; i<pages.size(); i++) {
+            ProcessedPageDTO page = pages.get(i);
+            content.append(page.getText())
+                    .append('\n');
+            if (i != pages.size()-1) content.append("---\n");
+        }
+        fileService.createOrUpdateDerivedFile(file, "CONTENT.md", content.toString());
+        sink.next(AiResponseDTO.builder().status("content").data(content.toString()).build());
+        return pages;
     }
 
     private Flux<AiResponseDTO> streamAndParseJson(Prompt prompt) {

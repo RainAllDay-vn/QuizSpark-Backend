@@ -14,4 +14,6 @@ public class AiResponseDTO {
     private String status;
     private String message;
     private String data;
+    private Integer current;
+    private Integer total;
 }

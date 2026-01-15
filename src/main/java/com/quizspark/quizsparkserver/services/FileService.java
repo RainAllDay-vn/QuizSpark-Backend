@@ -180,7 +180,11 @@ public class FileService {
     }
 
     @Transactional
-    public DbFile createOrUpdateDerivedFile(DbFile baseFile, String fileName, String content) {
+    public DbFile createOrUpdateDerivedFile(DbFile baseFileRef, String fileName, String content) {
+        // Reload baseFile to ensure it is attached to the current session
+        DbFile baseFile = fileRepository.findById(baseFileRef.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Original file not found"));
+
         String fileType = "application/octet-stream";
         if (fileName.endsWith(".md")) {
             fileType = "text/markdown";
