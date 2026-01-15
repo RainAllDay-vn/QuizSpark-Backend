@@ -5,10 +5,11 @@ import com.quizspark.quizsparkserver.dto.practice.PracticeDTO;
 import com.quizspark.quizsparkserver.dto.practice.PracticeQuestionDTO;
 import com.quizspark.quizsparkserver.dto.questions.QuestionCommentDTO;
 import com.quizspark.quizsparkserver.dto.tags.TagDTO;
-import com.quizspark.quizsparkserver.models.PracticeStatistic;
 import com.quizspark.quizsparkserver.models.*;
 import com.quizspark.quizsparkserver.repositories.PracticeQuestionRepository;
 import com.quizspark.quizsparkserver.repositories.PracticeRepository;
+import com.quizspark.quizsparkserver.services.AiService.AdaptiveGenerationResponse;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -18,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class PracticeService {
@@ -109,7 +109,7 @@ public class PracticeService {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (!practice.getUser().equals(user))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this practice");
-        practice.getPracticeQuestion().sort(Comparator.comparingInt(q -> q.getId().getIndex()));
+        practice.getPracticeQuestion().sort(Comparator.comparingInt(PracticeQuestion::getIndex));
         return practice;
     }
 
@@ -185,60 +185,41 @@ public class PracticeService {
     }
 
     @Transactional
-    public List<PracticeQuestionDTO> fetchNextQuestionsManual(String practiceId, int numberOfQuestions, int aiQuestions) {
+    public List<PracticeQuestionDTO> fetchNextQuestions(String practiceId, int numberOfQuestions, int numberOfAiQuestions) {
         Practice practice = getPracticeEntity(practiceId);
         if (!practice.isEndlessMode()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This practice is not in endless mode");
         }
-
-        List<PracticeQuestion> currentQuestions = practice.getPracticeQuestion();
-        Set<UUID> usedQuestionIds = currentQuestions.stream()
-                .map(pq -> pq.getBaseQuestion() != null ? pq.getBaseQuestion().getId() : null)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        List<Question> questionsToAdd = new ArrayList<>();
-        int questionsFromDbNeeded = numberOfQuestions - aiQuestions;
-
+        QuestionBank questionBank = practice.getQuestionBank();
+        List<Question> questions = questionBank.getQuestions();
+        if (numberOfQuestions > questions.size() || numberOfAiQuestions > numberOfQuestions) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid settings");
+        }
+        
+        List<PracticeQuestion> practiceQuestionsToAdd = new ArrayList<>();
+        questions = sortByRelevantScore(questions);
+        int questionsFromDbNeeded = numberOfQuestions - numberOfAiQuestions;
         if (questionsFromDbNeeded > 0) {
-            QuestionBank bank = practice.getQuestionBank();
-            List<Question> unseenQuestions = bank.getQuestions().stream()
-                    .filter(q -> !usedQuestionIds.contains(q.getId()))
+            List<PracticeQuestion> practiceQuestionsFromBank = questions.stream()
                     .limit(questionsFromDbNeeded)
+                    .map(question -> new PracticeQuestion(practice, -1, question, true))
                     .toList();
-            questionsToAdd.addAll(unseenQuestions);
+            practiceQuestionsToAdd.addAll(practiceQuestionsFromBank);
         }
-
-        int shortfall = Math.max(0, questionsFromDbNeeded - (questionsToAdd.size()));
-        int totalAiNeeded = aiQuestions + shortfall;
-
-        if (totalAiNeeded > 0) {
-            AiService.AdaptiveGenerationResponse aiResponse = aiService.generateAdaptiveQuestions(practice, totalAiNeeded);
+        if (numberOfAiQuestions > 0) {
+            AdaptiveGenerationResponse aiResponse = aiService.generateAdaptiveQuestions(practice, numberOfAiQuestions);
             practice.setAiScratchPad(aiResponse.getScratchPad());
-            
-            QuestionBank bank = practice.getQuestionBank();
-            List<Question> generatedQuestions = questionService.saveAllQuestions(bank.getId().toString(), aiResponse.getQuestions())
+            List<PracticeQuestion> practiceQuestionsFromAi = aiResponse.getQuestions()
                     .stream()
-                    .map(dto -> questionService.getQuestionEntityById(dto.getId().toString()))
+                    .map(questionDTO -> questionDTO.toQuestion(null))
+                    .map(question -> new PracticeQuestion(null, -1, question, true))
                     .toList();
-            questionsToAdd.addAll(generatedQuestions);
+            practiceQuestionsToAdd.addAll(practiceQuestionsFromAi);
         }
 
-        int nextIndex = currentQuestions.stream()
-                .mapToInt(pq -> pq.getId().getIndex())
-                .max()
-                .orElse(-1) + 1;
-
-        List<PracticeQuestion> newPracticeQuestions = new ArrayList<>();
-        for (Question q : questionsToAdd) {
-            PracticeQuestion pq = new PracticeQuestion(practice, nextIndex++, q, true);
-            newPracticeQuestions.add(pq);
-        }
-
-        practice.getPracticeQuestion().addAll(newPracticeQuestions);
+        practice.getPracticeQuestion().addAll(practiceQuestionsToAdd);
         practiceRepository.save(practice);
-
-        return newPracticeQuestions.stream().map(PracticeQuestionDTO::new).toList();
+        return practiceQuestionsToAdd.stream().map(PracticeQuestionDTO::new).toList();
     }
 
     @Transactional

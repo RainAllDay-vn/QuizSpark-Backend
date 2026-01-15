@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface PracticeQuestionRepository
-        extends JpaRepository<PracticeQuestion, PracticeQuestion.PracticeQuestionId> {
+        extends JpaRepository<PracticeQuestion, UUID> {
     @Query("""
             SELECT pq
             FROM PracticeQuestion pq
@@ -26,7 +26,7 @@ public interface PracticeQuestionRepository
             FROM PracticeQuestion pq
             LEFT JOIN FETCH pq.practice
             WHERE pq.practice.id = :practiceID
-               AND pq.id.index = :index
+               AND pq.index = :index
             """)
     Optional<PracticeQuestion> findByPracticeAndIndex(UUID practiceID, int index);
 

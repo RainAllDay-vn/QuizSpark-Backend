@@ -32,7 +32,7 @@ public class PracticeQuestionDTO {
 
     public PracticeQuestionDTO(PracticeQuestion practiceQuestion) {
         this.practiceQuestion = practiceQuestion;
-        this.index = practiceQuestion.getId().getIndex();
+        this.index = practiceQuestion.getIndex();
         this.baseQuestionId = practiceQuestion.getBaseQuestion().getId().toString();
         this.type = practiceQuestion.getQuestionType().toString();
         this.tags = practiceQuestion.getTags().stream()

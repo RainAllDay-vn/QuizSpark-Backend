@@ -93,7 +93,7 @@ public class PracticeController {
     @PostMapping("/id/{practiceId}/fetch")
     public ResponseEntity<List<PracticeQuestionDTO>> fetchQuestions(@PathVariable String practiceId,
                                                                   @RequestBody PracticeFetchRequestDTO request) {
-        List<PracticeQuestionDTO> body = practiceService.fetchNextQuestionsManual(
+        List<PracticeQuestionDTO> body = practiceService.fetchNextQuestions(
                 practiceId,
                 request.getNumberOfQuestions(),
                 request.getAiQuestions());

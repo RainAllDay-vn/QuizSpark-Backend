@@ -40,7 +40,7 @@ public class AiService {
         String scratchPad = practice.getAiScratchPad();
         List<PracticeQuestion> recentQuestions = practice.getPracticeQuestion().stream()
                 .filter(PracticeQuestion::isClosed)
-                .sorted((a, b) -> b.getId().getIndex() - a.getId().getIndex()) // Recent first
+                .sorted((a, b) -> b.getIndex() - a.getIndex()) // Recent first
                 .limit(10)
                 .collect(Collectors.toList());
 

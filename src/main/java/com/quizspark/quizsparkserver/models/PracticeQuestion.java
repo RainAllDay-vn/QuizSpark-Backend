@@ -2,7 +2,6 @@ package com.quizspark.quizsparkserver.models;
 
 import com.quizspark.quizsparkserver.dto.tags.TagDTO;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -11,7 +10,6 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.type.SqlTypes;
 
-import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,39 +26,16 @@ import static com.quizspark.quizsparkserver.models.Question.QuestionType.SINGLE_
 @NoArgsConstructor
 public class PracticeQuestion {
 
-    @Embeddable
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class PracticeQuestionId implements Serializable {
-        private UUID practiceId;
-        private Integer index;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o)
-                return true;
-            if (o == null || getClass() != o.getClass())
-                return false;
-            PracticeQuestionId that = (PracticeQuestionId) o;
-            return Objects.equals(practiceId, that.practiceId) &&
-                    Objects.equals(index, that.index);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(practiceId, index);
-        }
-    }
-
-    @EmbeddedId
-    private PracticeQuestionId id = new PracticeQuestionId();
-
-    @MapsId("practiceId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "practice_id", nullable = false)
     private Practice practice;
+
+    @Column(name = "question_index")
+    private int index;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "base_question_id")
@@ -91,8 +66,8 @@ public class PracticeQuestion {
     private Integer secondsToAnswer = null;
 
     public PracticeQuestion(Practice practice, int index, Question baseQuestion, boolean shuffleAnswer) {
-        this.id = new PracticeQuestionId(practice.getId(), index);
         this.practice = practice;
+        this.index = index;
         this.baseQuestion = baseQuestion;
 
         // Copy question data
