@@ -21,7 +21,7 @@ Located in `src/main/java/com/quizspark/quizsparkserver/services/`.
 -   **Responsibilities**: Core application logic, transaction management, and orchestration.
 -   **Key Services**:
     -   `AiService`: Heaviest logic component. Handles prompts, interactions with Spring AI (OpenAI), PDF processing strategies (text density classification, batching), and result parsing.
-    -   `ChatService`: Manages chat sessions, message history, and interfacing with various LLM models (DeepSeek, Qwen) via Spring AI.
+    -   `ChatService`: Manages chat sessions, message history, and interfacing with various LLM models (Gemini, Claude) via Spring AI.
     -   `PracticeService`: Logic for generating practice sets, calculating statistics, and recording progress.
     -   `PdfProcessorService`: PDF to image conversion (Apache PDFBox) and page splitting.
 
@@ -43,7 +43,7 @@ Located in `src/main/java/com/quizspark/quizsparkserver/repositories/`.
 
 ## Key Technical Decisions
 
--   **Spring AI**: Chosen for centralized AI orchestration. Allows switching between models (OpenAI, DeepSeek, etc.) via configuration.
+-   **Spring AI**: Chosen for centralized AI orchestration. Allows switching between models (OpenAI, Gemini, Claude, etc.) via configuration.
 -   **Server-Sent Events (SSE)**: Used in `AiController` and `ChatController` (`Flux<ReturnType>`) to stream AI responses to the client, improving perceived latency.
 -   **PDF Processing Pipeline**:
     -   Complex logic in `AiService` to handle huge PDFs.

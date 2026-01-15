@@ -9,38 +9,18 @@ public class AiConfig {
     // Model Names
     public static final String TEXT_MODEL = "gemini-3-pro-high";
     public static final String IMAGE_MODEL = "gemini-3-flash";
-    public static final String CHAT_DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3.2-TEE";
+    public static final String CHAT_DEFAULT_MODEL = "gemini-3-pro-high";
 
     public static final List<ModelDTO> AVAILABLE_CHAT_MODELS = List.of(
-            // DeepSeek V3.2 (Released Dec 2025) - Supports Reasoning/Thinking Mode
-            new ModelDTO("deepseek-v3.2", "deepseek-ai/DeepSeek-V3.2-TEE", "DeepSeek V3.2 TEE",
-                    List.of(ModelCharacteristic.REASONING)),
-            // Qwen 3 235B (Released July 2025) - Features "Thinking Mode" and dual-mode
-            // switching
-            new ModelDTO("qwen-3-235b", "Qwen/Qwen3-235B-A22B-Instruct-2507-TEE", "Qwen 3 235B TEE",
-                    List.of(ModelCharacteristic.REASONING)),
-            // GLM 4.7 (Released late 2025) - Features "Interleaved Thinking"
-            new ModelDTO("glm-4.7", "zai-org/GLM-4.7-TEE", "GLM 4.7 TEE",
-                    List.of(ModelCharacteristic.REASONING)),
-            // Kimi K2 Thinking (Released Nov 2025) - Native Thinking Agent
-            new ModelDTO("kimi-k2", "moonshotai/Kimi-K2-Thinking-TEE", "Kimi K2 Thinking TEE",
-                    List.of(ModelCharacteristic.REASONING)),
-            // Hermes 4 405B (Released late 2025) - Hybrid Reasoning capabilities
-            new ModelDTO("hermes-4", "NousResearch/Hermes-4-405B-FP8-TEE", "Hermes 4 405B TEE",
-                    List.of(ModelCharacteristic.REASONING)),
-            // MiniMax M2.1 (Released Dec 2025) - "Advanced Interleaved Thinking"
-            new ModelDTO("minimax-m2.1", "MiniMaxAI/MiniMax-M2.1-TEE", "MiniMax M2.1 TEE",
-                    List.of(ModelCharacteristic.REASONING)),
-            // Qwen 3 VL - Vision Language Model
-            new ModelDTO("qwen-3-vl", "Qwen/Qwen3-VL-235B-A22B-Instruct", "Qwen 3 VL",
-                    List.of(ModelCharacteristic.VISION)),
-            // GLM 4.6V - Vision Model (Predecessor to 4.7 text)
-            new ModelDTO("glm-4.6v", "zai-org/GLM-4.6V", "GLM 4.6V",
-                    List.of(ModelCharacteristic.VISION)),
-            // DeepSeek V3.2 Speciale - "Maxed-out reasoning capabilities"
-            new ModelDTO("deepseek-v3.2-speciale", "deepseek-ai/DeepSeek-V3.2-Speciale-TEE",
-                    "DeepSeek V3.2 Speciale TEE",
-                    List.of(ModelCharacteristic.REASONING)));
+            // Gemini 3 Flash
+            new ModelDTO("gemini-3-flash", "gemini-3-flash", "Gemini 3 Flash",
+                    List.of(ModelCharacteristic.REASONING, ModelCharacteristic.VISION)),
+            // Gemini 3 Pro High
+            new ModelDTO("gemini-3-pro-high", "gemini-3-pro-high", "Gemini 3 Pro High",
+                    List.of(ModelCharacteristic.REASONING, ModelCharacteristic.VISION)),
+            // Claude Opus 4.5 Thinking
+            new ModelDTO("claude-opus-4.5-thinking", "claude-opus-4.5-thinking", "Claude Opus 4.5 Thinking",
+                    List.of(ModelCharacteristic.REASONING, ModelCharacteristic.VISION)));
 
     // Prompts - Adaptive Learning (AiService)
     public static final String ADAPTIVE_GENERATION_PROMPT = """

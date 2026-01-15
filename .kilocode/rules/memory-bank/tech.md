@@ -26,9 +26,9 @@ This document outlines the technologies, libraries, and tools used in the QuizSp
 
 -   **Framework**: Spring AI (`org.springframework.ai:spring-ai-openai-spring-boot-starter`)
 -   **Models**:
-    -   **Text**: `Qwen/Qwen3-Next-80B-A3B-Instruct` (via OpenAI compatible API)
-    -   **Vision**: `Qwen/Qwen3-VL-235B-A22B-Instruct`
-    -   **Chat**: Supports DeepSeek V3.2, Qwen 3, GLM 4.7, etc. via `ChatService`.
+    -   **Text**: `gemini-3-pro-high` (via OpenAI compatible API)
+    -   **Vision**: `gemini-3-flash`
+    -   **Chat**: Supports Gemini 3 Pro High, Gemini 3 Flash, and Claude Opus 4.5 Thinking via `ChatService`.
 -   **PDF Processing**: Apache PDFBox (`org.apache.pdfbox:pdfbox:2.0.30`) for rendering PDF pages to images.
 
 ## API & Communication

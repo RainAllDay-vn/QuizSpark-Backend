@@ -31,6 +31,9 @@ Initial setup of the architectural documentation (Memory Bank) to enable effecti
 -   Refactored "Endless Practice" to use manual on-demand fetching instead of automatic fetching.
 -   Added `POST /api/v1/practice/{practiceId}/fetch` and `DELETE /api/v1/practice/{practiceId}/questions/{index}` endpoints.
 -   Removed soft delete logic for `Question` entity, including removing `@SQLRestriction` from `QuestionBank` and cleaning up related logic in `TagService`.
+-   Replaced available chat models in `AiConfig` with Gemini 3 Flash, Gemini 3 Pro High, and Claude Opus 4.5 Thinking.
+-   Updated `CHAT_DEFAULT_MODEL` to `gemini-3-pro-high`.
+-   Updated Memory Bank (`tech.md`, `architecture.md`) to reflect the model changes.
 
 ## Next Steps
 1.  Verify the new manual fetch and discard endpoints for Endless Mode.
