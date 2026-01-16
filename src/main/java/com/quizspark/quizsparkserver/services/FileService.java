@@ -158,6 +158,9 @@ public class FileService {
 
     @Transactional
     public void deleteFile(String fileId) {
+        if (fileId == null) {
+            return;
+        }
         DbFile file = getFileEntity(fileId);
         if (!canEdit(file))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to delete this file");
@@ -165,7 +168,12 @@ public class FileService {
             bank.getFiles().remove(file);
         }
         file.getQuestionBanks().clear();
-        
+        deleteEmbedVector(fileId);
+        fileRepository.delete(file);
+    }
+
+    public void deleteEmbedVector(String fileId) {
+        if (fileId == null) return;
         try {
             // 1. Create a filter that matches the "fileId" metadata field
             Filter filter = Filter.newBuilder()
@@ -182,14 +190,13 @@ public class FileService {
                 .setCollectionName(collectionName)
                 .setPoints(selector)
                 .build();
+            if(deleteRequest == null) return;
 
             // 4. Execute the deletion and wait for it to complete (.get())
             qdrantClient.deleteAsync(deleteRequest).get();
         } catch (Exception e) {
             log.error("Failed to delete embeddings for file {}: {}", fileId, e.getMessage());
         }
-
-        fileRepository.delete(file);
     }
 
     @Transactional
@@ -261,6 +268,23 @@ public class FileService {
 
         file.setData(content.getBytes());
         return new FileDTO(fileRepository.save(file));
+    }
+
+    @Transactional
+    public FileDTO updateFileMetadata(String fileId, DbFile file) {
+        DbFile existingFile = getFileEntity(fileId);
+        if (!canEdit(existingFile))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to update this file");
+
+        if (file.getFileName() != null) {
+            existingFile.setFileName(file.getFileName());
+        }
+        if (file.getFileType() != null) {
+            existingFile.setFileType(file.getFileType());
+        }
+        existingFile.setEmbedded(file.isEmbedded());
+
+        return new FileDTO(fileRepository.save(existingFile));
     }
 
     private boolean isTextFile(DbFile file) {

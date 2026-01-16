@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -158,25 +159,54 @@ public class AiFileProcessService {
     }
 
     public Flux<AiResponseDTO> extractContentFromPdf(DbFile file) {
-        return Flux.<AiResponseDTO>create(sink -> {
-            try {
-                sink.next(AiResponseDTO.builder().status("start").build());
-                // Start stage 1: Generate classification of page type and text density
-                List<ProcessedPageDTO> pages = classifyPages(file, sink);
-                // Start stage 2: Parse content from pages 
-                pages = extractContent(file, pages, sink);
-                // Start stage 3: Convert content to a md file and save to the DB.
-                pages = saveAsMarkdown(file, pages, sink);
-                // Start stage 4: Generate Embeddings and save to file
-                generateEmbeddings(file, pages, sink);
-
-                sink.next(AiResponseDTO.builder().status("finish").build());
-                sink.complete();
-            } catch (Exception e) {
-                sink.error(e);
-            }
-        })
-                .subscribeOn(Schedulers.boundedElastic());
+        AtomicReference<List<ProcessedPageDTO>> pagesRef = new AtomicReference<>();
+        
+        return Flux.concat(
+            Flux.just(AiResponseDTO.builder().status("start").build()),
+            
+            // Stage 1: Classify
+            Flux.<AiResponseDTO>create(sink -> {
+                try {
+                    pagesRef.set(classifyPages(file, sink));
+                    sink.complete();
+                } catch (Exception e) {
+                    sink.error(e);
+                }
+            }),
+            
+            // Stage 2: Extract
+            Flux.defer(() -> Flux.<AiResponseDTO>create(sink -> {
+                try {
+                    pagesRef.set(extractContent(file, pagesRef.get(), sink));
+                    sink.complete();
+                } catch (Exception e) {
+                    sink.error(e);
+                }
+            })),
+            
+            // Stage 3: Save Markdown
+            Flux.defer(() -> Flux.<AiResponseDTO>create(sink -> {
+                try {
+                    pagesRef.set(saveAsMarkdown(file, pagesRef.get(), sink));
+                    sink.complete();
+                } catch (Exception e) {
+                    sink.error(e);
+                }
+            })),
+            
+            // Stage 4: Embeddings
+            Flux.defer(() -> Flux.<AiResponseDTO>create(sink -> {
+                try {
+                    generateEmbeddings(file, pagesRef.get(), sink);
+                    sink.complete();
+                } catch (Exception e) {
+                    sink.error(e);
+                }
+            })),
+            
+            Flux.just(AiResponseDTO.builder().status("finish").build())
+        )
+        .subscribeOn(Schedulers.boundedElastic());
     }
 
     private List<ProcessedPageDTO> classifyPages(DbFile file, FluxSink<AiResponseDTO> sink) {
@@ -400,6 +430,8 @@ public class AiFileProcessService {
                 try {
                     String jsonString = mapper.writeValueAsString(pages);
                     fileService.createOrUpdateDerivedFile(file, "EXTRACT RESULTS.json", jsonString);
+                    file.setEmbedded(false);
+                    fileService.updateFileMetadata(file.getId().toString(), file);
                 } catch (JsonProcessingException e) {
                     log.error("Failed to save extraction result: {}", e.getMessage());
                 }
@@ -426,6 +458,11 @@ public class AiFileProcessService {
 
     private void generateEmbeddings(DbFile file, List<ProcessedPageDTO> pages, FluxSink<AiResponseDTO> sink) {
         sink.next(AiResponseDTO.builder().status("next").data("embed").build());
+        if (file.isEmbedded() == true) {
+            sink.next(AiResponseDTO.builder().status("embed").build());
+            return;
+        }
+        fileService.deleteEmbedVector(file.getId().toString());
         List<Document> documents = new ArrayList<>();
         for (ProcessedPageDTO page : pages) {
             if (StringUtils.hasText(page.getText())) {
@@ -438,6 +475,7 @@ public class AiFileProcessService {
         if (!documents.isEmpty()) {
             try {
                 vectorStore.add(documents);
+                sink.next(AiResponseDTO.builder().status("embed").build());
             } catch (Exception e) {
                 log.warn("Embedding generation failed (Ollama may be down): {}", e.getMessage());
                 sink.next(AiResponseDTO.builder().status("error").data("Embedding failed: " + e.getMessage()).build());
